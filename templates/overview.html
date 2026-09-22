@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block title %}概況{% endblock %}
+{% block heading %}概況{% endblock %}
+{% block content %}
+
+<p data-testid="health">
+  健全性（直近7日 / 前7日）: イベント {{ health.recent.events }} / {{ health.prev.events }}
+  ・送信端末 {{ health.recent.terminals }} / {{ health.prev.terminals }}<br>
+  NULL率
+  tool_name {{ health.recent.null_rates.tool_name }}%/{{ health.prev.null_rates.tool_name }}%
+  skill_name {{ health.recent.null_rates.skill_name }}%/{{ health.prev.null_rates.skill_name }}%
+  context_tokens {{ health.recent.null_rates.context_tokens }}%/{{ health.prev.null_rates.context_tokens }}%
+  command_source {{ health.recent.null_rates.command_source }}%/{{ health.prev.null_rates.command_source }}%<br>
+  突合率 {{ reconciliation_rate }}%（{{ reconciliation_numerator }}/{{ reconciliation_denominator }}）
+  ・plugin_version
+  {% for version, count in plugin_versions %}{{ version }}:{{ count }} {% endfor %}
+</p>
+
+{% if import_results %}
+<h2>取込結果</h2>
+<ul>
+  {% for r in import_results %}
+  {% if r.error %}
+  <li>{{ r.file }}: 失敗（{{ r.error }}）</li>
+  {% else %}
+  <li>{{ r.file }}: {{ r.rows }} 行（破棄 {{ r.dropped }} 件）</li>
+  {% endif %}
+  {% endfor %}
+</ul>
+{% endif %}
+
+<form method="post" action="{{ url_for('import_endpoint') }}">
+  <button type="submit">CSV を取り込む</button>
+</form>
+
+<h2>日次コスト推移</h2>
+<table data-testid="daily-cost">
+  <tr><th>day</th><th>provider</th><th>合計コスト</th></tr>
+  {% for day, provider, cost in daily_cost %}
+  <tr><td>{{ day }}</td><td>{{ provider }}</td><td>{{ cost }}</td></tr>
+  {% endfor %}
+</table>
+
+<h2>利用者数・セッション数の推移</h2>
+<table data-testid="user-session-trend">
+  <tr><th>day</th><th>利用者数</th><th>セッション数</th></tr>
+  {% for day, users, sessions in user_session_trend %}
+  <tr><td>{{ day }}</td><td>{{ users }}</td><td>{{ sessions }}</td></tr>
+  {% endfor %}
+</table>
+
+<h2>permission_mode の分布</h2>
+<table data-testid="permission-mode-distribution">
+  <tr><th>値</th><th>件数</th></tr>
+  {% for value, count in permission_mode_distribution %}
+  <tr><td>{{ value }}</td><td>{{ count }}</td></tr>
+  {% endfor %}
+</table>
+
+<h2>effort_level の分布</h2>
+<table data-testid="effort-level-distribution">
+  <tr><th>値</th><th>件数</th></tr>
+  {% for value, count in effort_level_distribution %}
+  <tr><td>{{ value }}</td><td>{{ count }}</td></tr>
+  {% endfor %}
+</table>
+
+<h2>source の分布</h2>
+<table data-testid="source-distribution">
+  <tr><th>値</th><th>件数</th></tr>
+  {% for value, count in source_distribution %}
+  <tr><td>{{ value }}</td><td>{{ count }}</td></tr>
+  {% endfor %}
+</table>
+
+{% endblock %}

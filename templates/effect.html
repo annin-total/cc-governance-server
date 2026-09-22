@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block title %}effect{% endblock %}
+{% block heading %}effect 効果測定{% endblock %}
+{% block content %}
+
+<h2>イベントスタディ（相対日 0 を除く）</h2>
+<table data-testid="event-study">
+  <tr><th>相対日</th><th>分母人数</th><th>1人あたりコスト</th><th>1人あたり入力トークン</th><th></th></tr>
+  {% for relative_day, denominator, cost, tokens in study %}
+  <tr>
+    <td>{{ relative_day }}</td>
+    <td>{{ denominator }}</td>
+    <td>{{ cost }}</td>
+    <td>{{ tokens }}</td>
+    <td><div class="rate-bar"><span style="width: {{ [cost * 10, 100] | min }}%;"></span></div></td>
+  </tr>
+  {% endfor %}
+</table>
+
+<h2>コンテキスト分布（PreCompact）</h2>
+{% if context_pre_compact.before %}
+<table data-testid="context-precompact-before">
+  <tr><th>ビン</th><th>件数</th></tr>
+  {% for bin, count in context_pre_compact.before %}
+  <tr><td>{{ bin }}</td><td>{{ count }}</td></tr>
+  {% endfor %}
+</table>
+{% else %}
+<p data-testid="context-precompact-before-empty">準拠前: データなし</p>
+{% endif %}
+{% if context_pre_compact.after %}
+<table data-testid="context-precompact-after">
+  <tr><th>ビン</th><th>件数</th></tr>
+  {% for bin, count in context_pre_compact.after %}
+  <tr><td>{{ bin }}</td><td>{{ count }}</td></tr>
+  {% endfor %}
+</table>
+{% else %}
+<p data-testid="context-precompact-after-empty">準拠後: データなし</p>
+{% endif %}
+
+<h2>コンテキスト分布（Stop）</h2>
+{% if context_stop.before %}
+<table data-testid="context-stop-before">
+  <tr><th>ビン</th><th>件数</th></tr>
+  {% for bin, count in context_stop.before %}
+  <tr><td>{{ bin }}</td><td>{{ count }}</td></tr>
+  {% endfor %}
+</table>
+{% else %}
+<p data-testid="context-stop-before-empty">準拠前: データなし</p>
+{% endif %}
+{% if context_stop.after %}
+<table data-testid="context-stop-after">
+  <tr><th>ビン</th><th>件数</th></tr>
+  {% for bin, count in context_stop.after %}
+  <tr><td>{{ bin }}</td><td>{{ count }}</td></tr>
+  {% endfor %}
+</table>
+{% else %}
+<p data-testid="context-stop-after-empty">準拠後: データなし</p>
+{% endif %}
+
+{% endblock %}

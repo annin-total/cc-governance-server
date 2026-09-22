@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}assets{% endblock %}
+{% block heading %}assets 配布物の利用状況{% endblock %}
+{% block content %}
+
+<h2>スキル別</h2>
+<table data-testid="skill-usage">
+  <tr>
+    <th>skill_name</th>
+    <th>直近 呼出</th><th>直近 利用者</th>
+    <th>前 呼出</th><th>前 利用者</th>
+  </tr>
+  {% for skill_name, recent_calls, recent_users, prev_calls, prev_users in skills %}
+  <tr>
+    <td>{{ skill_name }}</td>
+    <td>{{ recent_calls }}</td>
+    <td>{{ recent_users }}</td>
+    <td>{{ prev_calls }}</td>
+    <td>{{ prev_users }}</td>
+  </tr>
+  {% endfor %}
+</table>
+
+<h2>コマンド別</h2>
+<table data-testid="command-usage">
+  <tr>
+    <th>command_name</th><th>command_source</th>
+    <th>直近 呼出</th><th>直近 利用者</th>
+    <th>前 呼出</th><th>前 利用者</th>
+  </tr>
+  {% for command_name, command_source, recent_calls, recent_users, prev_calls, prev_users in commands %}
+  <tr>
+    <td>{{ command_name }}</td>
+    <td>{{ command_source if command_source is not none else "—" }}</td>
+    <td>{{ recent_calls }}</td>
+    <td>{{ recent_users }}</td>
+    <td>{{ prev_calls }}</td>
+    <td>{{ prev_users }}</td>
+  </tr>
+  {% endfor %}
+</table>
+
+<h2>サブエージェント利用の割合</h2>
+<p data-testid="subagent-ratio">
+  {{ subagent_numerator }} / {{ subagent_denominator }}（{{ subagent_rate }}%）
+</p>
+
+{% endblock %}

@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block title %}policy{% endblock %}
+{% block heading %}policy 適用状況{% endblock %}
+{% block content %}
+
+<h2>最後に観測した値（{{ reference_key }}）</h2>
+<table data-testid="latest-values">
+  <tr><th>user_email</th><th>host</th><th>最後に観測した値</th><th>最終観測日</th></tr>
+  {% for user_email, host, prev_value, day, ts in latest_values %}
+  <tr>
+    <td>{{ user_email }}</td>
+    <td>{{ host }}</td>
+    <td>{{ prev_value if prev_value is not none else "未設定" }}</td>
+    <td>{{ day }}</td>
+  </tr>
+  {% endfor %}
+</table>
+
+<h2>準拠率（施策項目別）</h2>
+<table data-testid="compliance-rate">
+  <tr><th>施策項目</th><th>準拠</th><th>対象</th><th>率</th><th></th></tr>
+  {% for item in items %}
+  <tr>
+    <td>{{ item.key_name }}</td>
+    <td>{{ item.numerator }}</td>
+    <td>{{ item.denominator }}</td>
+    <td>{{ item.rate }}%</td>
+    <td><div class="rate-bar"><span style="width: {{ item.rate }}%;"></span></div></td>
+  </tr>
+  {% endfor %}
+</table>
+
+{% for item in items %}
+<h2>未準拠者の一覧（{{ item.key_name }}）</h2>
+<table data-testid="non-compliant" data-key="{{ item.key_name }}">
+  <tr><th>user_email</th><th>host</th><th>最後に観測した値</th><th>最終観測日</th></tr>
+  {% for user_email, host, prev_value, day in item.non_compliant %}
+  <tr>
+    <td>{{ user_email }}</td>
+    <td>{{ host }}</td>
+    <td>{{ prev_value if prev_value is not none else "未設定" }}</td>
+    <td>{{ day }}</td>
+  </tr>
+  {% endfor %}
+</table>
+{% endfor %}
+
+<h2>未導入者の一覧</h2>
+<table data-testid="not-introduced">
+  <tr><th>user_email</th></tr>
+  {% for row in not_introduced %}
+  <tr><td>{{ row[0] }}</td></tr>
+  {% endfor %}
+</table>
+
+<h2>イベントが途絶えた端末</h2>
+<table data-testid="stale">
+  <tr><th>user_email</th><th>host</th><th>最終観測日</th></tr>
+  {% for user_email, host, last_day in stale %}
+  <tr><td>{{ user_email }}</td><td>{{ host }}</td><td>{{ last_day }}</td></tr>
+  {% endfor %}
+</table>
+
+<h2>plugin_version の分布</h2>
+<table data-testid="plugin-versions">
+  <tr><th>version</th><th>件数</th></tr>
+  {% for version, count in plugin_versions %}
+  <tr><td>{{ version }}</td><td>{{ count }}</td></tr>
+  {% endfor %}
+</table>
+
+{% endblock %}
