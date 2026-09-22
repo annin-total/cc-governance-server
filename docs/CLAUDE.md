@@ -10,6 +10,7 @@ docs/
   SPEC.md        ← 仕様書。サーバの仕様
   AIP-DEPLOY.md  ← 実行基盤へのデプロイ手順（永続文書）
   decisions.md   ← 現在のコードがなぜそうなっているかの記録
+  remaining.md   ← まだ終わっていない作業（原因特定済み・未修正の不具合）
 ```
 
 このリポジトリは統合開発環境 `cc-governance-bmsd` の `docs/knowledge/` を参照しない。
@@ -21,6 +22,10 @@ docs/
 | --- | --- | --- |
 | `SPEC.md` / `AIP-DEPLOY.md` | 互いに参照してよい | 誰でも |
 | `decisions.md` | `SPEC.md` / `AIP-DEPLOY.md` | **この `docs/CLAUDE.md` だけ** |
+| `remaining.md` | `SPEC.md` / `AIP-DEPLOY.md` / `decisions.md` | **この `docs/CLAUDE.md` だけ** |
+
+`remaining.md` は項目が片付き次第その場で消す。全項目が消えたらファイルごと消し、この文書の
+構成表からも外す。
 
 参照とは、リンク・ファイル名の記載・章番号の記載のすべてを指す。ドキュメントだけでなく、
 実装コード・設定ファイル・コミットメッセージにも同じ規約が及ぶ。
