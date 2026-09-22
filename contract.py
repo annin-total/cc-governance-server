@@ -1,4 +1,4 @@
-"""cc-governance-bmsd-server/contract.py — 生成物。直接編集しない。
+"""server/contract.py — 生成物。直接編集しない。
 
 正本: plugin/hooks/contract.py
 `scripts/sync_contract.py` が正本から生成する。

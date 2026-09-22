@@ -30,7 +30,7 @@ from pathlib import Path
 
 # scripts/sync_contract.py の _REPLICA_HEADER と一致させること。
 REPLICA_HEADER = (
-    '"""cc-governance-bmsd-server/contract.py — 生成物。直接編集しない。\n'
+    '"""server/contract.py — 生成物。直接編集しない。\n'
     "\n"
     "正本: plugin/hooks/contract.py\n"
     "`scripts/sync_contract.py` が正本から生成する。\n"
