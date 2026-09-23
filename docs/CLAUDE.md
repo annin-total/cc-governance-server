@@ -9,7 +9,7 @@ docs/
   CLAUDE.md      ← この文書。規約の正本
   SPEC.md        ← 仕様書。サーバの仕様
   AIP-DEPLOY.md  ← 実行基盤へのデプロイ手順（永続文書）
-  UI-DESIGN.md   ← 画面のデザインシステムと実装計画（永続文書）
+  STYLE.md       ← 画面のスタイル仕様。見た目の決まりはここに閉じる（永続文書）
   decisions.md   ← 現在のコードがなぜそうなっているかの記録
   remaining.md   ← まだ終わっていない作業（原因特定済み・未修正の不具合）
 ```
@@ -21,9 +21,9 @@ docs/
 
 | 文書 | 参照してよい先 | 参照してよい元 |
 | --- | --- | --- |
-| `SPEC.md` / `AIP-DEPLOY.md` / `UI-DESIGN.md` | 互いに参照してよい | 誰でも |
-| `decisions.md` | `SPEC.md` / `AIP-DEPLOY.md` / `UI-DESIGN.md` | **この `docs/CLAUDE.md` だけ** |
-| `remaining.md` | `SPEC.md` / `AIP-DEPLOY.md` / `UI-DESIGN.md` / `decisions.md` | **この `docs/CLAUDE.md` だけ** |
+| `SPEC.md` / `AIP-DEPLOY.md` / `STYLE.md` | 互いに参照してよい | 誰でも |
+| `decisions.md` | `SPEC.md` / `AIP-DEPLOY.md` / `STYLE.md` | **この `docs/CLAUDE.md` だけ** |
+| `remaining.md` | `SPEC.md` / `AIP-DEPLOY.md` / `STYLE.md` / `decisions.md` | **この `docs/CLAUDE.md` だけ** |
 
 `remaining.md` は項目が片付き次第その場で消す。全項目が消えたらファイルごと消し、この文書の
 構成表からも外す。
