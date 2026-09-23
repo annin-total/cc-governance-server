@@ -1,72 +1,119 @@
 {% extends "base.html" %}
+{% import "_macros.html" as m %}
 {% block title %}policy{% endblock %}
 {% block heading %}policy 適用状況{% endblock %}
 {% block content %}
 
-<h2>最後に観測した値（{{ reference_key }}）</h2>
+{% set key_descriptions = {
+  "env.CLAUDE_AUTOCOMPACT_PCT_OVERRIDE": "自動圧縮のしきい値",
+  "extraKnownMarketplaces.cc-marketplace-governance-bmsd.autoUpdate": "マーケットプレイスの自動更新",
+} %}
+
+<h2>最後に観測した値（{{ reference_key }}<span class="muted">{% if key_descriptions.get(reference_key) %} / {{ key_descriptions[reference_key] }}{% endif %}</span>）</h2>
+{{ m.chips(["直近30日", "対象: この期間に " ~ reference_key ~ " の値を送った端末（端末ごとの最新1行）"]) }}
+{% if latest_values %}
+<div class="tbl">
 <table data-testid="latest-values">
-  <tr><th>user_email</th><th>host</th><th>最後に観測した値</th><th>最終観測日</th></tr>
+  <caption>最後に観測した値</caption>
+  <tr><th scope="col">user_email</th><th scope="col">host</th><th scope="col">最後に観測した値</th><th scope="col">最終観測日</th></tr>
   {% for user_email, host, prev_value, day, ts in latest_values %}
   <tr>
     <td>{{ user_email }}</td>
     <td>{{ host }}</td>
     <td>{{ prev_value if prev_value is not none else "未設定" }}</td>
-    <td>{{ day }}</td>
+    <td class="date">{{ day|day }}</td>
   </tr>
   {% endfor %}
 </table>
+</div>
+{% else %}
+{{ m.empty("この期間に該当なし") }}
+{% endif %}
 
 <h2>準拠率（施策項目別）</h2>
+{{ m.chips(["直近30日", "分母: 直近30日に cost_daily にコストが立つ利用者"]) }}
+<p class="note">1 台でも未準拠なら、その利用者は未準拠として数える。台数と人数が一致しないのはこのため。</p>
+<div class="tbl">
 <table data-testid="compliance-rate">
-  <tr><th>施策項目</th><th>準拠</th><th>対象</th><th>率</th><th></th></tr>
+  <caption>準拠率（施策項目別）</caption>
+  <tr><th scope="col">施策項目</th><th scope="col">準拠</th><th scope="col">対象</th><th scope="col">率</th></tr>
   {% for item in items %}
   <tr>
-    <td>{{ item.key_name }}</td>
-    <td>{{ item.numerator }}</td>
-    <td>{{ item.denominator }}</td>
-    <td>{{ item.rate }}%</td>
-    <td><div class="rate-bar"><span style="width: {{ item.rate }}%;"></span></div></td>
+    <td>{{ item.key_name }}{% if key_descriptions.get(item.key_name) %}<br><span class="muted">{{ key_descriptions[item.key_name] }}</span>{% endif %}</td>
+    <td class="num">{{ item.numerator }}</td>
+    <td class="num">{{ item.denominator }}</td>
+    <td>{{ m.rate_cell(item.rate, item.numerator, item.denominator) }}</td>
   </tr>
   {% endfor %}
 </table>
+</div>
 
 {% for item in items %}
-<h2>未準拠者の一覧（{{ item.key_name }}）</h2>
+<h2>未準拠者の一覧（{{ item.key_name }}{% if key_descriptions.get(item.key_name) %} / {{ key_descriptions[item.key_name] }}{% endif %}）</h2>
+{{ m.chips(["直近30日", "対象: この期間に値を送った端末のうち、最新値が施策値と異なるもの"]) }}
+<div class="tbl">
 <table data-testid="non-compliant" data-key="{{ item.key_name }}">
-  <tr><th>user_email</th><th>host</th><th>最後に観測した値</th><th>最終観測日</th></tr>
+  <caption>未準拠者の一覧（{{ item.key_name }}）</caption>
+  <tr><th scope="col">user_email</th><th scope="col">host</th><th scope="col">最後に観測した値</th><th scope="col">最終観測日</th><th scope="col">状態</th></tr>
   {% for user_email, host, prev_value, day in item.non_compliant %}
   <tr>
     <td>{{ user_email }}</td>
     <td>{{ host }}</td>
     <td>{{ prev_value if prev_value is not none else "未設定" }}</td>
-    <td>{{ day }}</td>
+    <td class="date">{{ day|day }}</td>
+    <td>{{ m.pill("未準拠", "ng") }}</td>
   </tr>
   {% endfor %}
 </table>
+</div>
 {% endfor %}
 
 <h2>未導入者の一覧</h2>
+{{ m.chips(["直近30日", "分母: 直近30日に cost_daily にコストが立つが、同期間の policy_state に1行も無い利用者"]) }}
+{% if not_introduced %}
+<div class="tbl">
 <table data-testid="not-introduced">
-  <tr><th>user_email</th></tr>
+  <caption>未導入者の一覧</caption>
+  <tr><th scope="col">user_email</th><th scope="col">状態</th></tr>
   {% for row in not_introduced %}
-  <tr><td>{{ row[0] }}</td></tr>
+  <tr><td>{{ row[0] }}</td><td>{{ m.pill("未導入", "warn") }}</td></tr>
   {% endfor %}
 </table>
+</div>
+{% else %}
+{{ m.empty("この期間に該当なし") }}
+{% endif %}
 
 <h2>イベントが途絶えた端末</h2>
+{{ m.chips(["直近30日", "対象: 窓内の最終観測日が14日以上前の端末"]) }}
+{% if stale %}
+<div class="tbl">
 <table data-testid="stale">
-  <tr><th>user_email</th><th>host</th><th>最終観測日</th></tr>
+  <caption>イベントが途絶えた端末</caption>
+  <tr><th scope="col">user_email</th><th scope="col">host</th><th scope="col">最終観測日</th><th scope="col">状態</th></tr>
   {% for user_email, host, last_day in stale %}
-  <tr><td>{{ user_email }}</td><td>{{ host }}</td><td>{{ last_day }}</td></tr>
+  <tr><td>{{ user_email }}</td><td>{{ host }}</td><td class="date">{{ last_day|day }}</td><td>{{ m.pill("途絶", "warn") }}</td></tr>
   {% endfor %}
 </table>
+</div>
+{% else %}
+{{ m.empty("この期間に該当なし") }}
+{% endif %}
 
 <h2>plugin_version の分布</h2>
+{{ m.chips(["直近30日", "対象: " ~ reference_key ~ " の最新値がある端末"]) }}
+{% if plugin_versions %}
+<div class="tbl">
 <table data-testid="plugin-versions">
-  <tr><th>version</th><th>件数</th></tr>
+  <caption>plugin_version の分布</caption>
+  <tr><th scope="col">version</th><th scope="col">件数</th></tr>
   {% for version, count in plugin_versions %}
-  <tr><td>{{ version }}</td><td>{{ count }}</td></tr>
+  <tr><td>{{ version }}</td><td class="num">{{ count }}</td></tr>
   {% endfor %}
 </table>
+</div>
+{% else %}
+{{ m.empty("この期間に該当なし") }}
+{% endif %}
 
 {% endblock %}

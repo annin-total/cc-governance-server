@@ -6,6 +6,7 @@
 
 import importlib
 import os
+import re
 
 import pytest
 
@@ -52,3 +53,21 @@ def test_base_path_wrapper(app_with_base_path, base_path, path, expected_status)
         f"リダイレクトが発生した: {response.status_code} -> "
         f"{response.headers.get('Location')}"
     )
+
+
+@pytest.mark.parametrize("base_path", ["", "/gov/cc"])
+def test_stylesheet_is_served_under_base_path(app_with_base_path, base_path):
+    """`BASE_PATH` の有無にかかわらず、画面が指す先のスタイルシートが 200 で返ること。
+
+    `url_for` は `SCRIPT_NAME` を前置する。前置が壊れると画面は 200 のまま素の HTML になり、
+    見た目だけが崩れて気づきにくいため、参照先を実際に引いて確かめる。
+    """
+    client = app_with_base_path(base_path).test_client()
+    html = client.get(base_path + "/").get_data(as_text=True)
+    match = re.search(r'<link[^>]+href="([^"]+app\.css)"', html)
+    assert match, "app.css への link が画面に無い"
+    href = match.group(1)
+    assert href.startswith(base_path + "/static/"), (
+        f"BASE_PATH が前置されていない: {href!r}"
+    )
+    assert client.get(href).status_code == 200, f"{href} が 200 で返らない"
