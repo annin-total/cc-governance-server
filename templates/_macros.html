@@ -1,0 +1,56 @@
+{#
+  画面をまたいで使う断片。
+  表を `.tbl` で包む処理はマクロにしない（`<table>` を呼び出し側に残すため）。
+#}
+
+{#
+  増減。タイルの中でも表の中でも同じ見た目にする。
+  マイナスは U+2212 を使う（ハイフンより視認性が高い）。
+#}
+{% macro delta_badge(value) -%}
+{%- if value is none -%}
+{%- elif value == 0 -%}<span class="muted">±0</span>
+{%- else -%}<span class="delta {{ 'up' if value > 0 else 'down' }}">{{ '+' if value > 0 else '−' }}{{ value|abs|num }}</span>
+{%- endif -%}
+{%- endmacro %}
+
+{% macro tile(value, label, delta=none, note=none) %}
+<div class="tile">
+  <b>{{ value }}</b>
+  <span>{{ label }}</span>
+  {%- if note is not none %}
+  <span>{{ note }}</span>
+  {%- endif %}
+  {%- if delta is not none %}
+  {{ delta_badge(delta) }}
+  {%- endif %}
+</div>
+{%- endmacro %}
+
+{% macro meter(rate) -%}
+<span class="meter"><i style="width: {{ [rate, 100]|min }}%;"></i></span>
+{%- endmacro %}
+
+{#
+  率は棒だけでは値が読めない。必ず「率（分子/分母）」を併記する。
+#}
+{% macro rate_cell(rate, numerator, denominator) -%}
+{{ meter(rate) }}{{ rate|pct }} <span class="muted">({{ numerator }}/{{ denominator }})</span>
+{%- endmacro %}
+
+{% macro pill(text, kind='neutral') -%}
+<span class="pill {{ kind }}">{{ text }}</span>
+{%- endmacro %}
+
+{#
+  その節がどの期間の、どの母集団の数字かを示す。数字のそばに必ず置く。
+#}
+{% macro chips(items) %}
+<div class="chips">
+  {%- for item in items %}<span class="chip">{{ item }}</span>{% endfor %}
+</div>
+{%- endmacro %}
+
+{% macro empty(message) -%}
+<p class="empty">{{ message }}</p>
+{%- endmacro %}

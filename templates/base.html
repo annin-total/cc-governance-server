@@ -2,25 +2,28 @@
 <html lang="ja">
 <head>
 <meta charset="utf-8">
-<title>{% block title %}集計{% endblock %}</title>
-<style>
-  body { font-family: sans-serif; margin: 1.5rem; color: #222; }
-  nav a { margin-right: 1rem; }
-  h2 { margin-top: 2rem; }
-  table { border-collapse: collapse; margin: 0.5rem 0 1.5rem; }
-  th, td { border: 1px solid #ccc; padding: 0.3rem 0.6rem; text-align: left; }
-  .rate-bar { position: relative; width: 200px; height: 1rem; background: #eee; }
-  .rate-bar > span { position: absolute; top: 0; left: 0; height: 100%; background: #4a90d9; display: block; }
-</style>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}集計{% endblock %} · cc-governance-monitor</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}">
 </head>
 <body>
-<nav>
-  <a href="{{ url_for('index') }}">概況</a>
-  <a href="{{ url_for('policy_view') }}">policy</a>
-  <a href="{{ url_for('effect_view') }}">effect</a>
-  <a href="{{ url_for('assets_view') }}">assets</a>
-</nav>
+<header><div class="bar">
+  <a class="brand" href="{{ url_for('index') }}">cc-governance-monitor</a>
+  <nav>
+    {%- set here = request.endpoint %}
+    <a href="{{ url_for('index') }}"{% if here == 'index' %} aria-current="page"{% endif %}>概況</a>
+    <a href="{{ url_for('policy_view') }}"{% if here == 'policy_view' %} aria-current="page"{% endif %}>policy</a>
+    <a href="{{ url_for('effect_view') }}"{% if here == 'effect_view' %} aria-current="page"{% endif %}>effect</a>
+    <a href="{{ url_for('assets_view') }}"{% if here == 'assets_view' %} aria-current="page"{% endif %}>assets</a>
+  </nav>
+</div></header>
+<main>
 <h1>{% block heading %}{% endblock %}</h1>
 {% block content %}{% endblock %}
+</main>
+<footer>
+  端末からの自己申告値。コストとトークンは全社 CSV を正とする。
+  監査・人事評価・勤怠管理には使わない。
+</footer>
 </body>
 </html>

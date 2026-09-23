@@ -30,6 +30,22 @@ def _rows_in_table(html: str, testid: str) -> list:
     return re.findall(r"<tr>", match.group(1))[1:]
 
 
+def _table_body(html: str, testid: str) -> str:
+    """`data-testid` が一致する `<table>` の中身（見出し行含む）を返す。"""
+    pattern = r'<table data-testid="' + re.escape(testid) + r'">(.*?)</table>'
+    match = re.search(pattern, html, re.DOTALL)
+    assert match, f"table data-testid={testid} が見つからない"
+    return match.group(1)
+
+
+def _tile(html: str, label: str) -> str:
+    """`label` を含む `.tile` の DOM 断片を返す（タイル化された KPI の検査に使う）。"""
+    for block in re.findall(r'<div class="tile">.*?</div>', html, re.DOTALL):
+        if f">{label}<" in block:
+            return block
+    raise AssertionError(f"tile label={label} が見つからない")
+
+
 def test_overview_page_returns_200(overview_client):
     """`/` が 200 で応答する（既存の取込ボタンを含む）。"""
     response = overview_client.get("/")
@@ -38,10 +54,13 @@ def test_overview_page_returns_200(overview_client):
 
 
 def test_health_line_shows_event_and_terminal_counts(overview_client):
-    """健全性の 1 行に「イベント 13 / 3」「送信端末 4 / 3」が読める。"""
+    """健全性のタイルに、イベント数・送信端末数の直近7日の値が読める。"""
     html = overview_client.get("/").get_data(as_text=True)
-    assert "イベント 13 / 3" in html
-    assert "送信端末 4 / 3" in html
+    events_tile = _tile(html, "イベント")
+    assert "<b>13</b>" in events_tile
+
+    terminals_tile = _tile(html, "送信端末")
+    assert "<b>4</b>" in terminals_tile
 
 
 def test_health_line_shows_all_four_null_rates(overview_client):
@@ -52,11 +71,18 @@ def test_health_line_shows_all_four_null_rates(overview_client):
 
 
 def test_health_line_shows_reconciliation_and_plugin_versions(overview_client):
-    """突合率と plugin_version の分布が出る。"""
+    """突合率と plugin_version の分布が出る。plugin_version は版・台数を表の行として持つ。"""
     html = overview_client.get("/").get_data(as_text=True)
     assert "75.0%" in html
-    assert "1.4.0:5" in html
-    assert "1.3.0:2" in html
+
+    body = _table_body(html, "plugin-version-distribution")
+    rows = re.findall(r"<tr>(.*?)</tr>", body, re.DOTALL)[1:]
+    counts_by_version = {}
+    for row in rows:
+        cells = re.findall(r"<td[^>]*>(.*?)</td>", row, re.DOTALL)
+        counts_by_version[cells[0].strip()] = cells[1].strip()
+    assert counts_by_version["1.4.0"] == "5"
+    assert counts_by_version["1.3.0"] == "2"
 
 
 def test_daily_cost_table_row_count(overview_client):

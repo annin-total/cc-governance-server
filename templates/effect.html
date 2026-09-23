@@ -1,64 +1,114 @@
 {% extends "base.html" %}
+{% import "_macros.html" as m %}
 {% block title %}effect{% endblock %}
 {% block heading %}effect 効果測定{% endblock %}
 {% block content %}
 
-<h2>イベントスタディ（相対日 0 を除く）</h2>
+<h2>イベントスタディ</h2>
+{{ m.chips([
+  "施策項目: env.CLAUDE_AUTOCOMPACT_PCT_OVERRIDE",
+  "対象 provider: aws-bedrock",
+  "相対日: 準拠開始日を基準に ±14 日",
+]) }}
+<div class="note">
+  相対日 0 は準拠当日のため意図的に除外しています。分母人数は相対日ごとに、在籍期間で判定するため変わります。
+</div>
+
+{% set max_cost = study|map(attribute=2)|max if study else 0 %}
+<div class="tbl">
 <table data-testid="event-study">
-  <tr><th>相対日</th><th>分母人数</th><th>1人あたりコスト</th><th>1人あたり入力トークン</th><th></th></tr>
-  {% for relative_day, denominator, cost, tokens in study %}
-  <tr>
-    <td>{{ relative_day }}</td>
-    <td>{{ denominator }}</td>
-    <td>{{ cost }}</td>
-    <td>{{ tokens }}</td>
-    <td><div class="rate-bar"><span style="width: {{ [cost * 10, 100] | min }}%;"></span></div></td>
-  </tr>
-  {% endfor %}
+<caption>相対日ごとの 1 人あたりコスト・入力トークン</caption>
+<tr><th scope="col">相対日</th><th scope="col">分母人数</th><th scope="col">1人あたりコスト</th><th scope="col">1人あたり入力トークン</th><th scope="col"></th></tr>
+{% for relative_day, denominator, cost, tokens in study %}
+<tr>
+  <td>{{ relative_day|rel }}</td>
+  <td class="num">{{ denominator|num }} <span class="muted">人</span></td>
+  <td class="num">{{ cost|usd }}</td>
+  <td class="num">{{ tokens|num }}</td>
+  <td>{{ m.meter((cost / max_cost * 100) if max_cost else 0) }}</td>
+</tr>
+{% endfor %}
 </table>
+</div>
 
 <h2>コンテキスト分布（PreCompact）</h2>
-{% if context_pre_compact.before %}
-<table data-testid="context-precompact-before">
-  <tr><th>ビン</th><th>件数</th></tr>
-  {% for bin, count in context_pre_compact.before %}
-  <tr><td>{{ bin }}</td><td>{{ count }}</td></tr>
-  {% endfor %}
-</table>
-{% else %}
-<p data-testid="context-precompact-before-empty">準拠前: データなし</p>
-{% endif %}
-{% if context_pre_compact.after %}
-<table data-testid="context-precompact-after">
-  <tr><th>ビン</th><th>件数</th></tr>
-  {% for bin, count in context_pre_compact.after %}
-  <tr><td>{{ bin }}</td><td>{{ count }}</td></tr>
-  {% endfor %}
-</table>
-{% else %}
-<p data-testid="context-precompact-after-empty">準拠後: データなし</p>
-{% endif %}
+{{ m.chips([
+  "ビン幅: 20,000 トークン",
+  "基準日: 準拠開始日（暦日ではない）",
+  "集計範囲: 準拠開始日の前後 14 日",
+]) }}
+<div class="note">度数 0 のビンは表示していません。</div>
+<div class="grid">
+  <div>
+    {% if context_pre_compact.before %}
+    <div class="tbl">
+    <table data-testid="context-precompact-before">
+    <caption>準拠前</caption>
+    <tr><th scope="col">ビン</th><th scope="col">件数</th></tr>
+    {% for bin, count in context_pre_compact.before %}
+    <tr><td>{{ bin|bin }}</td><td class="num">{{ count|num }}</td></tr>
+    {% endfor %}
+    </table>
+    </div>
+    {% else %}
+    {{ m.empty("準拠前: データなし") }}
+    {% endif %}
+  </div>
+  <div>
+    {% if context_pre_compact.after %}
+    <div class="tbl">
+    <table data-testid="context-precompact-after">
+    <caption>準拠後</caption>
+    <tr><th scope="col">ビン</th><th scope="col">件数</th></tr>
+    {% for bin, count in context_pre_compact.after %}
+    <tr><td>{{ bin|bin }}</td><td class="num">{{ count|num }}</td></tr>
+    {% endfor %}
+    </table>
+    </div>
+    {% else %}
+    {{ m.empty("準拠後: データなし") }}
+    {% endif %}
+  </div>
+</div>
 
 <h2>コンテキスト分布（Stop）</h2>
-{% if context_stop.before %}
-<table data-testid="context-stop-before">
-  <tr><th>ビン</th><th>件数</th></tr>
-  {% for bin, count in context_stop.before %}
-  <tr><td>{{ bin }}</td><td>{{ count }}</td></tr>
-  {% endfor %}
-</table>
-{% else %}
-<p data-testid="context-stop-before-empty">準拠前: データなし</p>
-{% endif %}
-{% if context_stop.after %}
-<table data-testid="context-stop-after">
-  <tr><th>ビン</th><th>件数</th></tr>
-  {% for bin, count in context_stop.after %}
-  <tr><td>{{ bin }}</td><td>{{ count }}</td></tr>
-  {% endfor %}
-</table>
-{% else %}
-<p data-testid="context-stop-after-empty">準拠後: データなし</p>
-{% endif %}
+{{ m.chips([
+  "ビン幅: 20,000 トークン",
+  "基準日: 準拠開始日（暦日ではない）",
+  "集計範囲: 準拠開始日の前後 14 日",
+]) }}
+<div class="note">度数 0 のビンは表示していません。</div>
+<div class="grid">
+  <div>
+    {% if context_stop.before %}
+    <div class="tbl">
+    <table data-testid="context-stop-before">
+    <caption>準拠前</caption>
+    <tr><th scope="col">ビン</th><th scope="col">件数</th></tr>
+    {% for bin, count in context_stop.before %}
+    <tr><td>{{ bin|bin }}</td><td class="num">{{ count|num }}</td></tr>
+    {% endfor %}
+    </table>
+    </div>
+    {% else %}
+    {{ m.empty("準拠前: データなし") }}
+    {% endif %}
+  </div>
+  <div>
+    {% if context_stop.after %}
+    <div class="tbl">
+    <table data-testid="context-stop-after">
+    <caption>準拠後</caption>
+    <tr><th scope="col">ビン</th><th scope="col">件数</th></tr>
+    {% for bin, count in context_stop.after %}
+    <tr><td>{{ bin|bin }}</td><td class="num">{{ count|num }}</td></tr>
+    {% endfor %}
+    </table>
+    </div>
+    {% else %}
+    {{ m.empty("準拠後: データなし") }}
+    {% endif %}
+  </div>
+</div>
 
 {% endblock %}

@@ -1,76 +1,127 @@
 {% extends "base.html" %}
+{% import "_macros.html" as m %}
 {% block title %}概況{% endblock %}
 {% block heading %}概況{% endblock %}
 {% block content %}
 
-<p data-testid="health">
-  健全性（直近7日 / 前7日）: イベント {{ health.recent.events }} / {{ health.prev.events }}
-  ・送信端末 {{ health.recent.terminals }} / {{ health.prev.terminals }}<br>
-  NULL率
-  tool_name {{ health.recent.null_rates.tool_name }}%/{{ health.prev.null_rates.tool_name }}%
-  skill_name {{ health.recent.null_rates.skill_name }}%/{{ health.prev.null_rates.skill_name }}%
-  context_tokens {{ health.recent.null_rates.context_tokens }}%/{{ health.prev.null_rates.context_tokens }}%
-  command_source {{ health.recent.null_rates.command_source }}%/{{ health.prev.null_rates.command_source }}%<br>
-  突合率 {{ reconciliation_rate }}%（{{ reconciliation_numerator }}/{{ reconciliation_denominator }}）
-  ・plugin_version
-  {% for version, count in plugin_versions %}{{ version }}:{{ count }} {% endfor %}
-</p>
+<h2>健全性</h2>
+{{ m.chips(["直近7日 · 前7日と比較"]) }}
+<div class="tiles">
+  {{ m.tile(health.recent.events|num, "イベント", delta=(health.recent.events - health.prev.events)) }}
+  {{ m.tile(health.recent.terminals|num, "送信端末", delta=(health.recent.terminals - health.prev.terminals)) }}
+  {{ m.tile(reconciliation_rate|pct, "突合率",
+            note=(reconciliation_numerator|num) ~ " / " ~ (reconciliation_denominator|num) ~ " 人") }}
+</div>
 
+<h2>NULL率</h2>
+{{ m.chips(["直近7日 · 前7日と比較", "分母: その窓の全イベント"]) }}
+<div class="tbl">
+<table data-testid="null-rates">
+<caption>列別の NULL 率（直近7日 / 前7日）</caption>
+<tr><th scope="col">列</th><th scope="col">直近7日</th><th scope="col">前7日</th></tr>
+{% for column in ["tool_name", "skill_name", "context_tokens", "command_source"] %}
+{% set recent_rate = health.recent.null_rates[column] %}
+{% set prev_rate = health.prev.null_rates[column] %}
+<tr>
+  <td>{{ column }}</td>
+  <td>
+    {{ m.meter(recent_rate) }} {{ recent_rate|pct }}
+    {%- if recent_rate > 50 %} {{ m.pill("要対応", "ng") }}
+    {%- elif recent_rate > 20 %} {{ m.pill("注意", "warn") }}
+    {%- else %} {{ m.pill("良好", "ok") }}
+    {%- endif %}
+  </td>
+  <td class="num">{{ prev_rate|pct }}</td>
+</tr>
+{% endfor %}
+</table>
+</div>
+
+<h2>plugin_version の分布</h2>
+{{ m.chips(["直近30日", "分母: 端末ごとの最新1行"]) }}
+<div class="tbl">
+<table data-testid="plugin-version-distribution">
+<caption>端末ごとの最新版と台数</caption>
+<tr><th scope="col">版</th><th scope="col">台数</th></tr>
+{% for version, count in plugin_versions %}
+<tr><td>{{ version }}</td><td class="num">{{ count|num }}</td></tr>
+{% endfor %}
+</table>
+</div>
+
+<h2>CSV 取込</h2>
+{{ m.chips(["取込元: CSV_DIR", "コストとトークンの正本"]) }}
 {% if import_results %}
-<h2>取込結果</h2>
-<ul>
-  {% for r in import_results %}
-  {% if r.error %}
-  <li>{{ r.file }}: 失敗（{{ r.error }}）</li>
-  {% else %}
-  <li>{{ r.file }}: {{ r.rows }} 行（破棄 {{ r.dropped }} 件）</li>
-  {% endif %}
-  {% endfor %}
-</ul>
+{% for r in import_results %}
+{% if r.error %}
+<p class="err">{{ r.file }}: 失敗（{{ r.error }}）</p>
+{% else %}
+<p class="ok-box">{{ r.file }}: {{ r.rows|num }} 行（破棄 {{ r.dropped|num }} 件）</p>
 {% endif %}
-
-<form method="post" action="{{ url_for('import_endpoint') }}">
-  <button type="submit">CSV を取り込む</button>
+{% endfor %}
+{% endif %}
+<form class="actions" method="post" action="{{ url_for('import_endpoint') }}">
+  <button type="submit" class="btn primary">CSV を取り込む</button>
 </form>
 
 <h2>日次コスト推移</h2>
+{{ m.chips(["全期間 · 窓なし"]) }}
+<div class="tbl">
 <table data-testid="daily-cost">
-  <tr><th>day</th><th>provider</th><th>合計コスト</th></tr>
-  {% for day, provider, cost in daily_cost %}
-  <tr><td>{{ day }}</td><td>{{ provider }}</td><td>{{ cost }}</td></tr>
-  {% endfor %}
+<caption>day × provider の合計コスト（全期間）</caption>
+<tr><th scope="col">day</th><th scope="col">provider</th><th scope="col">合計コスト</th></tr>
+{% for day, provider, cost in daily_cost %}
+<tr><td class="date">{{ day|day }}</td><td>{{ provider }}</td><td class="num">{{ cost|usd }}</td></tr>
+{% endfor %}
 </table>
+</div>
 
 <h2>利用者数・セッション数の推移</h2>
+{{ m.chips(["直近14日"]) }}
+<div class="tbl">
 <table data-testid="user-session-trend">
-  <tr><th>day</th><th>利用者数</th><th>セッション数</th></tr>
-  {% for day, users, sessions in user_session_trend %}
-  <tr><td>{{ day }}</td><td>{{ users }}</td><td>{{ sessions }}</td></tr>
-  {% endfor %}
+<caption>day 別の利用者数・セッション数（直近14日）</caption>
+<tr><th scope="col">day</th><th scope="col">利用者数</th><th scope="col">セッション数</th></tr>
+{% for day, users, sessions in user_session_trend %}
+<tr><td class="date">{{ day|day }}</td><td class="num">{{ users|num }}</td><td class="num">{{ sessions|num }}</td></tr>
+{% endfor %}
 </table>
+</div>
 
 <h2>permission_mode の分布</h2>
+{{ m.chips(["直近7日"]) }}
+<div class="tbl">
 <table data-testid="permission-mode-distribution">
-  <tr><th>値</th><th>件数</th></tr>
-  {% for value, count in permission_mode_distribution %}
-  <tr><td>{{ value }}</td><td>{{ count }}</td></tr>
-  {% endfor %}
+<caption>permission_mode 別の件数（直近7日）</caption>
+<tr><th scope="col">値</th><th scope="col">件数</th></tr>
+{% for value, count in permission_mode_distribution %}
+<tr><td>{{ value }}</td><td class="num">{{ count|num }}</td></tr>
+{% endfor %}
 </table>
+</div>
 
 <h2>effort_level の分布</h2>
+{{ m.chips(["直近7日"]) }}
+<div class="tbl">
 <table data-testid="effort-level-distribution">
-  <tr><th>値</th><th>件数</th></tr>
-  {% for value, count in effort_level_distribution %}
-  <tr><td>{{ value }}</td><td>{{ count }}</td></tr>
-  {% endfor %}
+<caption>effort_level 別の件数（直近7日）</caption>
+<tr><th scope="col">値</th><th scope="col">件数</th></tr>
+{% for value, count in effort_level_distribution %}
+<tr><td>{{ value }}</td><td class="num">{{ count|num }}</td></tr>
+{% endfor %}
 </table>
+</div>
 
 <h2>source の分布</h2>
+{{ m.chips(["直近7日"]) }}
+<div class="tbl">
 <table data-testid="source-distribution">
-  <tr><th>値</th><th>件数</th></tr>
-  {% for value, count in source_distribution %}
-  <tr><td>{{ value }}</td><td>{{ count }}</td></tr>
-  {% endfor %}
+<caption>source 別の件数（直近7日）</caption>
+<tr><th scope="col">値</th><th scope="col">件数</th></tr>
+{% for value, count in source_distribution %}
+<tr><td>{{ value }}</td><td class="num">{{ count|num }}</td></tr>
+{% endfor %}
 </table>
+</div>
 
 {% endblock %}
