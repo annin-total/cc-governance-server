@@ -10,6 +10,7 @@ from flask import Flask, Response, render_template, request
 import contract
 import csv_import
 import db
+import formatting
 import ingest
 import queries_events
 import queries_policy
@@ -17,6 +18,11 @@ import queries_policy
 db.init()
 
 app = Flask(__name__)
+
+# 表示用の整形は `formatting.py` に閉じる。ここは Jinja への登録だけを行う。
+for _filter_name in ("day", "num", "usd", "pct", "rel"):
+    app.add_template_filter(getattr(formatting, _filter_name), _filter_name)
+app.add_template_filter(formatting.bin_range, "bin")
 
 
 def _overview_context() -> dict:
