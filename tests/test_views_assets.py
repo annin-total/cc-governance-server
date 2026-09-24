@@ -12,7 +12,7 @@ from test_fixtures import (
     known_db,  # noqa: F401
 )
 
-import db
+from ccgov.store import db
 
 
 @pytest.fixture

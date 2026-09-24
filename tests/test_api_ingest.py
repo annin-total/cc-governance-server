@@ -30,7 +30,7 @@ def ingest_client(sqlite_db_dsn):
 
 def _count(table: str) -> int:
     """一時 DB のテーブルの行数を返す。"""
-    import db
+    from ccgov.store import db
 
     conn = db.connect()
     try:
@@ -171,7 +171,7 @@ def test_server_token_unset_fails_at_startup(sqlite_db_dsn, monkeypatch, value):
 
 def test_write_failure_returns_5xx(ingest_client):
     """# 8: events を DROP した状態で event 2 行 + policy 1 行を送ると 500 以上、policy_state も 0 行のまま。"""
-    import db
+    from ccgov.store import db
 
     conn = db.connect()
     try:

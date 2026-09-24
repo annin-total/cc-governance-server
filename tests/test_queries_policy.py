@@ -17,7 +17,7 @@ from test_fixtures import (
     known_db,  # noqa: F401
 )
 
-import queries_policy
+from ccgov.store import queries_policy
 
 K = "env.CLAUDE_AUTOCOMPACT_PCT_OVERRIDE"
 A = "extraKnownMarketplaces.cc-marketplace-governance-bmsd.autoUpdate"

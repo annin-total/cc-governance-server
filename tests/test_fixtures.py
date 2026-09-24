@@ -9,7 +9,7 @@
 import pytest
 
 import contract
-import db
+from ccgov.store import db
 
 TODAY = 20005
 

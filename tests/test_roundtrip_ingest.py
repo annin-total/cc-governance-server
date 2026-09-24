@@ -69,7 +69,7 @@ def _post(client):
 
 def _row(sql: str) -> tuple:
     """一時 DB に対して 1 行を返す SQL を実行し、その行を返す。"""
-    import db
+    from ccgov.store import db
 
     conn = db.connect()
     try:

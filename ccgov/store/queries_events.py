@@ -1,11 +1,11 @@
 """`/assets` `/` 画面の集計クエリ。フレームワークを import しない。
 
-現在時刻は読まない。基準日 `today`（epoch 日）は呼び出し側（`app.py`）が渡す。
+現在時刻は読まない。基準日 `today`（epoch 日）は呼び出し側（`ccgov/web/admin.py`）が渡す。
 件数・利用者数は必ず `COUNT(DISTINCT event_id)` / `COUNT(DISTINCT user_email)` を通す
 （端末の再送で重複しうるため）。`agent_id` はサブエージェント内のツール呼出にのみ付く。
 """
 
-import db
+from ccgov.store import db
 
 RECENT_DAYS = 7
 

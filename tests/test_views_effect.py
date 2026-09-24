@@ -5,8 +5,7 @@ import importlib
 from conftest import ADMIN, admin_client
 from test_fixtures import insert_event, insert_policy_state
 
-import db
-import queries_policy
+from ccgov.store import db, queries_policy
 
 K = "env.CLAUDE_AUTOCOMPACT_PCT_OVERRIDE"
 

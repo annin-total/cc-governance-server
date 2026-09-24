@@ -2,7 +2,7 @@
 
 import pytest
 
-import db
+from ccgov.store import db
 
 
 def test_sqlite_dialect_and_path(monkeypatch):

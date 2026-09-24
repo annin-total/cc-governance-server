@@ -1,4 +1,4 @@
-"""`app.py` の WSGI ラッパ（`BASE_PATH` の剥がし）の回帰テスト。
+"""`ccgov/web/middleware.py` の WSGI ラッパ（`BASE_PATH` の剥がし）の回帰テスト。
 
 `BASE_PATH` はモジュールの import 時に読まれるため、ケースごとに環境変数を差し替えて
 `importlib.reload` する。`app.py` にはテスト用の入口を作らない。

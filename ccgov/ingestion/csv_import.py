@@ -6,7 +6,7 @@ import os
 from datetime import date
 from typing import Optional
 
-import db
+from ccgov.store import db
 from contract import CSV_COLUMNS, coerce
 
 _EPOCH = date(1970, 1, 1)

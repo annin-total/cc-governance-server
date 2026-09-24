@@ -13,8 +13,7 @@ from test_fixtures import (
     known_db,  # noqa: F401
 )
 
-import db
-import queries_policy
+from ccgov.store import db, queries_policy
 
 
 @pytest.fixture

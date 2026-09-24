@@ -6,7 +6,7 @@
 
 import pytest
 
-import db
+from ccgov.store import db
 
 
 def test_missing_hook_field_column_raises_with_table_and_column(

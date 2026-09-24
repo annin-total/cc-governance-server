@@ -8,7 +8,7 @@ DB の `day` 列（JST 基準の epoch 日）や、桁区切りの無い数値�
 import datetime
 from typing import Any, Optional
 
-from queries_policy import CONTEXT_BIN
+from ccgov.store.queries_policy import CONTEXT_BIN
 
 EM_DASH = "—"
 _JST_OFFSET_SECONDS = 9 * 3600

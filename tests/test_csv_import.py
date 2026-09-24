@@ -11,8 +11,8 @@ from typing import Optional
 import pytest
 from conftest import ADMIN, admin_client
 
-import csv_import
-import db
+from ccgov.ingestion import csv_import
+from ccgov.store import db
 from contract import CSV_COLUMNS
 
 FIXTURES = Path(__file__).parent / "fixtures"
@@ -625,7 +625,9 @@ def test_framework_import_appears_only_in_web_package():
 
 def test_csv_import_has_no_flask_import():
     """8-2: `csv_import.py` に flask の import が無い（この計画の成果物を名指しで守る）。"""
-    hits = _framework_import_lines(_SERVER_DIR / "csv_import.py")
+    hits = _framework_import_lines(
+        _SERVER_DIR / "ccgov" / "ingestion" / "csv_import.py"
+    )
     assert hits == []
 
 

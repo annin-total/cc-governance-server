@@ -2,8 +2,8 @@
 
 from flask import Flask
 
-import db
 from ccgov.config import Config
+from ccgov.store import db
 from ccgov.web import admin, filters, ingest_api
 from ccgov.web.middleware import strip_base_path
 

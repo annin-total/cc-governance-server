@@ -12,7 +12,7 @@ from test_fixtures import (
     known_db,  # noqa: F401
 )
 
-import queries_events
+from ccgov.store import queries_events
 
 
 def test_health_counts_recent_window(known_db):

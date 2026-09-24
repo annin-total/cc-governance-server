@@ -1,11 +1,11 @@
-"""ingest.ingest() の kind 振り分けと executemany による保存を確かめる。"""
+"""ndjson.ingest() の kind 振り分けと executemany による保存を確かめる。"""
 
 import sqlite3
 
 import pytest
 
-import db
-from ingest import ingest
+from ccgov.ingestion.ndjson import ingest
+from ccgov.store import db
 
 
 @pytest.fixture

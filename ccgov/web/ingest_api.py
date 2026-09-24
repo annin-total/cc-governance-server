@@ -1,16 +1,16 @@
-"""`/ingest` の受信口。トークンを照合し、NDJSON を `ingest.py` に渡す。"""
+"""`/ingest` の受信口。トークンを照合し、NDJSON を `ccgov/ingestion/ndjson.py` に渡す。"""
 
 import hmac
 import json
 
 from flask import Response, current_app, request
 
-import db
-import ingest
+from ccgov.ingestion import ndjson
+from ccgov.store import db
 
 
 def ingest_endpoint() -> Response:
-    """NDJSON をトークン検査のうえ `ingest.py` に渡し、保存件数・破棄件数を返す。"""
+    """NDJSON をトークン検査のうえ `ccgov/ingestion/ndjson.py` に渡し、保存件数・破棄件数を返す。"""
     token = current_app.config["INGEST_TOKEN"]
     header_token = request.headers.get("X-Ingest-Token") or ""
     if not token or not hmac.compare_digest(
@@ -21,7 +21,7 @@ def ingest_endpoint() -> Response:
 
     conn = db.connect()
     try:
-        result = ingest.ingest(request.get_data(), conn)
+        result = ndjson.ingest(request.get_data(), conn)
     finally:
         conn.close()
     return Response(

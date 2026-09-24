@@ -16,7 +16,7 @@ from test_fixtures import (
     known_db,  # noqa: F401
 )
 
-import queries_events
+from ccgov.store import queries_events
 
 
 def test_skill_usage_returns_two_rows_ordered_by_recent_calls(known_db):
