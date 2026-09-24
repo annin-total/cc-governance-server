@@ -2,10 +2,9 @@
 
 import hmac
 import json
-import os
 import time
 
-from flask import Blueprint, Flask, Response, render_template, request
+from flask import Blueprint, Flask, Response, current_app, render_template, request
 
 import contract
 import csv_import
@@ -15,34 +14,11 @@ import ingest
 import policy
 import queries_events
 import queries_policy
+from ccgov.config import Config, load_config
 
-
-def _required_env(name: str) -> str:
-    """環境変数を読む。未設定・空なら起動を止める（`DB_DSN` と同じ流儀）。"""
-    value = os.environ.get(name)
-    if not value:
-        raise RuntimeError(f"{name} が設定されていない")
-    return value
-
-
-# 管理画面は推測しにくい `ADMIN_PATH` の下にだけ置き、共有パスワードの Basic 認証で守る。
-ADMIN_PATH = _required_env("ADMIN_PATH")
-if "/" in ADMIN_PATH:
-    raise RuntimeError("ADMIN_PATH に / を含めてはならない")
-_ADMIN_PASSWORD = _required_env("ADMIN_PASSWORD").encode("utf-8", "surrogateescape")
-
-db.init()
-
+# 管理画面の Blueprint。`ADMIN_PATH` の接頭辞は `create_app` が登録時に与える。
 # アプリ直下の静的配信は持たない。CSS は管理画面の Blueprint が認証つきで配る。
-app = Flask(__name__, static_folder=None)
-admin = Blueprint(
-    "admin", __name__, url_prefix="/" + ADMIN_PATH, static_folder="static"
-)
-
-# 表示用の整形は `formatting.py` に閉じる。ここは Jinja への登録だけを行う。
-for _filter_name in ("day", "num", "usd", "pct", "rel"):
-    app.add_template_filter(getattr(formatting, _filter_name), _filter_name)
-app.add_template_filter(formatting.bin_range, "bin")
+admin = Blueprint("admin", __name__, static_folder="static")
 
 
 def _overview_context() -> dict:
@@ -76,9 +52,10 @@ def _overview_context() -> dict:
 @admin.before_request
 def _require_admin_password():
     """Basic 認証のパスワードだけを照合する。ユーザー名は問わない。"""
+    expected = current_app.config["ADMIN_PASSWORD"].encode("utf-8", "surrogateescape")
     auth = request.authorization
     password = (auth.password if auth else None) or ""
-    if not hmac.compare_digest(password.encode("utf-8"), _ADMIN_PASSWORD):
+    if not hmac.compare_digest(password.encode("utf-8"), expected):
         return Response(
             status=401,
             headers={"WWW-Authenticate": 'Basic realm="admin", charset="UTF-8"'},
@@ -95,7 +72,7 @@ def index() -> str:
 @admin.route("/import", methods=["POST"])
 def import_endpoint() -> str:
     """CSV_DIR の全ファイルを取り込み、結果を概況画面に表示する。未設定なら取り込まない。"""
-    csv_dir = os.environ.get("CSV_DIR") or ""
+    csv_dir = current_app.config["CSV_DIR"]
     if not csv_dir:
         results = [{"file": "CSV_DIR", "error": "未設定のため取り込まなかった"}]
     else:
@@ -109,10 +86,9 @@ def import_endpoint() -> str:
     )
 
 
-@app.route("/ingest", methods=["POST"])
 def ingest_endpoint() -> Response:
     """NDJSON をトークン検査のうえ `ingest.py` に渡し、保存件数・破棄件数を返す。"""
-    token = os.environ.get("INGEST_TOKEN") or ""
+    token = current_app.config["INGEST_TOKEN"]
     header_token = request.headers.get("X-Ingest-Token") or ""
     if not token or not hmac.compare_digest(
         header_token.encode("latin-1", "replace"),
@@ -240,5 +216,23 @@ def _strip_base_path(wsgi_app, base_path: str):
     return _wrapped
 
 
-app.register_blueprint(admin)
-app.wsgi_app = _strip_base_path(app.wsgi_app, os.environ.get("BASE_PATH", ""))
+def create_app(config: Config) -> Flask:
+    """設定からアプリを組み立てる。呼ぶたびに独立したアプリを返す。"""
+    db.init()
+    app = Flask(__name__, static_folder=None)
+    app.config.update(
+        ADMIN_PASSWORD=config.admin_password,
+        INGEST_TOKEN=config.ingest_token,
+        CSV_DIR=config.csv_dir,
+    )
+    # 表示用の整形は `formatting.py` に閉じる。ここは Jinja への登録だけを行う。
+    for filter_name in ("day", "num", "usd", "pct", "rel"):
+        app.add_template_filter(getattr(formatting, filter_name), filter_name)
+    app.add_template_filter(formatting.bin_range, "bin")
+    app.add_url_rule("/ingest", view_func=ingest_endpoint, methods=["POST"])
+    app.register_blueprint(admin, url_prefix="/" + config.admin_path)
+    app.wsgi_app = _strip_base_path(app.wsgi_app, config.base_path)
+    return app
+
+
+app = create_app(load_config())

@@ -1,9 +1,9 @@
 """DB 方言（SQLite / MySQL）の差をこの 1 ファイルに閉じ込める層。"""
 
-import os
 import sqlite3
 from urllib.parse import urlparse
 
+from ccgov.config import db_dsn
 from contract import CSV_COLUMNS, EXTRA_COLUMNS, HOOK_FIELDS, POLICY_COLUMNS, ddl
 
 _SQLITE_PATH_PREFIX = "sqlite:///"
@@ -23,10 +23,7 @@ _INDEXES = (
 
 def _dialect() -> str:
     """`DB_DSN` のスキームから方言を決める。未設定・未知のスキームは例外にする。"""
-    dsn = os.environ.get("DB_DSN")
-    if not dsn:
-        raise RuntimeError("DB_DSN が設定されていない")
-    scheme = urlparse(dsn).scheme
+    scheme = urlparse(db_dsn()).scheme
     if scheme == "sqlite":
         return "sqlite"
     if scheme == "mysql":
@@ -36,7 +33,7 @@ def _dialect() -> str:
 
 def _sqlite_path() -> str:
     """`sqlite:///<パス>` から絶対・相対いずれかのパスを取り出す。prefix が無ければ例外にする。"""
-    dsn = os.environ["DB_DSN"]
+    dsn = db_dsn()
     if not dsn.startswith(_SQLITE_PATH_PREFIX):
         raise RuntimeError(
             f"sqlite の DSN は {_SQLITE_PATH_PREFIX} で始まる必要がある: {dsn}"
@@ -46,7 +43,7 @@ def _sqlite_path() -> str:
 
 def _mysql_kwargs() -> dict:
     """`mysql://user:pass@host[:port]/db` を PyMySQL の接続引数へ分解する。"""
-    parsed = urlparse(os.environ["DB_DSN"])
+    parsed = urlparse(db_dsn())
     return {
         "host": parsed.hostname,
         "port": parsed.port or 3306,

@@ -154,15 +154,19 @@ def test_non_ascii_token_matching_value_is_accepted(sqlite_db_dsn):
             os.environ["INGEST_TOKEN"] = original_token
 
 
-def test_server_token_unset_rejected(ingest_client):
-    """# 7: サーバの `INGEST_TOKEN` が未設定 + 正しそうなトークン + 正常な 2 行 -> 401。"""
-    os.environ.pop("INGEST_TOKEN", None)
-    body = "\n".join([_event_line("e1"), _event_line("e2")])
-    response = ingest_client.post(
-        "/ingest", data=body, headers={"X-Ingest-Token": "tok"}
-    )
-    assert response.status_code == 401
-    assert _count("events") == 0
+@pytest.mark.parametrize("value", [None, ""])
+def test_server_token_unset_fails_at_startup(sqlite_db_dsn, monkeypatch, value):
+    """# 7: サーバの `INGEST_TOKEN` が未設定・空なら、`app` の import の時点で止まる。"""
+    import app as app_module
+
+    if value is None:
+        monkeypatch.delenv("INGEST_TOKEN", raising=False)
+    else:
+        monkeypatch.setenv("INGEST_TOKEN", value)
+    with pytest.raises(RuntimeError, match="INGEST_TOKEN"):
+        importlib.reload(app_module)
+    monkeypatch.undo()
+    importlib.reload(app_module)
 
 
 def test_write_failure_returns_5xx(ingest_client):
