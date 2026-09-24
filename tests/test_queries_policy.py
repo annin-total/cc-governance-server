@@ -17,6 +17,7 @@ from test_fixtures import (
     known_db,  # noqa: F401
 )
 
+from ccgov.constants import REFERENCE_KEY
 from ccgov.store import queries_policy
 
 K = "env.CLAUDE_AUTOCOMPACT_PCT_OVERRIDE"
@@ -226,9 +227,7 @@ def test_stale_terminals_excludes_kill_switch_terminal(known_db):
 def test_plugin_version_distribution(known_db):
     """項目 K の版分布は 1.4.0: 5、1.3.0: 2。"""
     rows = dict(
-        queries_policy.plugin_version_distribution(
-            known_db, TODAY, queries_policy.REFERENCE_KEY
-        )
+        queries_policy.plugin_version_distribution(known_db, TODAY, REFERENCE_KEY)
     )
     assert rows == {"1.4.0": 5, "1.3.0": 2}
 
@@ -242,7 +241,7 @@ def test_plugin_version_distribution_picks_max_ts_not_max_day(known_db):
         day=20000,
         user_email="uy",
         host="hy",
-        key_name=queries_policy.REFERENCE_KEY,
+        key_name=REFERENCE_KEY,
         value="60",
         prev_value="60",
         apply_result="already_ok",
@@ -255,16 +254,14 @@ def test_plugin_version_distribution_picks_max_ts_not_max_day(known_db):
         day=20003,
         user_email="uy",
         host="hy",
-        key_name=queries_policy.REFERENCE_KEY,
+        key_name=REFERENCE_KEY,
         value="60",
         prev_value="80",
         apply_result="already_ok",
         plugin_version="1.3.0",
     )
     rows = dict(
-        queries_policy.plugin_version_distribution(
-            known_db, TODAY, queries_policy.REFERENCE_KEY
-        )
+        queries_policy.plugin_version_distribution(known_db, TODAY, REFERENCE_KEY)
     )
     # ts=5000（day=20000, 1.4.0）が最新のため、uy は 1.4.0 側に数えられる。
     # day の降順で選ぶと ts=1000（day=20003, 1.3.0）が選ばれ、1.3.0 側が 1 増えてしまう。
@@ -277,9 +274,7 @@ def test_plugin_version_distribution_unchanged_after_duplicate_injection(known_d
 
     def compute():
         return sorted(
-            queries_policy.plugin_version_distribution(
-                known_db, TODAY, queries_policy.REFERENCE_KEY
-            )
+            queries_policy.plugin_version_distribution(known_db, TODAY, REFERENCE_KEY)
         )
 
     assert_invariant_under_duplication(known_db, compute)
@@ -296,9 +291,7 @@ def test_all_numbers_survive_full_duplication_at_once(known_db):
         "not_introduced": sorted(queries_policy.not_introduced(known_db, TODAY)),
         "stale": sorted(queries_policy.stale_terminals(known_db, TODAY)),
         "versions": sorted(
-            queries_policy.plugin_version_distribution(
-                known_db, TODAY, queries_policy.REFERENCE_KEY
-            )
+            queries_policy.plugin_version_distribution(known_db, TODAY, REFERENCE_KEY)
         ),
     }
     duplicate_all(known_db)
@@ -311,9 +304,7 @@ def test_all_numbers_survive_full_duplication_at_once(known_db):
         "not_introduced": sorted(queries_policy.not_introduced(known_db, TODAY)),
         "stale": sorted(queries_policy.stale_terminals(known_db, TODAY)),
         "versions": sorted(
-            queries_policy.plugin_version_distribution(
-                known_db, TODAY, queries_policy.REFERENCE_KEY
-            )
+            queries_policy.plugin_version_distribution(known_db, TODAY, REFERENCE_KEY)
         ),
     }
     assert before == after

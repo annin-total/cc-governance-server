@@ -13,6 +13,7 @@ from test_fixtures import (
     known_db,  # noqa: F401
 )
 
+from ccgov.constants import REFERENCE_KEY
 from ccgov.store import db, queries_policy
 
 
@@ -92,9 +93,7 @@ def test_latest_values_row_count_matches_query(policy_client, known_db):
     """「最後に観測した値」の表の行数が、クエリの戻り行数（7）と一致する。"""
     html = policy_client.get(ADMIN + "/policy").get_data(as_text=True)
     rows = _rows_in_table(html, "latest-values")
-    expected = queries_policy.latest_values(
-        known_db, TODAY, queries_policy.REFERENCE_KEY
-    )
+    expected = queries_policy.latest_values(known_db, TODAY, REFERENCE_KEY)
     assert len(rows) == len(expected) == 7
 
 
@@ -118,7 +117,7 @@ def test_未設定のprev_valueがNoneと表示されない(known_db, policy_cli
             TODAY,
             "u-first-time",
             "h-first-time",
-            queries_policy.REFERENCE_KEY,
+            REFERENCE_KEY,
             "60",
             None,
             "applied",

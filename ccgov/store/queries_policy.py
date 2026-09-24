@@ -8,7 +8,6 @@ from ccgov.constants import (
     CONTEXT_BIN,
     EVENT_STUDY_SPAN,
     POLICY_DAYS,
-    REFERENCE_KEY,  # noqa: F401 (テストがモジュール属性として参照する)
     STALE_DAYS,
 )
 from ccgov.store import db
