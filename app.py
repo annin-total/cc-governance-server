@@ -12,6 +12,7 @@ import csv_import
 import db
 import formatting
 import ingest
+import policy
 import queries_events
 import queries_policy
 
@@ -142,8 +143,14 @@ def policy_view() -> str:
     conn = db.connect()
     try:
         items = []
-        for key_name, policy_value in contract.POLICY.items():
-            expected_value = contract.coerce(policy_value, "VARCHAR(255)")
+        # 準拠率の対象は SET のスカラ値だけ。dict・list（丸ごと置換の設定値）は
+        # policy_state.value が JSON 文字列になり prev_value と比較できない。
+        # None（キーを消す設定）は「消えていること」を prev_value の一致では判定できない。
+        # ADD/REMOVE/ONCE は key_name に接頭辞が付き、SET とは別物として扱う（今回は対象外）。
+        for key_name, policy_value in policy.SET.items():
+            if policy_value is None or isinstance(policy_value, (dict, list)):
+                continue
+            expected_value = contract.policy_text(policy_value)
             numerator, denominator, rate = queries_policy.compliance_rate(
                 conn, today, key_name, expected_value
             )[0]
@@ -179,7 +186,7 @@ def policy_view() -> str:
 def effect_view() -> str:
     """`/effect` 画面。相対日は準拠開始日基準のため基準日は使わない。"""
     rk = queries_policy.REFERENCE_KEY
-    expected_value = contract.coerce(contract.POLICY[rk], "VARCHAR(255)")
+    expected_value = contract.policy_text(policy.SET[rk])
     conn = db.connect()
     try:
         study = queries_policy.event_study(
