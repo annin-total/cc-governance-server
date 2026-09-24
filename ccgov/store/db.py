@@ -89,7 +89,7 @@ def _existing_index_names(cur, table: str) -> set:
 
 
 def _create_missing_indexes(cur) -> None:
-    """無いインデックスだけを作る。`CREATE INDEX IF NOT EXISTS` は MySQL に無いため使わない。"""
+    """無いインデックスだけを作る。`CREATE INDEX IF NOT EXISTS` は使わない。"""
     existing_by_table = {table: _existing_index_names(cur, table) for table in _TABLES}
     for table, columns in _INDEXES:
         name = _index_name(table, columns)
