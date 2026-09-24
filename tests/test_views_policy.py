@@ -182,7 +182,7 @@ def test_ADD_ONCEの接頭辞付き行があっても準拠率の対象に入ら
     )
     known_db.commit()
 
-    response = policy_client.get("/policy")
+    response = policy_client.get(ADMIN + "/policy")
     assert response.status_code == 200
     html = response.get_data(as_text=True)
     rows = _rows_in_table(html, "compliance-rate")
@@ -212,7 +212,7 @@ def test_SETのdictとNoneは準拠率の対象から除外される(policy_clie
         },
     )
 
-    html = policy_client.get("/policy").get_data(as_text=True)
+    html = policy_client.get(ADMIN + "/policy").get_data(as_text=True)
     rows = _rows_in_table(html, "compliance-rate")
     assert len(rows) == 3
     assert "some.dict.key" not in html
