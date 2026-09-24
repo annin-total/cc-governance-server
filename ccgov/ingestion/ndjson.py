@@ -1,4 +1,4 @@
-"""`/ingest` の受信処理。フレームワークを知らない。生のバイト列と DB 接続だけを扱う。"""
+"""`/ingest` の受信処理。生のバイト列と DB 接続だけを扱う。"""
 
 import json
 from typing import Optional
@@ -14,12 +14,10 @@ from ccgov.vendor.contract import (
 
 _KINDS = ("event", "policy")
 
-# events の列は EXTRA_COLUMNS + HOOK_FIELDS から組み立てる（契約が単一の正本）
 _EVENTS_COLUMNS = tuple(EXTRA_COLUMNS) + tuple(
     (name, type_) for name, _, type_ in HOOK_FIELDS
 )
 
-# kind ("event" / "policy") -> (投入先テーブル, (列名, 型) の対のリスト)
 _TABLE_COLUMNS = {
     "event": ("events", _EVENTS_COLUMNS),
     "policy": ("policy_state", tuple(POLICY_COLUMNS)),
@@ -77,7 +75,7 @@ def parse_lines(raw: bytes) -> tuple:
 
 
 def _insert(cur, table: str, columns: tuple, values: list) -> None:
-    """1 テーブル分を `executemany` で INSERT する。行が無ければ何もしない。"""
+    """1 テーブル分を INSERT する。"""
     if not values:
         return
     names = ", ".join(name for name, _ in columns)
@@ -87,10 +85,7 @@ def _insert(cur, table: str, columns: tuple, values: list) -> None:
 
 
 def ingest(raw: bytes, conn) -> dict:
-    """NDJSON を検査・kind で振り分け、1 トランザクションで保存する。
-
-    書き込みが失敗したら rollback し、例外をそのまま送出する。
-    """
+    """NDJSON を検査して kind ごとに振り分け、1 トランザクションで保存する。"""
     rows, dropped = parse_lines(raw)
     by_kind: dict = {"event": [], "policy": []}
     for kind, values in rows:

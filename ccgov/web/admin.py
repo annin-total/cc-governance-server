@@ -10,13 +10,12 @@ from ccgov.ingestion import csv_import
 from ccgov.store import db, queries_events, queries_policy
 from ccgov.vendor import contract, policy
 
-# 管理画面の Blueprint。`ADMIN_PATH` の接頭辞は `create_app` が登録時に与える。
-# アプリ直下の静的配信は持たない。CSS は管理画面の Blueprint が認証つきで配る。
+# CSS を認証つきで配るため、静的配信はアプリ直下ではなくこの Blueprint が持つ。
 admin = Blueprint("admin", __name__, static_folder="static")
 
 
 def _overview_context() -> dict:
-    """`/` 画面が使う集計結果をまとめて返す（取込結果を除く）。基準日と接続はここで閉じる。"""
+    """`/` 画面の集計結果を返す（取込結果を除く）。"""
     today = _today()
     conn = db.connect()
     try:
@@ -59,13 +58,13 @@ def _require_admin_password():
 
 @admin.route("/", strict_slashes=False)
 def index() -> str:
-    """概況画面。取込ボタンと健全性の 1 行を含む。"""
+    """概況画面。"""
     return render_template("overview.html", **_overview_context())
 
 
 @admin.route("/import", methods=["POST"])
 def import_endpoint() -> str:
-    """CSV_DIR の全ファイルを取り込み、結果を概況画面に表示する。未設定なら取り込まない。"""
+    """CSV_DIR の全ファイルを取り込み、結果を概況画面に表示する。"""
     csv_dir = current_app.config["CSV_DIR"]
     if not csv_dir:
         results = [{"file": "CSV_DIR", "error": "未設定のため取り込まなかった"}]
@@ -81,22 +80,21 @@ def import_endpoint() -> str:
 
 
 def _today() -> int:
-    """基準日（epoch 日）を現在時刻から算出する。`queries_*.py` は現在時刻を読まない。"""
+    """基準日（epoch 日）を現在時刻から算出する。"""
     return contract.to_day(int(time.time()))
 
 
 @admin.route("/policy")
 def policy_view() -> str:
-    """`/policy` 画面。基準日の算出・接続の取得・集計呼び出し・描画・接続の解放だけを行う。"""
+    """`/policy` 画面。"""
     today = _today()
     rk = REFERENCE_KEY
     conn = db.connect()
     try:
         items = []
-        # 準拠率の対象は SET のスカラ値だけ。dict・list（丸ごと置換の設定値）は
-        # policy_state.value が JSON 文字列になり prev_value と比較できない。
-        # None（キーを消す設定）は「消えていること」を prev_value の一致では判定できない。
-        # ADD/REMOVE/ONCE は key_name に接頭辞が付き、SET とは別物として扱う（今回は対象外）。
+        # 準拠率の対象は SET のスカラ値だけ。dict・list は value が JSON 文字列になり
+        # prev_value と比較できず、None（キーを消す設定）は prev_value の一致では判定できない。
+        # ADD/REMOVE/ONCE は key_name に接頭辞が付く別物として扱い、対象にしない。
         for key_name, policy_value in policy.SET.items():
             if policy_value is None or isinstance(policy_value, (dict, list)):
                 continue
@@ -157,7 +155,7 @@ def effect_view() -> str:
 
 @admin.route("/assets")
 def assets_view() -> str:
-    """`/assets` 画面。基準日の算出・接続の取得・集計呼び出し・描画・接続の解放だけを行う。"""
+    """`/assets` 画面。"""
     today = _today()
     conn = db.connect()
     try:

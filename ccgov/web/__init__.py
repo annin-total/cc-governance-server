@@ -17,7 +17,6 @@ def create_app(config: Config) -> Flask:
         INGEST_TOKEN=config.ingest_token,
         CSV_DIR=config.csv_dir,
     )
-    # 表示用の整形は `filters.py` に閉じる。ここは Jinja への登録だけを行う。
     for filter_name in ("day", "num", "usd", "pct", "rel"):
         app.add_template_filter(getattr(filters, filter_name), filter_name)
     app.add_template_filter(filters.bin_range, "bin")

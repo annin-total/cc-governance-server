@@ -18,12 +18,8 @@ export https_proxy="$PKG_PROXY"
 
 cd "$(dirname "$0")"
 
-# 契約 (ccgov/vendor/contract.py) と標準設定 (ccgov/vendor/policy.py) の複製が改竄されていないかを検査する。
-# このサーバは正本 (plugin/hooks/contract.py, plugin/hooks/policy.py) を持たないため、
-# 複製と対応する *.sha256 の 2 ファイルだけで完結させる。複製は「固定の生成物ヘッダ +
-# 正本のバイト列そのもの」という構成で作られている（scripts/sync_contract.py）。
-# ヘッダの既知の長さを引いた残りをハッシュ化し、*.sha256 に記録された正本のハッシュと
-# 比較すれば、複製を直接編集したことを検出できる。
+# ccgov/vendor/ の複製が直接編集されていないかを検査する。複製は「固定の生成物ヘッダ + 正本のバイト列」なので、
+# ヘッダを除いた残りのハッシュを *.sha256（正本のハッシュ）と比べる。
 python3 - <<'PY'
 import hashlib
 import sys

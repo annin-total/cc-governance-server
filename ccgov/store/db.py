@@ -38,7 +38,7 @@ def _dialect() -> str:
 
 
 def _sqlite_path() -> str:
-    """`sqlite:///<パス>` から絶対・相対いずれかのパスを取り出す。prefix が無ければ例外にする。"""
+    """`sqlite:///<パス>` からパスを取り出す。"""
     dsn = db_dsn()
     if not dsn.startswith(_SQLITE_PATH_PREFIX):
         raise RuntimeError(
@@ -69,14 +69,13 @@ def connect():
 
 
 def q(sql: str) -> str:
-    """方言が mysql のときだけ `?` を `%s` に置き換える。それ以外は素通しする。"""
+    """方言が mysql のときだけ `?` を `%s` に置き換える。"""
     if _dialect() == "mysql":
         return sql.replace("?", "%s")
     return sql
 
 
 def _index_name(table: str, columns: tuple) -> str:
-    """`ix_<テーブル名>_<列を _ で連結>` の形でインデックス名を組み立てる。"""
     return "ix_" + table + "_" + "_".join(columns)
 
 
@@ -90,7 +89,7 @@ def _existing_index_names(cur, table: str) -> set:
 
 
 def _create_missing_indexes(cur) -> None:
-    """無いインデックスだけを作る。`CREATE INDEX IF NOT EXISTS` は使わない。"""
+    """無いインデックスだけを作る。`CREATE INDEX IF NOT EXISTS` は MySQL に無いため使わない。"""
     existing_by_table = {table: _existing_index_names(cur, table) for table in _TABLES}
     for table, columns in _INDEXES:
         name = _index_name(table, columns)
@@ -120,7 +119,7 @@ def _required_columns() -> dict:
 
 
 def _check_contract_columns(cur) -> None:
-    """契約が要求する列がすべて実テーブルにあるか確かめる。無ければ全件まとめて例外にする。"""
+    """契約が要求する列が実テーブルに無ければ、全件まとめて例外にする。"""
     missing_by_table = {}
     for table, required in _required_columns().items():
         missing = required - _existing_columns(cur, table)
@@ -135,7 +134,7 @@ def _check_contract_columns(cur) -> None:
 
 
 def analyze(conn) -> None:
-    """統計情報を更新する。方言分岐はここに閉じ、呼ぶ側に方言の知識を出さない。"""
+    """統計情報を更新する。"""
     cur = conn.cursor()
     if _dialect() == "sqlite":
         cur.execute("PRAGMA analysis_limit=400")

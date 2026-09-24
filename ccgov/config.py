@@ -6,7 +6,7 @@ from dataclasses import dataclass, field
 
 @dataclass(frozen=True)
 class Config:
-    """起動時に確定する設定値。秘密値は repr に出さない。"""
+    """起動時に確定する設定値。"""
 
     admin_path: str
     admin_password: str = field(repr=False)
@@ -16,7 +16,6 @@ class Config:
 
 
 def _required_env(name: str) -> str:
-    """環境変数を読む。未設定・空なら起動を止める（`DB_DSN` と同じ流儀）。"""
     value = os.environ.get(name)
     if not value:
         raise RuntimeError(f"{name} が設定されていない")
@@ -24,8 +23,7 @@ def _required_env(name: str) -> str:
 
 
 def load_config() -> Config:
-    """環境変数から設定を読み、必須値の欠落・不正があれば RuntimeError で起動を止める。"""
-    # 管理画面は推測しにくい `ADMIN_PATH` の下にだけ置き、共有パスワードの Basic 認証で守る。
+    """環境変数から設定を読む。必須値の欠落・不正は RuntimeError で起動を止める。"""
     admin_path = _required_env("ADMIN_PATH")
     if "/" in admin_path:
         raise RuntimeError("ADMIN_PATH に / を含めてはならない")
