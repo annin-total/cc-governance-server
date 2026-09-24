@@ -13,6 +13,7 @@
 import importlib
 
 import pytest
+from conftest import ADMIN, admin_client
 from jinja2 import meta
 from test_fixtures import (
     TODAY,
@@ -44,7 +45,7 @@ def _capture_context(module, monkeypatch, path):
         return ""
 
     monkeypatch.setattr(module, "render_template", _fake_render)
-    response = module.app.test_client().get(path)
+    response = admin_client(module.app).get(ADMIN + path)
     assert response.status_code == 200, f"{path} が 200 で返らない"
     assert captured, f"{path} が render_template を呼んでいない"
     return captured["template"], captured["keys"]

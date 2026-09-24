@@ -7,6 +7,7 @@ import re
 from typing import Optional
 
 import pytest
+from conftest import ADMIN, admin_client
 from test_fixtures import (
     TODAY,
     known_db,  # noqa: F401
@@ -23,7 +24,7 @@ def policy_client(known_db, monkeypatch):
 
     importlib.reload(app_module)
     monkeypatch.setattr(app_module.time, "time", lambda: TODAY * 86400)
-    return app_module.app.test_client()
+    return admin_client(app_module.app)
 
 
 def _rows_in_table(html: str, testid: str, key: Optional[str] = None) -> list:
@@ -46,13 +47,13 @@ def _rows_in_table(html: str, testid: str, key: Optional[str] = None) -> list:
 
 def test_policy_page_returns_200(policy_client):
     """`/policy` が 200 で応答する。"""
-    response = policy_client.get("/policy")
+    response = policy_client.get(ADMIN + "/policy")
     assert response.status_code == 200
 
 
 def test_non_compliant_k_row_count_matches_query(policy_client):
     """項目 K の未準拠者の表の行数がクエリの戻り行数（3）と一致する。"""
-    html = policy_client.get("/policy").get_data(as_text=True)
+    html = policy_client.get(ADMIN + "/policy").get_data(as_text=True)
     rows = _rows_in_table(
         html, "non-compliant", key="env.CLAUDE_AUTOCOMPACT_PCT_OVERRIDE"
     )
@@ -61,7 +62,7 @@ def test_non_compliant_k_row_count_matches_query(policy_client):
 
 def test_non_compliant_a_row_count_is_zero(policy_client):
     """項目 A の未準拠者の表は 0 行。表が空のまま崩れずに描かれる。"""
-    html = policy_client.get("/policy").get_data(as_text=True)
+    html = policy_client.get(ADMIN + "/policy").get_data(as_text=True)
     rows = _rows_in_table(
         html,
         "non-compliant",
@@ -72,7 +73,7 @@ def test_non_compliant_a_row_count_is_zero(policy_client):
 
 def test_not_introduced_row_count(policy_client):
     """未導入者の表の行数が 1（u4）。"""
-    html = policy_client.get("/policy").get_data(as_text=True)
+    html = policy_client.get(ADMIN + "/policy").get_data(as_text=True)
     rows = _rows_in_table(html, "not-introduced")
     assert len(rows) == 1
     assert "u4" in html
@@ -80,7 +81,7 @@ def test_not_introduced_row_count(policy_client):
 
 def test_compliance_rate_table_shows_both_items(policy_client):
     """準拠率の表に項目ごとに 1 行、計 2 行出る。"""
-    html = policy_client.get("/policy").get_data(as_text=True)
+    html = policy_client.get(ADMIN + "/policy").get_data(as_text=True)
     rows = _rows_in_table(html, "compliance-rate")
     assert len(rows) == 2
     assert "20.0%" in html
@@ -89,7 +90,7 @@ def test_compliance_rate_table_shows_both_items(policy_client):
 
 def test_latest_values_row_count_matches_query(policy_client, known_db):
     """「最後に観測した値」の表の行数が、クエリの戻り行数（7）と一致する。"""
-    html = policy_client.get("/policy").get_data(as_text=True)
+    html = policy_client.get(ADMIN + "/policy").get_data(as_text=True)
     rows = _rows_in_table(html, "latest-values")
     expected = queries_policy.latest_values(
         known_db, TODAY, queries_policy.REFERENCE_KEY
@@ -126,7 +127,7 @@ def test_未設定のprev_valueがNoneと表示されない(known_db, policy_cli
     )
     known_db.commit()
 
-    html = policy_client.get("/policy").get_data(as_text=True)
+    html = policy_client.get(ADMIN + "/policy").get_data(as_text=True)
 
     assert "<td>None</td>" not in html
     assert "未設定" in html

@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Optional
 
 import pytest
+from conftest import ADMIN, admin_client
 
 import csv_import
 import db
@@ -512,7 +513,7 @@ def import_client(sqlite_db_dsn, tmp_path):
     os.environ["CSV_DIR"] = str(tmp_path)
     try:
         importlib.reload(app_module)
-        yield app_module.app.test_client()
+        yield admin_client(app_module.app)
     finally:
         if original_csv_dir is None:
             os.environ.pop("CSV_DIR", None)
@@ -522,7 +523,7 @@ def import_client(sqlite_db_dsn, tmp_path):
 
 def test_post_import_processes_csv_dir_and_reports_files(import_client):
     """7-1: `POST /import` で CSV_DIR の全ファイルが処理され、応答にファイル名と行数が含まれる。"""
-    response = import_client.post("/import")
+    response = import_client.post(ADMIN + "/import")
     assert response.status_code == 200
     body = response.get_data(as_text=True)
     assert "daily_a.csv" in body
@@ -531,8 +532,8 @@ def test_post_import_processes_csv_dir_and_reports_files(import_client):
 
 def test_post_import_twice_gives_same_result(import_client):
     """7-2: 2 回続けて送っても同じファイル名・行数が返り、SUM(cost) が変わらない。"""
-    first = import_client.post("/import").get_data(as_text=True)
-    second = import_client.post("/import").get_data(as_text=True)
+    first = import_client.post(ADMIN + "/import").get_data(as_text=True)
+    second = import_client.post(ADMIN + "/import").get_data(as_text=True)
     assert first == second
 
     conn = db.connect()
@@ -544,7 +545,7 @@ def test_post_import_twice_gives_same_result(import_client):
 
 def test_get_import_is_method_not_allowed(import_client):
     """7-3: `GET /import` は 405。"""
-    response = import_client.get("/import")
+    response = import_client.get(ADMIN + "/import")
     assert response.status_code == 405
 
 
@@ -561,7 +562,7 @@ def test_post_import_without_csv_dir_imports_nothing(
     monkeypatch.delenv("CSV_DIR", raising=False)
     importlib.reload(app_module)
 
-    body = app_module.app.test_client().post("/import").get_data(as_text=True)
+    body = admin_client(app_module.app).post(ADMIN + "/import").get_data(as_text=True)
     assert "未設定のため取り込まなかった" in body
     assert "daily_a.csv" not in body
     conn = db.connect()
@@ -572,7 +573,7 @@ def test_post_import_without_csv_dir_imports_nothing(
 
 
 def test_form_action_follows_base_path(sqlite_db_dsn):
-    """7-4: `BASE_PATH` を与えた状態で `/` を描画すると、フォームの action が BASE_PATH を含む。"""
+    """7-4: `BASE_PATH` を与えた状態で概況画面を描画すると、フォームの action が BASE_PATH を含む。"""
     import importlib
 
     import app as app_module
@@ -581,10 +582,10 @@ def test_form_action_follows_base_path(sqlite_db_dsn):
     os.environ["BASE_PATH"] = "/gov/cc"
     try:
         importlib.reload(app_module)
-        client = app_module.app.test_client()
-        response = client.get("/gov/cc")
+        client = admin_client(app_module.app)
+        response = client.get("/gov/cc" + ADMIN)
         body = response.get_data(as_text=True)
-        assert "/gov/cc/import" in body
+        assert "/gov/cc" + ADMIN + "/import" in body
     finally:
         if original_base_path is None:
             os.environ.pop("BASE_PATH", None)
@@ -666,8 +667,8 @@ def test_overview_shows_error_for_failed_file(sqlite_db_dsn, tmp_path):
     os.environ["CSV_DIR"] = str(tmp_path)
     try:
         importlib.reload(app_module)
-        client = app_module.app.test_client()
-        response = client.post("/import")
+        client = admin_client(app_module.app)
+        response = client.post(ADMIN + "/import")
         body = response.get_data(as_text=True)
         assert "a_good.csv" in body
         assert "z_unrelated.csv" in body
