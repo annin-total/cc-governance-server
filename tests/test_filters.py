@@ -8,7 +8,6 @@ class TestDay:
         assert filters.day(0) == "1970-01-01"
 
     def test_leap_day(self):
-        # 2024-02-29 の epoch 日 = 19782 ( = days from 1970-01-01 to 2024-02-29 )
         leap_day = 19782
         assert filters.day(leap_day) == "2024-02-29"
 

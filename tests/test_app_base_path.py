@@ -1,8 +1,4 @@
-"""`ccgov/web/middleware.py` の WSGI ラッパ（`BASE_PATH` の剥がし）の回帰テスト。
-
-`BASE_PATH` はモジュールの import 時に読まれるため、ケースごとに環境変数を差し替えて
-`importlib.reload` する。`app.py` にはテスト用の入口を作らない。
-"""
+"""`BASE_PATH` を剥がす WSGI ラッパの回帰テスト。設定は import 時に読まれるため reload する。"""
 
 import importlib
 import os
@@ -40,12 +36,16 @@ def app_with_base_path(sqlite_db_dsn):
             "/gov/cc",
             "/gov/cc/adm",
             200,
-        ),  # I-1 の回帰: 末尾スラッシュなしでリダイレクトしないこと
+        ),  # 末尾スラッシュなしでリダイレクトしない
         ("/gov/cc", "/gov/cc/adm/", 200),
         ("/gov/cc", "/adm/", 200),  # 前段が既に剥がして渡す経路
         ("/gov/cc", "/gov/cc", 404),  # 管理画面は ADMIN_PATH の下にしか無い
         ("/gov/cc", "/other", 404),
-        ("/gov/cc/", "/gov/cc/adm/", 200),  # ループの回帰: 末尾スラッシュ付き BASE_PATH
+        (
+            "/gov/cc/",
+            "/gov/cc/adm/",
+            200,
+        ),  # 末尾スラッシュ付き BASE_PATH でループしない
         ("", "/adm/", 200),
         ("", "/", 404),
         ("", "/other", 404),
@@ -66,8 +66,7 @@ def test_base_path_wrapper(app_with_base_path, base_path, path, expected_status)
 def test_stylesheet_is_served_under_base_path(app_with_base_path, base_path):
     """`BASE_PATH` の有無にかかわらず、画面が指す先のスタイルシートが 200 で返ること。
 
-    `url_for` は `SCRIPT_NAME` を前置する。前置が壊れると画面は 200 のまま素の HTML になり、
-    見た目だけが崩れて気づきにくいため、参照先を実際に引いて確かめる。
+    前置が壊れても画面は 200 のまま見た目だけが崩れるため、参照先を実際に引く。
     """
     client = admin_client(app_with_base_path(base_path))
     html = client.get(base_path + ADMIN + "/").get_data(as_text=True)

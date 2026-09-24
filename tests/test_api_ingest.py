@@ -1,7 +1,6 @@
-"""設計書 §4.4 の応答コードの規則を、独立した 4 状況として検証する。
+"""`/ingest` の応答コードの検証。
 
-401 と 5xx のケースでは、応答コードだけでなく DB に行が残っていないことまで確かめる
-（端末が spool を消してよいかどうかの判断がここに掛かっている）。
+401 と 5xx では DB に行が残らないことまで確かめる（端末が spool を消してよいかの判断に掛かる）。
 """
 
 import importlib
@@ -47,7 +46,7 @@ def _event_line(event_id: str) -> str:
 
 
 def test_stored_two_dropped_zero(ingest_client):
-    """# 1: 正しいトークン + 正常な event 2 行 -> 200、stored=2, dropped=0。"""
+    """正しいトークン + 正常な event 2 行 -> 200、stored=2, dropped=0。"""
     body = "\n".join([_event_line("e1"), _event_line("e2")])
     response = ingest_client.post(
         "/ingest", data=body, headers={"X-Ingest-Token": "tok"}
@@ -58,7 +57,7 @@ def test_stored_two_dropped_zero(ingest_client):
 
 
 def test_stored_one_dropped_one(ingest_client):
-    """# 2: 正しいトークン + 正常 1 行 + 壊れた 1 行 -> 200、stored=1, dropped=1。"""
+    """正しいトークン + 正常 1 行 + 壊れた 1 行 -> 200、stored=1, dropped=1。"""
     body = "\n".join([_event_line("e1"), "not-json"])
     response = ingest_client.post(
         "/ingest", data=body, headers={"X-Ingest-Token": "tok"}
@@ -69,7 +68,7 @@ def test_stored_one_dropped_one(ingest_client):
 
 
 def test_stored_zero_dropped_two(ingest_client):
-    """# 3: 正しいトークン + 壊れた 2 行 -> 200、stored=0, dropped=2。"""
+    """正しいトークン + 壊れた 2 行 -> 200、stored=0, dropped=2。"""
     body = "not-json\n{}"
     response = ingest_client.post(
         "/ingest", data=body, headers={"X-Ingest-Token": "tok"}
@@ -80,7 +79,7 @@ def test_stored_zero_dropped_two(ingest_client):
 
 
 def test_empty_body(ingest_client):
-    """# 4: 正しいトークン + 空ボディ -> 200、stored=0, dropped=0。"""
+    """正しいトークン + 空ボディ -> 200、stored=0, dropped=0。"""
     response = ingest_client.post(
         "/ingest", data=b"", headers={"X-Ingest-Token": "tok"}
     )
@@ -90,7 +89,7 @@ def test_empty_body(ingest_client):
 
 
 def test_missing_token_header_rejected(ingest_client):
-    """# 5: `X-Ingest-Token` ヘッダ無し + 正常な 2 行 -> 401、events は 0 行のまま。"""
+    """`X-Ingest-Token` ヘッダ無し + 正常な 2 行 -> 401、events は 0 行のまま。"""
     body = "\n".join([_event_line("e1"), _event_line("e2")])
     response = ingest_client.post("/ingest", data=body)
     assert response.status_code == 401
@@ -98,7 +97,7 @@ def test_missing_token_header_rejected(ingest_client):
 
 
 def test_wrong_token_rejected(ingest_client):
-    """# 6: `X-Ingest-Token: wrong` + 正常な 2 行 -> 401、events は 0 行のまま。"""
+    """`X-Ingest-Token: wrong` + 正常な 2 行 -> 401、events は 0 行のまま。"""
     body = "\n".join([_event_line("e1"), _event_line("e2")])
     response = ingest_client.post(
         "/ingest", data=body, headers={"X-Ingest-Token": "wrong"}
@@ -108,7 +107,7 @@ def test_wrong_token_rejected(ingest_client):
 
 
 def test_non_ascii_token_rejected_with_401(ingest_client):
-    """# K-1: 非 ASCII を含むヘッダは 401 で拒否する（500 になってはならない）。"""
+    """非 ASCII を含むヘッダは 401 で拒否する（500 になってはならない）。"""
     body = "\n".join([_event_line("e1"), _event_line("e2")])
     response = ingest_client.post(
         "/ingest", data=body, headers={"X-Ingest-Token": "tok\xa0"}
@@ -118,12 +117,9 @@ def test_non_ascii_token_rejected_with_401(ingest_client):
 
 
 def test_non_ascii_token_matching_value_is_accepted(sqlite_db_dsn):
-    """# K-1: 非 ASCII の `INGEST_TOKEN` に、同じ値を正しく WSGI 符号化したヘッダを送ると 200。
+    """非 ASCII の `INGEST_TOKEN` に、同じ値を実サーバと同じく WSGI 符号化したヘッダを送ると 200。
 
-    Flask の `test_client()` は `headers={...}` の文字列をそのまま渡してしまい、
-    実サーバが行う「ヘッダは on-the-wire では UTF-8 バイト列、WSGI はそれを latin-1 で
-    str に復号する」という符号化を経由しない。この欠陥は `environ_overrides` で
-    WSGI 環境を直接組み立てないと再現できない。
+    `test_client()` の `headers=` は UTF-8 を latin-1 で復号する WSGI の符号化を経ないため、environ を直接組む。
     """
     import importlib
 
@@ -156,7 +152,7 @@ def test_non_ascii_token_matching_value_is_accepted(sqlite_db_dsn):
 
 @pytest.mark.parametrize("value", [None, ""])
 def test_server_token_unset_fails_at_startup(sqlite_db_dsn, monkeypatch, value):
-    """# 7: サーバの `INGEST_TOKEN` が未設定・空なら、`app` の import の時点で止まる。"""
+    """サーバの `INGEST_TOKEN` が未設定・空なら、`app` の import の時点で止まる。"""
     import app as app_module
 
     if value is None:
@@ -170,7 +166,7 @@ def test_server_token_unset_fails_at_startup(sqlite_db_dsn, monkeypatch, value):
 
 
 def test_write_failure_returns_5xx(ingest_client):
-    """# 8: events を DROP した状態で event 2 行 + policy 1 行を送ると 500 以上、policy_state も 0 行のまま。"""
+    """events を DROP した状態で event 2 行 + policy 1 行を送ると 500 以上、policy_state も 0 行のまま。"""
     from ccgov.store import db
 
     conn = db.connect()

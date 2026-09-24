@@ -1,11 +1,4 @@
-"""`queries_policy.py` の集計クエリを、既知データ（`test_fixtures.py`）で検証する。
-
-基準日は 20005。`POLICY_DAYS = 30` の窓は `day >= 19976`。
-
-`known_db` は `test_fixtures.py` の fixture をそのまま import して使う（`tests/conftest.py` には
-手を入れない方針のため）。fixture の import をテストの引数名として使うのは pytest の標準的な
-再利用方法であり、ruff の F811（未使用の再定義）はこのファイル全体で抑止する。
-"""
+"""`queries_policy.py` の集計クエリを既知データで検証する。基準日は 20005、窓は `day >= 19976`。"""
 
 # ruff: noqa: F811
 
@@ -71,11 +64,9 @@ def test_latest_values_without_day_filter_would_include_u11(known_db):
 
 
 def test_latest_values_picks_max_ts_not_max_day(known_db):
-    """`day` の順序と `ts` の順序が食い違う 3 行では、`ts` が最大の行を現在値とする。
+    """`day` と `ts` の順序が食い違う 3 行では、`ts` が最大の行を現在値とする。
 
-    既知データを壊さないよう、新しい端末 ux/hx に 3 行だけ追加する。
-    `day` の降順では ts=1000・day=20003（prev_value=80）が選ばれてしまうが、
-    正しい実装（`ts` の降順）は ts=5000・day=20000（prev_value=60）を返す。
+    `day` の降順だと ts=1000・day=20003（80）が選ばれるが、正しくは ts=5000・day=20000（60）。
     """
     insert_policy_state(
         known_db,
@@ -161,11 +152,7 @@ def test_compliance_rate_a_unchanged_after_duplicate_injection(known_db):
 
 
 def test_compliance_rate_without_user_folding_would_differ(known_db):
-    """利用者単位に畳まず端末の user_email をそのまま数えると、K の準拠者が 2・率が 40.0% になる。
-
-    これは本来の実装 (`compliance_rate`) が示す値 (1 / 20.0%) との対照実験であり、
-    利用者単位の畳み込みが効いていることを、この差で確かめる。
-    """
+    """利用者単位に畳まず数えると K の準拠者が 2・率が 40.0% になる（本来は 1・20.0%）。"""
     rows = queries_policy.latest_values(known_db, TODAY, K)
     denom_users = {"u1", "u2", "u3", "u4", "u5"}
     naive_numerator = len({r[0] for r in rows if r[2] == "60" and r[0] in denom_users})
@@ -218,7 +205,6 @@ def test_stale_terminals_excludes_kill_switch_terminal(known_db):
     cur.execute(
         "SELECT user_email, host, MAX(day) FROM events GROUP BY user_email, host"
     )
-    # events には host 列があるため user_email から導出せず素直に集計する
     events_last_day = {(r[0], r[1]): r[2] for r in cur.fetchall()}
     assert events_last_day.get(("u10", "h10")) == 19988
     assert TODAY - events_last_day[("u10", "h10")] >= queries_policy.STALE_DAYS
@@ -233,7 +219,7 @@ def test_plugin_version_distribution(known_db):
 
 
 def test_plugin_version_distribution_picks_max_ts_not_max_day(known_db):
-    """版分布も `ts` の降順で最新 1 行を選ぶ（Minor-1）。`day` の降順にすると別の版が数えられる。"""
+    """版分布も `ts` の降順で最新 1 行を選ぶ。`day` の降順にすると別の版が数えられる。"""
     insert_policy_state(
         known_db,
         event_id="tie4",
@@ -264,7 +250,6 @@ def test_plugin_version_distribution_picks_max_ts_not_max_day(known_db):
         queries_policy.plugin_version_distribution(known_db, TODAY, REFERENCE_KEY)
     )
     # ts=5000（day=20000, 1.4.0）が最新のため、uy は 1.4.0 側に数えられる。
-    # day の降順で選ぶと ts=1000（day=20003, 1.3.0）が選ばれ、1.3.0 側が 1 増えてしまう。
     assert rows["1.4.0"] == 6
     assert rows["1.3.0"] == 2
 

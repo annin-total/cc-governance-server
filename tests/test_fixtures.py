@@ -1,10 +1,4 @@
-"""集計検証の土台。既知データの投入と、重複行を注入するヘルパを置く。
-
-このファイルの fixture・ヘルパは、同じ `tests/server/` にある `/policy` `/assets` のテストからも
-`from test_fixtures import ...` の形で再利用する。
-
-基準日は 20005（epoch 日）。窓の長さ・キー名は `ccgov/constants.py` の定数と揃える。
-"""
+"""集計検証の既知データと、重複行を注入するヘルパ。基準日は 20005（epoch 日）。"""
 
 import pytest
 
@@ -479,9 +473,7 @@ _POLICY_ROWS = (
 )
 
 # (day, user_email, provider, cost, input_tokens)
-# u20 は POLICY_DAYS の窓（day >= 19976）より前にしかコストが無い離脱者。
-# 準拠率の分母（`_distinct_users_with_cost`）が `day` で絞られていることを、
-# この行の存在下でも分母 5 のままであることで確かめる（窓を広げる変異の検出）。
+# u20 は窓（day >= 19976）より前にしかコストが無い離脱者。準拠率の分母が `day` で絞られていることを確かめる。
 _COST_ROWS = (
     (20000, "u1", "aws-bedrock", 1.0, 1000),
     (20001, "u2", "aws-bedrock", 2.0, 2000),
@@ -537,10 +529,7 @@ def insert_cost_daily(conn, **overrides) -> None:
 
 
 def _duplicate_table(conn, table: str, columns: tuple) -> None:
-    """`table` の全行を、`event_id` を含めて完全に同一のまま複製する。
-
-    送信のリトライで起きる重複（設計書 §5.4）そのものを再現する。
-    """
+    """`table` の全行を `event_id` を含めて同一のまま複製する（送信のリトライで起きる重複の再現）。"""
     cur = conn.cursor()
     cur.execute(f"SELECT {', '.join(columns)} FROM {table}")
     rows = cur.fetchall()
@@ -573,10 +562,7 @@ def duplicate_all(conn) -> None:
 
 
 def assert_invariant_under_duplication(conn, compute):
-    """`compute()` の戻り値が、重複行の注入前後で完全に一致することを 1 回で確かめる。
-
-    以降の各画面のテストは、この呼び出しを必ず通す。戻り値は複製後の `compute()` の結果。
-    """
+    """`compute()` の戻り値が重複注入の前後で一致することを確かめ、複製後の結果を返す。"""
     before = compute()
     duplicate_all(conn)
     after = compute()

@@ -40,7 +40,7 @@ def _count(conn, sql: str) -> int:
 
 
 def test_normal_rows_are_stored_and_split_by_table(db_conn):
-    """# 1: event 3 行 + policy 2 行（すべて正常）はすべて保存され、テーブルごとに分かれる。"""
+    """event 3 行 + policy 2 行（すべて正常）はすべて保存され、テーブルごとに分かれる。"""
     raw = b"\n".join(
         [
             _event_line("e1"),
@@ -57,7 +57,7 @@ def test_normal_rows_are_stored_and_split_by_table(db_conn):
 
 
 def test_broken_and_unknown_kind_rows_are_dropped(db_conn):
-    """# 2: 壊れた行と未知の kind の行は破棄され、正常な event 行だけが保存される。"""
+    """壊れた行と未知の kind の行は破棄され、正常な event 行だけが保存される。"""
     raw = b"\n".join(
         [
             _event_line("e1"),
@@ -73,7 +73,7 @@ def test_broken_and_unknown_kind_rows_are_dropped(db_conn):
 
 
 def test_duplicate_event_id_is_stored_twice_but_counted_once(db_conn):
-    """# 3: 同一 event_id の行は両方保存されるが、DISTINCT で数えれば 1 件になる。"""
+    """同一 event_id の行は両方保存されるが、DISTINCT で数えれば 1 件になる。"""
     raw = b"\n".join([_event_line("dup"), _event_line("dup")])
     result = ingest(raw, db_conn)
     assert result == {"stored": 2, "dropped": 0}
@@ -82,7 +82,7 @@ def test_duplicate_event_id_is_stored_twice_but_counted_once(db_conn):
 
 
 def test_all_broken_rows_store_nothing(db_conn):
-    """# 4: すべて壊れた行なら何も保存されない。"""
+    """すべて壊れた行なら何も保存されない。"""
     raw = b"\n".join(
         [
             b'{"kind":"event","event_id":',
@@ -96,7 +96,7 @@ def test_all_broken_rows_store_nothing(db_conn):
 
 
 def test_write_failure_rolls_back_and_raises(db_conn):
-    """# 5: events が無い状態での INSERT 失敗は例外を送出し、policy_state にも保存が残らない。"""
+    """events が無い状態での INSERT 失敗は例外を送出し、policy_state にも保存が残らない。"""
     cur = db_conn.cursor()
     cur.execute("DROP TABLE events")
     db_conn.commit()

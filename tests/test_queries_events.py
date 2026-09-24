@@ -1,6 +1,6 @@
-"""`queries_events.py` の集計クエリを、既知データ（`test_fixtures.py`）で検証する。
+"""`queries_events.py` の集計クエリを既知データで検証する。
 
-基準日は 20005。`RECENT_DAYS = 7` の直近窓は `day >= 19999`、前 7 日は `19992..19998`。
+基準日は 20005。直近 7 日は `day >= 19999`、前 7 日は `19992..19998`。
 """
 
 # ruff: noqa: F811
@@ -76,9 +76,9 @@ def test_command_usage_unchanged_after_duplicate_injection(known_db):
 
 
 def test_command_usage_counts_null_command_source(known_db):
-    """`command_source` が NULL のコマンドも呼出回数・利用者数が正しく数えられる（Imp-2）。
+    """`command_source` が NULL のコマンドも呼出回数・利用者数が正しく数えられる。
 
-    `NULL = NULL` は SQL では真にならないため、CTE + LEFT JOIN 実装だと 0/0 になっていた。
+    `NULL = NULL` は真にならないため、CTE + LEFT JOIN で実装すると 0/0 になる。
     """
     insert_event(
         known_db,
@@ -140,8 +140,7 @@ def test_subagent_ratio_count_star_would_differ(known_db):
 def test_daily_cost_by_provider(known_db):
     """`cost_daily` を day x provider で束ねる。7 行、aws-bedrock と openai が別行。
 
-    `daily_cost` は `day` で絞らない（`cost_daily` は集計済みの小さいテーブルのため）ので、
-    窓（`POLICY_DAYS`）より前の u20（day=19970）の行もそのまま現れる。
+    `day` で絞らないため、窓より前の u20（day=19970）の行も現れる。
     """
     rows = queries_events.daily_cost(known_db)
     assert rows == [
@@ -164,7 +163,7 @@ def test_daily_cost_doubles_after_duplicate_injection(known_db):
 
 
 def test_daily_cost_survives_null_cost_row(known_db):
-    """`cost` が NULL の行だけの (day, provider) は 0 として表れ、例外にならない（Imp-1）。"""
+    """`cost` が NULL の行だけの (day, provider) は 0 として表れ、例外にならない。"""
     insert_cost_daily(
         known_db,
         day=20006,
