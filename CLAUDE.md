@@ -1,4 +1,4 @@
-# CLAUDE.md - cc-governance-monitor
+# CLAUDE.md - server
 
 集計サーバ固有の規約。コマンド・共通の規約・文書の置き場は親リポジトリ `cc-governance-bmsd` の
 `CLAUDE.md` にある。

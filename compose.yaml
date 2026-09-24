@@ -6,7 +6,7 @@ services:
       # ホスト側だけ 15000 に変える（コンテナ内は 5000 のまま）。
       - "15000:5000"
     volumes:
-      - ./dev.env:/mnt/data/secrets/cc-governance-bmsd.env:ro
+      - ./dev.env:/mnt/data/secrets/cc-governance-server.env:ro
       - dev_data:/app/data
 
 volumes:
