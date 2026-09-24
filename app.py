@@ -5,7 +5,7 @@ import json
 import os
 import time
 
-from flask import Flask, Response, render_template, request
+from flask import Blueprint, Flask, Response, render_template, request
 
 import contract
 import csv_import
@@ -16,9 +16,28 @@ import policy
 import queries_events
 import queries_policy
 
+
+def _required_env(name: str) -> str:
+    """環境変数を読む。未設定・空なら起動を止める（`DB_DSN` と同じ流儀）。"""
+    value = os.environ.get(name)
+    if not value:
+        raise RuntimeError(f"{name} が設定されていない")
+    return value
+
+
+# 管理画面は推測しにくい `ADMIN_PATH` の下にだけ置き、共有パスワードの Basic 認証で守る。
+ADMIN_PATH = _required_env("ADMIN_PATH")
+if "/" in ADMIN_PATH:
+    raise RuntimeError("ADMIN_PATH に / を含めてはならない")
+_ADMIN_PASSWORD = _required_env("ADMIN_PASSWORD").encode("utf-8", "surrogateescape")
+
 db.init()
 
-app = Flask(__name__)
+# アプリ直下の静的配信は持たない。CSS は管理画面の Blueprint が認証つきで配る。
+app = Flask(__name__, static_folder=None)
+admin = Blueprint(
+    "admin", __name__, url_prefix="/" + ADMIN_PATH, static_folder="static"
+)
 
 # 表示用の整形は `formatting.py` に閉じる。ここは Jinja への登録だけを行う。
 for _filter_name in ("day", "num", "usd", "pct", "rel"):
@@ -54,13 +73,26 @@ def _overview_context() -> dict:
         conn.close()
 
 
-@app.route("/")
+@admin.before_request
+def _require_admin_password():
+    """Basic 認証のパスワードだけを照合する。ユーザー名は問わない。"""
+    auth = request.authorization
+    password = (auth.password if auth else None) or ""
+    if not hmac.compare_digest(password.encode("utf-8"), _ADMIN_PASSWORD):
+        return Response(
+            status=401,
+            headers={"WWW-Authenticate": 'Basic realm="admin", charset="UTF-8"'},
+        )
+    return None
+
+
+@admin.route("/", strict_slashes=False)
 def index() -> str:
     """概況画面。取込ボタンと健全性の 1 行を含む。"""
     return render_template("overview.html", **_overview_context())
 
 
-@app.route("/import", methods=["POST"])
+@admin.route("/import", methods=["POST"])
 def import_endpoint() -> str:
     """CSV_DIR の全ファイルを取り込み、結果を概況画面に表示する。未設定なら取り込まない。"""
     csv_dir = os.environ.get("CSV_DIR") or ""
@@ -103,7 +135,7 @@ def _today() -> int:
     return contract.to_day(int(time.time()))
 
 
-@app.route("/policy")
+@admin.route("/policy")
 def policy_view() -> str:
     """`/policy` 画面。基準日の算出・接続の取得・集計呼び出し・描画・接続の解放だけを行う。"""
     today = _today()
@@ -150,7 +182,7 @@ def policy_view() -> str:
     )
 
 
-@app.route("/effect")
+@admin.route("/effect")
 def effect_view() -> str:
     """`/effect` 画面。相対日は準拠開始日基準のため基準日は使わない。"""
     rk = queries_policy.REFERENCE_KEY
@@ -175,7 +207,7 @@ def effect_view() -> str:
     )
 
 
-@app.route("/assets")
+@admin.route("/assets")
 def assets_view() -> str:
     """`/assets` 画面。基準日の算出・接続の取得・集計呼び出し・描画・接続の解放だけを行う。"""
     today = _today()
@@ -208,4 +240,5 @@ def _strip_base_path(wsgi_app, base_path: str):
     return _wrapped
 
 
+app.register_blueprint(admin)
 app.wsgi_app = _strip_base_path(app.wsgi_app, os.environ.get("BASE_PATH", ""))
