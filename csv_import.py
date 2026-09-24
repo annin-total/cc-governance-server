@@ -64,6 +64,8 @@ def _extract_row(row: list, index_by_header: dict, source_file: str) -> Optional
 
 def _read_csv_rows(path: str) -> list:
     """CRLF・UTF-8（BOM 付きも可）の CSV を行のリストとして読む。"""
+    # utf-8-sig: Excel で出し直すと BOM が付き、BOM を剥がさないと先頭の列名が
+    # 一致せず全行が捨てられる。BOM 無しもそのまま読める。
     with open(path, "r", encoding="utf-8-sig", newline="") as f:
         return list(csv.reader(f))
 
@@ -131,7 +133,7 @@ def _import_file_or_error(path: str, conn) -> dict:
     """1 ファイルを取り込む。必須列が無い・読めない等で失敗したら、そのファイルだけを失敗として報告する。
 
     `ValueError`（必須列の欠落）・`OSError`（権限等で読めない）・`csv.Error`（CSV として壊れている）
-    のいずれでも、他のファイルの取込は止めない（R-37）。
+    のいずれでも、他のファイルの取込は止めない（取込ディレクトリには無関係な CSV も置かれる）。
     """
     try:
         return import_file(path, conn)

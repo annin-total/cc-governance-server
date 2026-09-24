@@ -1,7 +1,7 @@
 """`/policy` `/effect` 画面の集計クエリ。フレームワークを import しない。
 
 現在時刻は読まない。基準日 `today`（epoch 日）は呼び出し側（`app.py`）が渡す。
-準拠の判定は常に `prev_value` で行い、`apply_result` では行を絞らない（設計書 §5.2）。
+準拠の判定は常に `prev_value` で行い、`apply_result` では行を絞らない。
 """
 
 import db
@@ -51,7 +51,7 @@ def _distinct_users_with_cost(conn, today: int) -> set:
 
 def compliance_rate(conn, today: int, key_name: str, expected_value: str) -> list:
     """施策項目 1 つの準拠率を `[(numerator, denominator, rate)]` で返す。
-    1 台でも未準拠なら利用者は未準拠（§7.2）。
+    1 台でも未準拠なら利用者は未準拠。
     """
     rows = latest_values(conn, today, key_name)
     compliant_by_user: dict = {}
@@ -131,7 +131,7 @@ def plugin_version_distribution(conn, today: int, key_name: str) -> list:
 
 def compliance_start_dates(conn, key_name: str, expected_value: str) -> dict:
     """`prev_value` がポリシー値に一致する行の `MIN(day)` を `user_email` で束ねる。
-    全期間を見る（`(key_name, prev_value, user_email)` の index で完結。§5.1/§5.2）。
+    全期間を見る（`(key_name, prev_value, user_email)` の index で完結）。
     """
     cur = conn.cursor()
     cur.execute(

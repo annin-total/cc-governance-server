@@ -2,7 +2,7 @@
 
 現在時刻は読まない。基準日 `today`（epoch 日）は呼び出し側（`app.py`）が渡す。
 件数・利用者数は必ず `COUNT(DISTINCT event_id)` / `COUNT(DISTINCT user_email)` を通す
-（設計書 §5.4）。`agent_id` はサブエージェント内のツール呼出にのみ付く（設計書 §7.3）。
+（端末の再送で重複しうるため）。`agent_id` はサブエージェント内のツール呼出にのみ付く。
 """
 
 import db
