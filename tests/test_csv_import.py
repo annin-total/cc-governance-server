@@ -594,13 +594,14 @@ def test_form_action_follows_base_path(sqlite_db_dsn):
         importlib.reload(app_module)
 
 
-# --- タスク 8: フレームワークの import が app.py だけに現れることの検査 -------
+# --- タスク 8: フレームワークの import が ccgov/web/ だけに現れることの検査 ---
 
 _FRAMEWORK_IMPORT_RE = re.compile(
     r"^\s*(import|from)\s+(flask|werkzeug|jinja2|waitress)\b", re.IGNORECASE
 )
 
 _SERVER_DIR = Path(__file__).parent.parent
+_WEB_DIR = _SERVER_DIR / "ccgov" / "web"
 
 
 def _framework_import_lines(path: Path) -> list:
@@ -609,15 +610,16 @@ def _framework_import_lines(path: Path) -> list:
     return [line for line in lines if _FRAMEWORK_IMPORT_RE.match(line)]
 
 
-def test_framework_import_appears_only_in_app_py():
-    """8-1: `app.py` を除く `*.py` にフレームワーク名の import が現れない。"""
+def test_framework_import_appears_only_in_web_package():
+    """8-1: `ccgov/web/` を除く `*.py` にフレームワーク名の import が現れない。"""
+    paths = [*_SERVER_DIR.glob("*.py"), *(_SERVER_DIR / "ccgov").rglob("*.py")]
     offenders = {}
-    for path in _SERVER_DIR.glob("*.py"):
-        if path.name == "app.py":
+    for path in paths:
+        if _WEB_DIR in path.parents:
             continue
         hits = _framework_import_lines(path)
         if hits:
-            offenders[path.name] = hits
+            offenders[str(path.relative_to(_SERVER_DIR))] = hits
     assert offenders == {}
 
 

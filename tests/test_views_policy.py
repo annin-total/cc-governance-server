@@ -21,9 +21,10 @@ import queries_policy
 def policy_client(known_db, monkeypatch):
     """`known_db` と同じ DB_DSN を指す `app` を読み込み、基準日を固定したテストクライアントを返す。"""
     import app as app_module
+    from ccgov.web import admin
 
     importlib.reload(app_module)
-    monkeypatch.setattr(app_module.time, "time", lambda: TODAY * 86400)
+    monkeypatch.setattr(admin.time, "time", lambda: TODAY * 86400)
     return admin_client(app_module.app)
 
 
@@ -198,10 +199,10 @@ def test_SETのdictとNoneは準拠率の対象から除外される(policy_clie
     比較できず、None（キー削除）は「キーが無いこと」を prev_value の一致では判定できないため。
     このフィルタを外すと、この項目数（3）が dict・None を数えた数（5）に増えて失敗する。
     """
-    import app as app_module
+    from ccgov.web import admin
 
     monkeypatch.setattr(
-        app_module.policy,
+        admin.policy,
         "SET",
         {
             "env.CLAUDE_AUTOCOMPACT_PCT_OVERRIDE": "60",

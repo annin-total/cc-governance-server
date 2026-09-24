@@ -29,9 +29,10 @@ _ALLOWED_UNUSED = set()
 def app_module(known_db, monkeypatch):
     """基準日を固定した `app` モジュールを返す。"""
     import app as module
+    from ccgov.web import admin
 
     importlib.reload(module)
-    monkeypatch.setattr(module.time, "time", lambda: TODAY * 86400)
+    monkeypatch.setattr(admin.time, "time", lambda: TODAY * 86400)
     return module
 
 
@@ -44,7 +45,9 @@ def _capture_context(module, monkeypatch, path):
         captured["keys"] = set(context)
         return ""
 
-    monkeypatch.setattr(module, "render_template", _fake_render)
+    from ccgov.web import admin
+
+    monkeypatch.setattr(admin, "render_template", _fake_render)
     response = admin_client(module.app).get(ADMIN + path)
     assert response.status_code == 200, f"{path} が 200 で返らない"
     assert captured, f"{path} が render_template を呼んでいない"
