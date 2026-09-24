@@ -9,8 +9,9 @@
 
 ## Coding
 
-- **`contract.py` を直接編集しない**：正本は親リポジトリの `plugin/hooks/contract.py` であり、
-  親リポジトリの `scripts/sync_contract.py` が複製と `contract.sha256` を生成する
+- **`contract.py` / `policy.py` を直接編集しない**：正本は親リポジトリの
+  `plugin/hooks/contract.py` / `plugin/hooks/policy.py` であり、親リポジトリの
+  `scripts/sync_contract.py` が複製と対応する `*.sha256` を生成する
 - **フレームワークは境界に閉じ込める**：Web フレームワークに依存するのは `app.py` だけ。
   それ以外のモジュールは素の値を受け取り、素の値を返す
 - **SQL はデータアクセス層に閉じ込める**：画面やルーティングに SQL を書かない

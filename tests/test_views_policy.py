@@ -130,3 +130,89 @@ def test_未設定のprev_valueがNoneと表示されない(known_db, policy_cli
 
     assert "<td>None</td>" not in html
     assert "未設定" in html
+
+
+def test_ADD_ONCEの接頭辞付き行があっても準拠率の対象に入らない(
+    known_db, policy_client
+):
+    """`add:` / `once:` 接頭辞の `key_name` の行が `policy_state` にあっても、
+    `/policy` は 200 のまま描画され、準拠率の表の項目数は SET のスカラ値の数のまま変わらない。
+
+    `policy.SET` は現状すべてスカラ値なので、準拠率の対象数は `len(policy.SET)` と一致する。
+    """
+    cur = known_db.cursor()
+    cur.execute(
+        db.q(
+            "INSERT INTO policy_state (event_id, ts, day, user_email, host, key_name,"
+            " value, prev_value, apply_result, plugin_version)"
+            " VALUES (?,?,?,?,?,?,?,?,?,?)"
+        ),
+        (
+            "ev-add-prefix",
+            10**9,
+            TODAY,
+            "u-add",
+            "h-add",
+            "add:permissions.allow",
+            "Bash(git:*)",
+            None,
+            "applied",
+            "1.4.0",
+        ),
+    )
+    cur.execute(
+        db.q(
+            "INSERT INTO policy_state (event_id, ts, day, user_email, host, key_name,"
+            " value, prev_value, apply_result, plugin_version)"
+            " VALUES (?,?,?,?,?,?,?,?,?,?)"
+        ),
+        (
+            "ev-once-prefix",
+            10**9,
+            TODAY,
+            "u-once",
+            "h-once",
+            "once:some.path",
+            "x",
+            None,
+            "applied",
+            "1.4.0",
+        ),
+    )
+    known_db.commit()
+
+    response = policy_client.get("/policy")
+    assert response.status_code == 200
+    html = response.get_data(as_text=True)
+    rows = _rows_in_table(html, "compliance-rate")
+    import policy as policy_module
+
+    assert len(rows) == len(policy_module.SET)
+
+
+def test_SETのdictとNoneは準拠率の対象から除外される(policy_client, monkeypatch):
+    """`policy.SET` の値が dict や None の項目は、準拠率の表に出ない。
+
+    dict は `policy_state.value` が JSON 文字列になり `prev_value`（コアース後は常に None）と
+    比較できず、None（キー削除）は「キーが無いこと」を prev_value の一致では判定できないため。
+    このフィルタを外すと、この項目数（3）が dict・None を数えた数（5）に増えて失敗する。
+    """
+    import app as app_module
+
+    monkeypatch.setattr(
+        app_module.policy,
+        "SET",
+        {
+            "env.CLAUDE_AUTOCOMPACT_PCT_OVERRIDE": "60",
+            "extraKnownMarketplaces.cc-marketplace-governance-bmsd.autoUpdate": True,
+            "some.scalar.key": "v",
+            "some.dict.key": {"a": 1},
+            "some.removed.key": None,
+        },
+    )
+
+    html = policy_client.get("/policy").get_data(as_text=True)
+    rows = _rows_in_table(html, "compliance-rate")
+    assert len(rows) == 3
+    assert "some.dict.key" not in html
+    assert "some.removed.key" not in html
