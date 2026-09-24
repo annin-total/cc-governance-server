@@ -7,33 +7,28 @@
 ```
 docs/
   CLAUDE.md      ← この文書。規約の正本
-  SPEC.md        ← 仕様書。サーバの仕様
-  AIP-DEPLOY.md  ← 実行基盤へのデプロイ手順（永続文書）
-  STYLE.md       ← 画面のスタイル仕様。見た目の決まりはここに閉じる（永続文書）
-  decisions.md   ← 現在のコードがなぜそうなっているかの記録
-  remaining.md   ← まだ終わっていない作業（原因特定済み・未修正の不具合）
 ```
 
-このリポジトリは統合開発環境 `cc-governance-bmsd` の `docs/knowledge/` を参照しない。
+このリポジトリの仕様書・デプロイ手順・スタイル仕様・判断の記録・残作業は、統合開発環境
+`cc-governance-bmsd` リポジトリの `docs/spec/server.md` / `docs/guide/deploy.md` /
+`docs/spec/dashboard-style.md` / `docs/decisions/server.md` / `docs/remaining/server-issues.md`
+に置く。このリポジトリは `cc-governance-bmsd` の `docs/knowledge/` を参照しない。
 必要な外界の事実はその場に書く。
 
 ## 参照規約
 
 | 文書 | 参照してよい先 | 参照してよい元 |
 | --- | --- | --- |
-| `SPEC.md` / `AIP-DEPLOY.md` / `STYLE.md` | 互いに参照してよい | 誰でも |
-| `decisions.md` | `SPEC.md` / `AIP-DEPLOY.md` / `STYLE.md` | **この `docs/CLAUDE.md` だけ** |
-| `remaining.md` | `SPEC.md` / `AIP-DEPLOY.md` / `STYLE.md` / `decisions.md` | **この `docs/CLAUDE.md` だけ** |
-
-`remaining.md` は項目が片付き次第その場で消す。全項目が消えたらファイルごと消し、この文書の
-構成表からも外す。
+| `docs/spec/server.md` / `docs/guide/deploy.md` / `docs/spec/dashboard-style.md`（親リポジトリ） | 互いに参照してよい | 誰でも |
+| `docs/decisions/server.md`（親リポジトリ） | 左の仕様書群 | **この `docs/CLAUDE.md` だけ** |
+| `docs/remaining/server-issues.md`（親リポジトリ） | 左の仕様書群・`docs/decisions/server.md` | **この `docs/CLAUDE.md` だけ** |
 
 参照とは、リンク・ファイル名の記載・章番号の記載のすべてを指す。ドキュメントだけでなく、
 実装コード・設定ファイル・コミットメッセージにも同じ規約が及ぶ。
 
 **契約（`contract.py` の正本の位置や複製の形）とプラグインに関する判断は、統合開発環境
-`cc-governance-bmsd` リポジトリの `docs/decisions.md` に集約する。** このリポジトリの
-`decisions.md` にはサーバに関する判断だけを置く。
+`cc-governance-bmsd` リポジトリの `docs/decisions/plugin.md` に集約する。** 親リポジトリの
+`docs/decisions/server.md` にはサーバに関する判断だけを置く。
 
 ## 文書記述ルール
 

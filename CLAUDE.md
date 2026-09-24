@@ -2,8 +2,8 @@
 
 Claude Code 利用状況の集計サーバ。単独でデプロイされる。端末プラグイン（別リポジトリ
 `cc-governance-bmsd` の `plugin/`）とは `contract.py` の複製を通じてのみ繋がる。
-仕様書は `docs/SPEC.md`、実行基盤への手順は `docs/AIP-DEPLOY.md`、画面のスタイルは
-`docs/STYLE.md`。
+仕様書は親リポジトリの `docs/spec/server.md`、実行基盤への手順は親リポジトリの
+`docs/guide/deploy.md`、画面のスタイルは親リポジトリの `docs/spec/dashboard-style.md`。
 
 **`docs/` 配下の構成と参照規約は `docs/CLAUDE.md` にある。**`docs/` を書き換える前に読む。
 
@@ -47,7 +47,7 @@ docker compose up                                    # ローカル起動（http
 - **DB の方言に依存しない**：方言差が出る機能（UPSERT、JSON 型、日時型、主キーなど）を使わない。
   プレースホルダは `?` で書く
 - **重複を前提に数える**：件数も率の分子も、常に `event_id` で一意化して数える
-- **画面の見た目は `docs/STYLE.md` に閉じる**：他の文書に書かない。画面を変える前に読む
+- **画面の見た目は親リポジトリの `docs/spec/dashboard-style.md` に閉じる**：他の文書に書かない。画面を変える前に読む
 - **`<table>` と `<tr>` に属性を足さない**：ビューのテストが正規表現で HTML を照合しており、
   属性を足すと行数の検査が 0 件になって全滅する。表は `.tbl` で包み、要素セレクタで整える
 - **生の値を画面に出さない**：`day` は epoch 日である。整形は `formatting.py` のフィルタに寄せる
