@@ -1,4 +1,4 @@
-"""server/policy.py — 生成物。直接編集しない。
+"""server/ccgov/vendor/policy.py — 生成物。直接編集しない。
 
 正本: plugin/hooks/policy.py
 `scripts/sync_contract.py` が正本から生成する。

@@ -8,8 +8,8 @@
 
 import pytest
 
-import contract
 from ccgov.store import db
+from ccgov.vendor import contract
 
 TODAY = 20005
 

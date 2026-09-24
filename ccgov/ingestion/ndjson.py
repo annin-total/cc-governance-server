@@ -4,7 +4,13 @@ import json
 from typing import Optional
 
 from ccgov.store import db
-from contract import EXTRA_COLUMNS, HOOK_FIELDS, POLICY_COLUMNS, coerce, to_day
+from ccgov.vendor.contract import (
+    EXTRA_COLUMNS,
+    HOOK_FIELDS,
+    POLICY_COLUMNS,
+    coerce,
+    to_day,
+)
 
 _KINDS = ("event", "policy")
 

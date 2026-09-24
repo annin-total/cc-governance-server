@@ -4,7 +4,13 @@ import sqlite3
 from urllib.parse import urlparse
 
 from ccgov.config import db_dsn
-from contract import CSV_COLUMNS, EXTRA_COLUMNS, HOOK_FIELDS, POLICY_COLUMNS, ddl
+from ccgov.vendor.contract import (
+    CSV_COLUMNS,
+    EXTRA_COLUMNS,
+    HOOK_FIELDS,
+    POLICY_COLUMNS,
+    ddl,
+)
 
 _SQLITE_PATH_PREFIX = "sqlite:///"
 

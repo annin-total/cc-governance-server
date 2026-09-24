@@ -5,11 +5,10 @@ import time
 
 from flask import Blueprint, Response, current_app, render_template, request
 
-import contract
-import policy
 from ccgov.constants import EFFECT_PROVIDER, REFERENCE_KEY
 from ccgov.ingestion import csv_import
 from ccgov.store import db, queries_events, queries_policy
+from ccgov.vendor import contract, policy
 
 # 管理画面の Blueprint。`ADMIN_PATH` の接頭辞は `create_app` が登録時に与える。
 # アプリ直下の静的配信は持たない。CSS は管理画面の Blueprint が認証つきで配る。

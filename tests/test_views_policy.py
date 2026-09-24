@@ -186,7 +186,7 @@ def test_ADD_ONCEの接頭辞付き行があっても準拠率の対象に入ら
     assert response.status_code == 200
     html = response.get_data(as_text=True)
     rows = _rows_in_table(html, "compliance-rate")
-    import policy as policy_module
+    from ccgov.vendor import policy as policy_module
 
     assert len(rows) == len(policy_module.SET)
 

@@ -1,7 +1,7 @@
 """ndjson.parse_line / parse_lines の検査と列変換を確かめる。"""
 
 from ccgov.ingestion.ndjson import parse_line, parse_lines
-from contract import EXTRA_COLUMNS, HOOK_FIELDS, POLICY_COLUMNS
+from ccgov.vendor.contract import EXTRA_COLUMNS, HOOK_FIELDS, POLICY_COLUMNS
 
 _EVENTS_COLUMNS = tuple(EXTRA_COLUMNS) + tuple(
     (name, type_) for name, _, type_ in HOOK_FIELDS

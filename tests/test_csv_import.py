@@ -13,7 +13,7 @@ from conftest import ADMIN, admin_client
 
 from ccgov.ingestion import csv_import
 from ccgov.store import db
-from contract import CSV_COLUMNS
+from ccgov.vendor.contract import CSV_COLUMNS
 
 FIXTURES = Path(__file__).parent / "fixtures"
 
