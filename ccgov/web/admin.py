@@ -7,6 +7,7 @@ from flask import Blueprint, Response, current_app, render_template, request
 
 import contract
 import policy
+from ccgov.constants import EFFECT_PROVIDER, REFERENCE_KEY
 from ccgov.ingestion import csv_import
 from ccgov.store import db, queries_events, queries_policy
 
@@ -27,7 +28,7 @@ def _overview_context() -> dict:
             "reconciliation_denominator": reconciliation[1],
             "reconciliation_rate": reconciliation[2],
             "plugin_versions": queries_policy.plugin_version_distribution(
-                conn, today, queries_policy.REFERENCE_KEY
+                conn, today, REFERENCE_KEY
             ),
             "daily_cost": queries_events.daily_cost(conn),
             "user_session_trend": queries_events.user_session_trend(conn, today),
@@ -89,7 +90,7 @@ def _today() -> int:
 def policy_view() -> str:
     """`/policy` 画面。基準日の算出・接続の取得・集計呼び出し・描画・接続の解放だけを行う。"""
     today = _today()
-    rk = queries_policy.REFERENCE_KEY
+    rk = REFERENCE_KEY
     conn = db.connect()
     try:
         items = []
@@ -135,13 +136,11 @@ def policy_view() -> str:
 @admin.route("/effect")
 def effect_view() -> str:
     """`/effect` 画面。相対日は準拠開始日基準のため基準日は使わない。"""
-    rk = queries_policy.REFERENCE_KEY
+    rk = REFERENCE_KEY
     expected_value = contract.policy_text(policy.SET[rk])
     conn = db.connect()
     try:
-        study = queries_policy.event_study(
-            conn, rk, expected_value, queries_policy.EFFECT_PROVIDER
-        )
+        study = queries_policy.event_study(conn, rk, expected_value, EFFECT_PROVIDER)
         start_dates = queries_policy.compliance_start_dates(conn, rk, expected_value)
         context_pre_compact = queries_policy.context_distribution(
             conn, "PreCompact", start_dates

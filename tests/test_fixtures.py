@@ -3,7 +3,7 @@
 このファイルの fixture・ヘルパは、同じ `tests/server/` にある `/policy` `/assets` のテストからも
 `from test_fixtures import ...` の形で再利用する。
 
-基準日は 20005（epoch 日）。窓の長さ・キー名は `queries_*.py` の定数と揃える。
+基準日は 20005（epoch 日）。窓の長さ・キー名は `ccgov/constants.py` の定数と揃える。
 """
 
 import pytest

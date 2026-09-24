@@ -5,9 +5,8 @@
 （端末の再送で重複しうるため）。`agent_id` はサブエージェント内のツール呼出にのみ付く。
 """
 
+from ccgov.constants import RECENT_DAYS
 from ccgov.store import db
-
-RECENT_DAYS = 7
 
 _HEALTH_NULL_COLUMNS = ("tool_name", "skill_name", "context_tokens", "command_source")
 _DISTRIBUTION_COLUMNS = ("permission_mode", "effort_level", "source")

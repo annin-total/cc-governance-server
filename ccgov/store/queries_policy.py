@@ -4,17 +4,14 @@
 準拠の判定は常に `prev_value` で行い、`apply_result` では行を絞らない。
 """
 
+from ccgov.constants import (
+    CONTEXT_BIN,
+    EVENT_STUDY_SPAN,
+    POLICY_DAYS,
+    REFERENCE_KEY,  # noqa: F401 (テストがモジュール属性として参照する)
+    STALE_DAYS,
+)
 from ccgov.store import db
-
-POLICY_DAYS = 30
-STALE_DAYS = 14
-EVENT_STUDY_SPAN = 14
-CONTEXT_BIN = 20000
-
-# 効果測定の基準にする施策項目・対象 provider。
-# plugin_version の分布も REFERENCE_KEY を対象に数える。
-REFERENCE_KEY = "env.CLAUDE_AUTOCOMPACT_PCT_OVERRIDE"
-EFFECT_PROVIDER = "aws-bedrock"
 
 _LATEST_VALUES_SQL = (
     "SELECT user_email, host, prev_value, day, ts FROM ("
