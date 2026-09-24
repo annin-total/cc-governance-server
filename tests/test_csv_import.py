@@ -548,6 +548,29 @@ def test_get_import_is_method_not_allowed(import_client):
     assert response.status_code == 405
 
 
+def test_post_import_without_csv_dir_imports_nothing(
+    sqlite_db_dsn, tmp_path, monkeypatch
+):
+    """`CSV_DIR` が未設定なら、起動ディレクトリの CSV を読まず、未設定であることを画面に出す。"""
+    import importlib
+
+    import app as app_module
+
+    _copy_fixture(tmp_path, "daily_a.csv")
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.delenv("CSV_DIR", raising=False)
+    importlib.reload(app_module)
+
+    body = app_module.app.test_client().post("/import").get_data(as_text=True)
+    assert "未設定のため取り込まなかった" in body
+    assert "daily_a.csv" not in body
+    conn = db.connect()
+    try:
+        assert _count_and_sum(conn)[0] == 0
+    finally:
+        conn.close()
+
+
 def test_form_action_follows_base_path(sqlite_db_dsn):
     """7-4: `BASE_PATH` を与えた状態で `/` を描画すると、フォームの action が BASE_PATH を含む。"""
     import importlib

@@ -61,12 +61,16 @@ def index() -> str:
 
 @app.route("/import", methods=["POST"])
 def import_endpoint() -> str:
-    """CSV_DIR の全ファイルを取り込み、結果を概況画面に表示する。"""
-    conn = db.connect()
-    try:
-        results = csv_import.import_all(os.environ.get("CSV_DIR", ""), conn)
-    finally:
-        conn.close()
+    """CSV_DIR の全ファイルを取り込み、結果を概況画面に表示する。未設定なら取り込まない。"""
+    csv_dir = os.environ.get("CSV_DIR") or ""
+    if not csv_dir:
+        results = [{"file": "CSV_DIR", "error": "未設定のため取り込まなかった"}]
+    else:
+        conn = db.connect()
+        try:
+            results = csv_import.import_all(csv_dir, conn)
+        finally:
+            conn.close()
     return render_template(
         "overview.html", import_results=results, **_overview_context()
     )
