@@ -1,4 +1,4 @@
-"""ルーティング層。Web フレームワークを import するのはこのファイルだけ。"""
+"""ルーティング層。Web フレームワークを import するのはこのファイルのみ。"""
 
 import hmac
 import json
