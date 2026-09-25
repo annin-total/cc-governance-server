@@ -1,31 +1,10 @@
 """`/policy` 画面のテストクライアント検証。基準日を `time.time()` の monkeypatch で 20005 に固定する。"""
 
-import re
-from typing import Optional
-
-from conftest import ADMIN
+from conftest import ADMIN, rows_in_table
 from known_data import TODAY
 
 from ccgov.constants import REFERENCE_KEY
 from ccgov.store import db, queries_policy
-
-
-def _rows_in_table(html: str, testid: str, key: Optional[str] = None) -> list:
-    """`data-testid`（と任意で `data-key`）が一致する `<table>` の `<tr>` 数（見出し行を除く）を返す。"""
-    if key is None:
-        pattern = r'<table data-testid="' + re.escape(testid) + r'">(.*?)</table>'
-    else:
-        pattern = (
-            r'<table data-testid="'
-            + re.escape(testid)
-            + r'" data-key="'
-            + re.escape(key)
-            + r'">(.*?)</table>'
-        )
-    match = re.search(pattern, html, re.DOTALL)
-    assert match, f"table data-testid={testid} data-key={key} が見つからない"
-    body = match.group(1)
-    return re.findall(r"<tr>", body)[1:]
 
 
 def test_policy_page_returns_200(today_client):
@@ -37,7 +16,7 @@ def test_policy_page_returns_200(today_client):
 def test_non_compliant_k_row_count_matches_query(today_client):
     """項目 K の未準拠者の表の行数がクエリの戻り行数（3）と一致する。"""
     html = today_client.get(ADMIN + "/policy").get_data(as_text=True)
-    rows = _rows_in_table(
+    rows = rows_in_table(
         html, "non-compliant", key="env.CLAUDE_AUTOCOMPACT_PCT_OVERRIDE"
     )
     assert len(rows) == 3
@@ -46,7 +25,7 @@ def test_non_compliant_k_row_count_matches_query(today_client):
 def test_non_compliant_a_row_count_is_zero(today_client):
     """項目 A の未準拠者の表は 0 行。表が空のまま崩れずに描かれる。"""
     html = today_client.get(ADMIN + "/policy").get_data(as_text=True)
-    rows = _rows_in_table(
+    rows = rows_in_table(
         html,
         "non-compliant",
         key="extraKnownMarketplaces.cc-marketplace-governance-bmsd.autoUpdate",
@@ -57,7 +36,7 @@ def test_non_compliant_a_row_count_is_zero(today_client):
 def test_not_introduced_row_count(today_client):
     """未導入者の表の行数が 1（u4）。"""
     html = today_client.get(ADMIN + "/policy").get_data(as_text=True)
-    rows = _rows_in_table(html, "not-introduced")
+    rows = rows_in_table(html, "not-introduced")
     assert len(rows) == 1
     assert "u4" in html
 
@@ -65,7 +44,7 @@ def test_not_introduced_row_count(today_client):
 def test_compliance_rate_table_shows_both_items(today_client):
     """準拠率の表に項目ごとに 1 行、計 2 行出る。"""
     html = today_client.get(ADMIN + "/policy").get_data(as_text=True)
-    rows = _rows_in_table(html, "compliance-rate")
+    rows = rows_in_table(html, "compliance-rate")
     assert len(rows) == 2
     assert "20.0%" in html
     assert "80.0%" in html
@@ -74,7 +53,7 @@ def test_compliance_rate_table_shows_both_items(today_client):
 def test_latest_values_row_count_matches_query(today_client, known_db):
     """「最後に観測した値」の表の行数が、クエリの戻り行数（7）と一致する。"""
     html = today_client.get(ADMIN + "/policy").get_data(as_text=True)
-    rows = _rows_in_table(html, "latest-values")
+    rows = rows_in_table(html, "latest-values")
     expected = queries_policy.latest_values(known_db, TODAY, REFERENCE_KEY)
     assert len(rows) == len(expected) == 7
 
@@ -161,7 +140,7 @@ def test_ADD_ONCEの接頭辞付き行があっても準拠率の対象に入ら
     response = today_client.get(ADMIN + "/policy")
     assert response.status_code == 200
     html = response.get_data(as_text=True)
-    rows = _rows_in_table(html, "compliance-rate")
+    rows = rows_in_table(html, "compliance-rate")
     from ccgov.vendor import policy as policy_module
 
     assert len(rows) == len(policy_module.SET)
@@ -187,7 +166,7 @@ def test_SETのdictとNoneは準拠率の対象から除外される(today_clien
     )
 
     html = today_client.get(ADMIN + "/policy").get_data(as_text=True)
-    rows = _rows_in_table(html, "compliance-rate")
+    rows = rows_in_table(html, "compliance-rate")
     assert len(rows) == 3
     assert "some.dict.key" not in html
     assert "some.removed.key" not in html

@@ -3,10 +3,12 @@
 import base64
 import importlib
 import os
+import re
 import sys
 import tempfile
 from contextlib import contextmanager
 from pathlib import Path
+from typing import Optional
 
 import pytest
 
@@ -24,6 +26,30 @@ def basic_auth(password: str, username: str = "any") -> dict:
     """Basic 認証の `Authorization` ヘッダを組み立てる。"""
     raw = f"{username}:{password}".encode()
     return {"Authorization": "Basic " + base64.b64encode(raw).decode("ascii")}
+
+
+def table_body(html: str, testid: str, key: Optional[str] = None) -> str:
+    """`data-testid`（と任意で `data-key`）が一致する `<table>` の中身（見出し行含む）を返す。"""
+    if key is None:
+        pattern = r'<table data-testid="' + re.escape(testid) + r'">(.*?)</table>'
+        label = f"data-testid={testid}"
+    else:
+        pattern = (
+            r'<table data-testid="'
+            + re.escape(testid)
+            + r'" data-key="'
+            + re.escape(key)
+            + r'">(.*?)</table>'
+        )
+        label = f"data-testid={testid} data-key={key}"
+    match = re.search(pattern, html, re.DOTALL)
+    assert match, f"table {label} が見つからない"
+    return match.group(1)
+
+
+def rows_in_table(html: str, testid: str, key: Optional[str] = None) -> list:
+    """`table_body` の `<tr>` を見出し行を除いて返す。"""
+    return re.findall(r"<tr>", table_body(html, testid, key))[1:]
 
 
 def admin_client(flask_app):

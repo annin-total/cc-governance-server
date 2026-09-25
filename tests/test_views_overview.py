@@ -2,23 +2,7 @@
 
 import re
 
-from conftest import ADMIN
-
-
-def _rows_in_table(html: str, testid: str) -> list:
-    """`data-testid` が一致する `<table>` の `<tr>` 数（見出し行を除く）を返す。"""
-    pattern = r'<table data-testid="' + re.escape(testid) + r'">(.*?)</table>'
-    match = re.search(pattern, html, re.DOTALL)
-    assert match, f"table data-testid={testid} が見つからない"
-    return re.findall(r"<tr>", match.group(1))[1:]
-
-
-def _table_body(html: str, testid: str) -> str:
-    """`data-testid` が一致する `<table>` の中身（見出し行含む）を返す。"""
-    pattern = r'<table data-testid="' + re.escape(testid) + r'">(.*?)</table>'
-    match = re.search(pattern, html, re.DOTALL)
-    assert match, f"table data-testid={testid} が見つからない"
-    return match.group(1)
+from conftest import ADMIN, rows_in_table, table_body
 
 
 def _tile(html: str, label: str) -> str:
@@ -58,7 +42,7 @@ def test_health_line_shows_reconciliation_and_plugin_versions(today_client):
     html = today_client.get(ADMIN + "/").get_data(as_text=True)
     assert "75.0%" in html
 
-    body = _table_body(html, "plugin-version-distribution")
+    body = table_body(html, "plugin-version-distribution")
     rows = re.findall(r"<tr>(.*?)</tr>", body, re.DOTALL)[1:]
     counts_by_version = {}
     for row in rows:
@@ -71,7 +55,7 @@ def test_health_line_shows_reconciliation_and_plugin_versions(today_client):
 def test_daily_cost_table_row_count(today_client):
     """コスト推移の表の行数が 7（aws-bedrock 6 行 + openai 1 行）。"""
     html = today_client.get(ADMIN + "/").get_data(as_text=True)
-    rows = _rows_in_table(html, "daily-cost")
+    rows = rows_in_table(html, "daily-cost")
     assert len(rows) == 7
     assert "aws-bedrock" in html
     assert "openai" in html
@@ -80,5 +64,5 @@ def test_daily_cost_table_row_count(today_client):
 def test_permission_mode_distribution_row_count(today_client):
     """`permission_mode` 分布の表の行数が 3。"""
     html = today_client.get(ADMIN + "/").get_data(as_text=True)
-    rows = _rows_in_table(html, "permission-mode-distribution")
+    rows = rows_in_table(html, "permission-mode-distribution")
     assert len(rows) == 3

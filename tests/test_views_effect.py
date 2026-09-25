@@ -2,7 +2,7 @@
 
 import importlib
 
-from conftest import ADMIN, admin_client
+from conftest import ADMIN, admin_client, rows_in_table
 from known_data import K, insert_compliant_policy, insert_precompact, seed_effect_data
 
 from ccgov.store import queries_policy
@@ -20,13 +20,7 @@ def test_effect_page_row_count_matches_query(db_conn):
     assert response.status_code == 200
     html = response.get_data(as_text=True)
 
-    import re
-
-    match = re.search(
-        r'<table data-testid="event-study">(.*?)</table>', html, re.DOTALL
-    )
-    assert match
-    rendered_rows = re.findall(r"<tr>", match.group(1))[1:]
+    rendered_rows = rows_in_table(html, "event-study")
 
     expected = queries_policy.event_study(db_conn, K, "60", "aws-bedrock")
     assert len(rendered_rows) == len(expected)

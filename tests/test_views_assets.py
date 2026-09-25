@@ -1,19 +1,9 @@
 """`/assets` 画面のテストクライアント検証。基準日を `time.time()` の monkeypatch で 20005 に固定する。"""
 
-import re
-
-from conftest import ADMIN
+from conftest import ADMIN, rows_in_table
 from known_data import TODAY
 
 from ccgov.store import db
-
-
-def _rows_in_table(html: str, testid: str) -> list:
-    """`data-testid` が一致する `<table>` の `<tr>` 数（見出し行を除く）を返す。"""
-    pattern = r'<table data-testid="' + re.escape(testid) + r'">(.*?)</table>'
-    match = re.search(pattern, html, re.DOTALL)
-    assert match, f"table data-testid={testid} が見つからない"
-    return re.findall(r"<tr>", match.group(1))[1:]
 
 
 def test_assets_page_returns_200(today_client):
@@ -25,13 +15,13 @@ def test_assets_page_returns_200(today_client):
 def test_skill_table_row_count(today_client):
     """スキル表の行数は 2。"""
     html = today_client.get(ADMIN + "/assets").get_data(as_text=True)
-    assert len(_rows_in_table(html, "skill-usage")) == 2
+    assert len(rows_in_table(html, "skill-usage")) == 2
 
 
 def test_command_table_row_count(today_client):
     """コマンド表の行数は 2。`review` が `project` と `user` の 2 行に分かれる。"""
     html = today_client.get(ADMIN + "/assets").get_data(as_text=True)
-    rows = _rows_in_table(html, "command-usage")
+    rows = rows_in_table(html, "command-usage")
     assert len(rows) == 2
     assert "project" in html
     assert "user" in html
