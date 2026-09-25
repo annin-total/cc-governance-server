@@ -56,6 +56,9 @@ def _extract_row(row: list, index_by_header: dict, source_file: str) -> Optional
             values[db_name] = _parse_day(raw) if raw is not None else None
         else:
             values[db_name] = coerce(raw, type_str)
+    # 端末側は小文字にそろえて送る。大文字が混ざると events・policy_state と永久に一致しない
+    if isinstance(values["user_email"], str):
+        values["user_email"] = values["user_email"].strip().lower()
     if values["day"] is None:
         return None
     return values
