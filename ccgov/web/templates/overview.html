@@ -14,7 +14,7 @@
 </div>
 
 <h2>NULL率</h2>
-{{ m.chips(["直近7日 · 前7日と比較", "分母: その窓の全イベント"]) }}
+{{ m.chips(["直近7日 · 前7日と比較", "分母: その列が来るはずのイベント"]) }}
 <div class="tbl">
 <table data-testid="null-rates">
 <caption>列別の NULL 率（直近7日 / 前7日）</caption>
@@ -26,7 +26,8 @@
   <td>{{ column }}</td>
   <td>
     {{ m.meter(recent_rate) }} {{ recent_rate|pct }}
-    {%- if recent_rate > 50 %} {{ m.pill("要対応", "ng") }}
+    {%- if recent_rate is none %}
+    {%- elif recent_rate > 50 %} {{ m.pill("要対応", "ng") }}
     {%- elif recent_rate > 20 %} {{ m.pill("注意", "warn") }}
     {%- else %} {{ m.pill("良好", "ok") }}
     {%- endif %}

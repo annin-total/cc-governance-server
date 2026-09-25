@@ -238,3 +238,8 @@ def test_all_numbers_survive_full_duplication_at_once(known_db):
     result = assert_invariant_under_duplication(known_db, compute)
     assert result["rate_k"][0][2] <= 100.0
     assert result["rate_a"][0][2] <= 100.0
+
+
+def test_compliance_rate_is_none_without_cost_users(db_conn):
+    """`cost_daily` に誰も居ない（分母 0）とき、準拠率は 0.0 ではなく None。"""
+    assert queries_policy.compliance_rate(db_conn, TODAY, K, "60") == [(0, 0, None)]

@@ -1,10 +1,23 @@
 """`/` `/assets` 画面の集計クエリ。件数・人数は再送の重複に備えて常に DISTINCT で数える。"""
 
+from typing import Optional
+
 from ccgov.constants import RECENT_DAYS
 from ccgov.store import db
 
-_HEALTH_NULL_COLUMNS = ("tool_name", "skill_name", "context_tokens", "command_source")
+# 列 -> その列が来るはずのイベントの条件。NULL 率の分母をここで絞る（全イベントを分母にすると平常時から高止まりする）
+_HEALTH_NULL_SCOPES = {
+    "tool_name": "hook_event IN ('PostToolUse', 'PostToolUseFailure')",
+    "skill_name": "tool_name = 'Skill'",
+    "context_tokens": "hook_event IN ('PreCompact', 'Stop')",
+    "command_source": "hook_event = 'UserPromptExpansion'",
+}
 _DISTRIBUTION_COLUMNS = ("permission_mode", "effort_level", "source")
+
+
+def _rate(numerator: int, denominator: int) -> Optional[float]:
+    """百分率を小数 1 桁で返す。分母が 0 なら None（0.0% と表示して良好に見せない）。"""
+    return round(numerator / denominator * 100, 1) if denominator else None
 
 
 def _recent_window(today: int) -> tuple:
@@ -87,8 +100,7 @@ def subagent_ratio(conn, today: int) -> list:
         (recent_start, recent_end),
     )
     denominator, numerator = cur.fetchone()
-    rate = round(numerator / denominator * 100, 1) if denominator else 0.0
-    return [(numerator, denominator, rate)]
+    return [(numerator, denominator, _rate(numerator, denominator))]
 
 
 def daily_cost(conn) -> list:
@@ -136,23 +148,24 @@ def distribution(conn, today: int, column: str) -> list:
 
 
 def _health_window_stats(conn, start: int, end: int) -> dict:
-    """1 つの窓のイベント件数・送信端末数・4 列の NULL 率を返す。"""
-    null_case_sql = ", ".join(
-        f"COUNT(DISTINCT CASE WHEN {col} IS NULL THEN event_id END)"
-        for col in _HEALTH_NULL_COLUMNS
+    """1 つの窓のイベント件数・送信端末数・4 列の NULL 率を返す。分母が 0 の列の率は None。"""
+    scope_sql = ", ".join(
+        f"COUNT(DISTINCT CASE WHEN {scope} THEN event_id END),"
+        f" COUNT(DISTINCT CASE WHEN {scope} AND {col} IS NULL THEN event_id END)"
+        for col, scope in _HEALTH_NULL_SCOPES.items()
     )
     cur = conn.cursor()
     cur.execute(
         db.q(
-            f"SELECT COUNT(DISTINCT event_id), COUNT(DISTINCT user_email), {null_case_sql}"
+            f"SELECT COUNT(DISTINCT event_id), COUNT(DISTINCT user_email), {scope_sql}"
             f" FROM events WHERE day BETWEEN ? AND ?"
         ),
         (start, end),
     )
-    events, terminals, *null_counts = cur.fetchone()
+    events, terminals, *counts = cur.fetchone()
     null_rates = {
-        col: round(count / events * 100, 1) if events else 0.0
-        for col, count in zip(_HEALTH_NULL_COLUMNS, null_counts)
+        col: _rate(counts[2 * i + 1], counts[2 * i])
+        for i, col in enumerate(_HEALTH_NULL_SCOPES)
     }
     return {"events": events, "terminals": terminals, "null_rates": null_rates}
 
@@ -184,5 +197,4 @@ def reconciliation_rate(conn, today: int) -> list:
         (recent_start, recent_end, recent_start, recent_end, recent_start, recent_end),
     )
     denominator, numerator = cur.fetchone()
-    rate = round(numerator / denominator * 100, 1) if denominator else 0.0
-    return [(numerator, denominator, rate)]
+    return [(numerator, denominator, _rate(numerator, denominator))]

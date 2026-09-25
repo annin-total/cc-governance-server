@@ -22,7 +22,7 @@
 {%- endmacro %}
 
 {% macro meter(rate) -%}
-<span class="meter"><i style="width: {{ [rate, 100]|min }}%;"></i></span>
+<span class="meter"><i style="width: {{ [rate or 0, 100]|min }}%;"></i></span>
 {%- endmacro %}
 
 {% macro rate_cell(rate, numerator, denominator) -%}

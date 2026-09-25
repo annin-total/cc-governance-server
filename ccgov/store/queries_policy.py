@@ -39,7 +39,7 @@ def _distinct_users_with_cost(conn, today: int) -> set:
 
 
 def compliance_rate(conn, today: int, key_name: str, expected_value: str) -> list:
-    """施策項目 1 つの準拠率を `[(分子, 分母, 率)]` で返す。1 台でも未準拠なら利用者は未準拠。"""
+    """施策項目 1 つの準拠率を `[(分子, 分母, 率)]` で返す。1 台でも未準拠なら利用者は未準拠。分母 0 の率は None。"""
     rows = latest_values(conn, today, key_name)
     compliant_by_user: dict = {}
     for user_email, _host, prev_value, _day, _ts in rows:
@@ -49,7 +49,7 @@ def compliance_rate(conn, today: int, key_name: str, expected_value: str) -> lis
     denom_users = _distinct_users_with_cost(conn, today)
     denominator = len(denom_users)
     numerator = sum(1 for u in denom_users if compliant_by_user.get(u, False))
-    rate = round(numerator / denominator * 100, 1) if denominator else 0.0
+    rate = round(numerator / denominator * 100, 1) if denominator else None
     return [(numerator, denominator, rate)]
 
 

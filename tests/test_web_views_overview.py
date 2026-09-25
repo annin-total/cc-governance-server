@@ -1,8 +1,9 @@
 """`/` 概況画面のテストクライアント検証。基準日は `today_client` が固定する。"""
 
+import importlib
 import re
 
-from conftest import ADMIN, rows_in_table, table_body
+from conftest import ADMIN, admin_client, rows_in_table, table_body
 
 
 def _tile(html: str, label: str) -> str:
@@ -66,3 +67,17 @@ def test_permission_mode_distribution_row_count(today_client):
     html = today_client.get(ADMIN + "/").get_data(as_text=True)
     rows = rows_in_table(html, "permission-mode-distribution")
     assert len(rows) == 3
+
+
+def test_empty_db_shows_dash_without_badge(db_conn):
+    """分母 0 の率は「—」で出し、「良好」などのバッジを付けない。`/policy` `/assets` も描ける。"""
+    import app as app_module
+
+    importlib.reload(app_module)
+    client = admin_client(app_module.app)
+    html = client.get(ADMIN + "/").get_data(as_text=True)
+    body = table_body(html, "null-rates")
+    assert "—" in body
+    assert 'class="pill' not in body
+    for path in ("/policy", "/assets"):
+        assert client.get(ADMIN + path).status_code == 200
