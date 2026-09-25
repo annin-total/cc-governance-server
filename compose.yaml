@@ -3,7 +3,8 @@ services:
     build: .
     ports:
       # macOS では 5000 番が AirPlay レシーバーと衝突するため、ホスト側だけ 15000 にする。
-      - "15000:5000"
+      # 127.0.0.1 に限定し、LAN に公開しない。
+      - "127.0.0.1:15000:5000"
     volumes:
       - ./dev.env:/mnt/data/secrets/cc-governance-server.env:ro
       - dev_data:/app/data
