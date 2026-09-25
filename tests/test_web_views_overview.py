@@ -70,7 +70,7 @@ def test_permission_mode_distribution_row_count(today_client):
 
 
 def test_empty_db_shows_dash_without_badge(db_conn):
-    """分母 0 の率は「—」で出し、「良好」などのバッジを付けない。`/policy` `/assets` も描ける。"""
+    """分母 0 の率は「—」で出し、バッジを付けない。"""
     import app as app_module
 
     importlib.reload(app_module)

@@ -74,7 +74,7 @@ def _seed_scoped_nulls(conn) -> None:
 
 
 def test_null_rate_denominator_is_events_expected_to_carry_the_column(db_conn):
-    """分母はその列が来るはずのイベントだけ。SessionStart などの全列 NULL は率を動かさない。"""
+    """分母はその列が来るはずのイベントだけ。"""
     _seed_scoped_nulls(db_conn)
     rates = queries_events.health_counts(db_conn, TODAY)["recent"]["null_rates"]
     assert rates == {
@@ -86,7 +86,7 @@ def test_null_rate_denominator_is_events_expected_to_carry_the_column(db_conn):
 
 
 def test_scoped_null_rates_unchanged_after_duplicate_injection(db_conn):
-    """NULL を含む行を複製しても率は変わらない（分子も分母も `event_id` で一意化している）。"""
+    """NULL を含む行を複製しても率は変わらない。"""
     _seed_scoped_nulls(db_conn)
 
     def compute():
@@ -96,7 +96,7 @@ def test_scoped_null_rates_unchanged_after_duplicate_injection(db_conn):
 
 
 def test_rates_are_none_when_denominator_is_zero(db_conn):
-    """イベントが 1 件も無い窓では、NULL 率・突合率・サブエージェント率が 0.0 ではなく None。"""
+    """イベントが 1 件も無い窓では、率はすべて None。"""
     health = queries_events.health_counts(db_conn, TODAY)
     assert set(health["recent"]["null_rates"].values()) == {None}
     assert queries_events.reconciliation_rate(db_conn, TODAY) == [(0, 0, None)]
@@ -114,12 +114,12 @@ def test_reconciliation_rate(known_db):
 
 
 def test_reconciliation_rate_window_ends_at_last_csv_day(known_db):
-    """CSV の最終日 20004 より後の基準日でも、窓は 20004 で終わり 75.0% のまま（CSV の無い日で薄まらない）。"""
+    """基準日が CSV の最終日より後でも、窓は最終日で終わる。"""
     assert queries_events.reconciliation_rate(known_db, TODAY + 10) == [(3, 4, 75.0)]
 
 
 def test_reconciliation_rate_is_none_without_cost_daily(db_conn):
-    """`cost_daily` が空なら窓を決められないため、events があっても率は 0.0 ではなく None。"""
+    """`cost_daily` が空なら、events があっても率は None。"""
     insert_event(db_conn, event_id="x1", day=TODAY, user_email="u1")
     assert queries_events.reconciliation_rate(db_conn, TODAY) == [(0, 0, None)]
 

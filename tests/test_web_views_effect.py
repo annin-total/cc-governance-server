@@ -43,7 +43,7 @@ def test_effect_page_shows_no_data_for_first_rollout_before_side(db_conn):
 
 
 def test_effect_page_is_fixed_to_reference_experiment(db_conn, monkeypatch):
-    """`policy.SET` から施策項目を消しても `/effect` は落ちず、定数の実験（比較値）で集計して表示する。"""
+    """`policy.SET` から施策項目を消しても `/effect` は定数の比較値で集計して表示する。"""
     seed_effect_data(db_conn)
     monkeypatch.delitem(policy.SET, REFERENCE_KEY)
 
