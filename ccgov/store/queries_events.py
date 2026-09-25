@@ -181,9 +181,16 @@ def health_counts(conn, today: int) -> dict:
 
 
 def reconciliation_rate(conn, today: int) -> list:
-    """直近 7 日に `events` を送った利用者のうち、同期間の `cost_daily` にも居る割合。人数で測る。"""
-    recent_start, recent_end = _recent_window(today)
+    """7 日間に `events` を送った利用者のうち、同期間の `cost_daily` にも居る割合。人数で測る。
+
+    CSV は 1〜2 週ごとに取り込むため、窓の終端は `today` と `cost_daily` の最終日の早いほうにする。
+    """
     cur = conn.cursor()
+    cur.execute(db.q("SELECT MAX(day) FROM cost_daily"))
+    (last_day,) = cur.fetchone()
+    if last_day is None:
+        return [(0, 0, None)]
+    recent_start, recent_end = _recent_window(min(today, last_day))
     cur.execute(
         db.q(
             "SELECT"
