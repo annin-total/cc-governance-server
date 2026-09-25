@@ -54,25 +54,15 @@ def _index_names(conn) -> list:
     return sorted(names)
 
 
-def test_init_creates_three_tables(sqlite_db_dsn):
+def test_init_creates_three_tables(db_conn):
     """1 回の init() で events / policy_state / cost_daily の 3 テーブルができる。"""
-    db.init()
-    conn = db.connect()
-    try:
-        assert _table_names(conn) == {"events", "policy_state", "cost_daily"}
-    finally:
-        conn.close()
+    assert _table_names(db_conn) == {"events", "policy_state", "cost_daily"}
 
 
-def test_init_creates_seven_indexes_with_expected_columns(sqlite_db_dsn):
+def test_init_creates_seven_indexes_with_expected_columns(db_conn):
     """1 回の init() で 7 本のインデックスが期待どおりの列順で作られる。"""
-    db.init()
-    conn = db.connect()
-    try:
-        assert _indexes_with_columns(conn) == _EXPECTED_INDEXES
-        assert _index_names(conn) == _EXPECTED_INDEX_NAMES
-    finally:
-        conn.close()
+    assert _indexes_with_columns(db_conn) == _EXPECTED_INDEXES
+    assert _index_names(db_conn) == _EXPECTED_INDEX_NAMES
 
 
 def test_init_twice_does_not_raise(sqlite_db_dsn):

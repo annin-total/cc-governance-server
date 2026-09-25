@@ -187,97 +187,72 @@ def test_day_discards_repeated_header_row(tmp_path):
 _DAY_20635 = 20635  # 2026-07-01
 
 
-def test_idempotent_reimport_same_file(sqlite_db_dsn):
+def test_idempotent_reimport_same_file(db_conn):
     """同じファイルを 2 回取り込んでも COUNT(*)=3・SUM(cost)=6.0 のまま変わらない。"""
-    db.init()
-    conn = db.connect()
-    try:
-        csv_import.import_file(str(FIXTURES / "daily_a.csv"), conn)
-        assert _count_and_sum(conn) == (3, 6.0)
+    csv_import.import_file(str(FIXTURES / "daily_a.csv"), db_conn)
+    assert _count_and_sum(db_conn) == (3, 6.0)
 
-        csv_import.import_file(str(FIXTURES / "daily_a.csv"), conn)
-        assert _count_and_sum(conn) == (3, 6.0)
-    finally:
-        conn.close()
+    csv_import.import_file(str(FIXTURES / "daily_a.csv"), db_conn)
+    assert _count_and_sum(db_conn) == (3, 6.0)
 
 
-def test_idempotent_overlapping_files_forward_order(sqlite_db_dsn):
+def test_idempotent_overlapping_files_forward_order(db_conn):
     """daily_a -> daily_b -> weekly の順で取り込むと、07-01 は weekly 由来だけになる。"""
-    db.init()
-    conn = db.connect()
-    try:
-        csv_import.import_file(str(FIXTURES / "daily_a.csv"), conn)
-        assert _count_and_sum(conn) == (3, 6.0)
-        assert _sum_for_day(conn, _DAY_20635) == 6.0
+    csv_import.import_file(str(FIXTURES / "daily_a.csv"), db_conn)
+    assert _count_and_sum(db_conn) == (3, 6.0)
+    assert _sum_for_day(db_conn, _DAY_20635) == 6.0
 
-        csv_import.import_file(str(FIXTURES / "daily_b.csv"), conn)
-        assert _count_and_sum(conn) == (5, 15.0)
-        assert _sum_for_day(conn, _DAY_20635) == 6.0
+    csv_import.import_file(str(FIXTURES / "daily_b.csv"), db_conn)
+    assert _count_and_sum(db_conn) == (5, 15.0)
+    assert _sum_for_day(db_conn, _DAY_20635) == 6.0
 
-        csv_import.import_file(str(FIXTURES / "weekly.csv"), conn)
-        assert _count_and_sum(conn) == (6, 21.0)
-        assert _sum_for_day(conn, _DAY_20635) == 6.0
+    csv_import.import_file(str(FIXTURES / "weekly.csv"), db_conn)
+    assert _count_and_sum(db_conn) == (6, 21.0)
+    assert _sum_for_day(db_conn, _DAY_20635) == 6.0
 
-        cur = conn.cursor()
-        cur.execute(
-            "SELECT DISTINCT source_file FROM cost_daily WHERE day = ?",
-            (_DAY_20635,),
-        )
-        assert [row[0] for row in cur.fetchall()] == ["weekly.csv"]
-    finally:
-        conn.close()
+    cur = db_conn.cursor()
+    cur.execute(
+        "SELECT DISTINCT source_file FROM cost_daily WHERE day = ?",
+        (_DAY_20635,),
+    )
+    assert [row[0] for row in cur.fetchall()] == ["weekly.csv"]
 
 
-def test_idempotent_overlapping_files_reverse_order(sqlite_db_dsn):
+def test_idempotent_overlapping_files_reverse_order(db_conn):
     """weekly -> daily_a の逆順で取り込んでも COUNT(*)=6・SUM(cost)=21.0 のまま。"""
-    db.init()
-    conn = db.connect()
-    try:
-        csv_import.import_file(str(FIXTURES / "weekly.csv"), conn)
-        assert _count_and_sum(conn) == (6, 21.0)
+    csv_import.import_file(str(FIXTURES / "weekly.csv"), db_conn)
+    assert _count_and_sum(db_conn) == (6, 21.0)
 
-        csv_import.import_file(str(FIXTURES / "daily_a.csv"), conn)
-        assert _count_and_sum(conn) == (6, 21.0)
-    finally:
-        conn.close()
+    csv_import.import_file(str(FIXTURES / "daily_a.csv"), db_conn)
+    assert _count_and_sum(db_conn) == (6, 21.0)
 
 
-def test_idempotent_partial_failure_leaves_no_partial_rows(sqlite_db_dsn, monkeypatch):
+def test_idempotent_partial_failure_leaves_no_partial_rows(db_conn, monkeypatch):
     """weekly.csv の INSERT 中に例外が起きても、直前の daily_a の行がそのまま残る。"""
-    db.init()
-    conn = db.connect()
-    try:
-        csv_import.import_file(str(FIXTURES / "daily_a.csv"), conn)
-        assert _count_and_sum(conn) == (3, 6.0)
+    csv_import.import_file(str(FIXTURES / "daily_a.csv"), db_conn)
+    assert _count_and_sum(db_conn) == (3, 6.0)
 
-        def _boom_before_insert(sql: str) -> str:
-            if sql.startswith("INSERT"):
-                raise RuntimeError("boom")
-            return sql
+    def _boom_before_insert(sql: str) -> str:
+        if sql.startswith("INSERT"):
+            raise RuntimeError("boom")
+        return sql
 
-        monkeypatch.setattr(csv_import.db, "q", _boom_before_insert)
-        with pytest.raises(RuntimeError):
-            csv_import.import_file(str(FIXTURES / "weekly.csv"), conn)
-        monkeypatch.undo()
+    monkeypatch.setattr(csv_import.db, "q", _boom_before_insert)
+    with pytest.raises(RuntimeError):
+        csv_import.import_file(str(FIXTURES / "weekly.csv"), db_conn)
+    monkeypatch.undo()
 
-        assert _count_and_sum(conn) == (3, 6.0)
-        assert _sum_for_day(conn, 20637) is None  # 2026-07-03 の行が無い
-    finally:
-        conn.close()
+    assert _count_and_sum(db_conn) == (3, 6.0)
+    assert _sum_for_day(db_conn, 20637) is None  # 2026-07-03 の行が無い
 
 
-def test_idempotent_unknown_column_replaces_existing_rows(sqlite_db_dsn):
+def test_idempotent_unknown_column_replaces_existing_rows(db_conn):
     """extra_column.csv（Region 付き）を取り込んでから daily_a.csv で置き換えても変わらない。"""
-    db.init()
-    conn = db.connect()
-    try:
-        csv_import.import_file(str(FIXTURES / "extra_column.csv"), conn)
-        assert _count_and_sum(conn) == (3, 6.0)
+    csv_import.import_file(str(FIXTURES / "extra_column.csv"), db_conn)
+    assert _count_and_sum(db_conn) == (3, 6.0)
 
-        csv_import.import_file(str(FIXTURES / "daily_a.csv"), conn)
-        assert _count_and_sum(conn) == (3, 6.0)
-    finally:
-        conn.close()
+    csv_import.import_file(str(FIXTURES / "daily_a.csv"), db_conn)
+    assert _count_and_sum(db_conn) == (3, 6.0)
 
 
 def _copy_fixture(tmp_path, src_name: str, dest_name: Optional[str] = None) -> None:
@@ -306,123 +281,88 @@ def _write_daily_a_doubled(tmp_path) -> None:
     )
 
 
-def test_scan_processes_all_files_in_directory(sqlite_db_dsn, tmp_path):
+def test_scan_processes_all_files_in_directory(db_conn, tmp_path):
     """daily_a / daily_b を置いて 1 回押すと、2 本とも処理され COUNT=5・SUM=15.0・2 件返る。"""
-    db.init()
-    conn = db.connect()
-    try:
-        _copy_fixture(tmp_path, "daily_a.csv")
-        _copy_fixture(tmp_path, "daily_b.csv")
+    _copy_fixture(tmp_path, "daily_a.csv")
+    _copy_fixture(tmp_path, "daily_b.csv")
 
-        results = csv_import.import_all(str(tmp_path), conn)
+    results = csv_import.import_all(str(tmp_path), db_conn)
 
-        assert len(results) == 2
-        assert _count_and_sum(conn) == (5, 15.0)
-    finally:
-        conn.close()
+    assert len(results) == 2
+    assert _count_and_sum(db_conn) == (5, 15.0)
 
 
-def test_scan_repeated_call_same_result(sqlite_db_dsn, tmp_path):
+def test_scan_repeated_call_same_result(db_conn, tmp_path):
     """直後に同じ状態でもう 1 度押しても結果が変わらない。"""
-    db.init()
-    conn = db.connect()
-    try:
-        _copy_fixture(tmp_path, "daily_a.csv")
-        _copy_fixture(tmp_path, "daily_b.csv")
+    _copy_fixture(tmp_path, "daily_a.csv")
+    _copy_fixture(tmp_path, "daily_b.csv")
 
-        csv_import.import_all(str(tmp_path), conn)
-        results = csv_import.import_all(str(tmp_path), conn)
+    csv_import.import_all(str(tmp_path), db_conn)
+    results = csv_import.import_all(str(tmp_path), db_conn)
 
-        assert len(results) == 2
-        assert _count_and_sum(conn) == (5, 15.0)
-    finally:
-        conn.close()
+    assert len(results) == 2
+    assert _count_and_sum(db_conn) == (5, 15.0)
 
 
-def test_scan_three_files_order_independent_forward(sqlite_db_dsn, tmp_path):
+def test_scan_three_files_order_independent_forward(db_conn, tmp_path):
     """daily_a / daily_b / weekly の 3 本を置いて押すと COUNT=6・SUM=21.0・3 件、day=20635 は 6.0。"""
-    db.init()
-    conn = db.connect()
-    try:
-        _copy_fixture(tmp_path, "daily_a.csv")
-        _copy_fixture(tmp_path, "daily_b.csv")
-        _copy_fixture(tmp_path, "weekly.csv")
+    _copy_fixture(tmp_path, "daily_a.csv")
+    _copy_fixture(tmp_path, "daily_b.csv")
+    _copy_fixture(tmp_path, "weekly.csv")
 
-        results = csv_import.import_all(str(tmp_path), conn)
+    results = csv_import.import_all(str(tmp_path), db_conn)
 
-        assert len(results) == 3
-        assert _count_and_sum(conn) == (6, 21.0)
-        assert _sum_for_day(conn, _DAY_20635) == 6.0
-    finally:
-        conn.close()
+    assert len(results) == 3
+    assert _count_and_sum(db_conn) == (6, 21.0)
+    assert _sum_for_day(db_conn, _DAY_20635) == 6.0
 
 
-def test_scan_three_files_order_independent_reversed(sqlite_db_dsn, tmp_path):
+def test_scan_three_files_order_independent_reversed(db_conn, tmp_path):
     """同じ 3 本を作成順を入れ替えて置いても、結果は変わらない。"""
-    db.init()
-    conn = db.connect()
-    try:
-        _copy_fixture(tmp_path, "weekly.csv")
-        _copy_fixture(tmp_path, "daily_b.csv")
-        _copy_fixture(tmp_path, "daily_a.csv")
+    _copy_fixture(tmp_path, "weekly.csv")
+    _copy_fixture(tmp_path, "daily_b.csv")
+    _copy_fixture(tmp_path, "daily_a.csv")
 
-        results = csv_import.import_all(str(tmp_path), conn)
+    results = csv_import.import_all(str(tmp_path), db_conn)
 
-        assert len(results) == 3
-        assert _count_and_sum(conn) == (6, 21.0)
-        assert _sum_for_day(conn, _DAY_20635) == 6.0
-    finally:
-        conn.close()
+    assert len(results) == 3
+    assert _count_and_sum(db_conn) == (6, 21.0)
+    assert _sum_for_day(db_conn, _DAY_20635) == 6.0
 
 
-def test_scan_replacement_file_doubles_cost(sqlite_db_dsn, tmp_path):
+def test_scan_replacement_file_doubles_cost(db_conn, tmp_path):
     """daily_a をコスト 2 倍の訂正版に差し替えて押すと、その日の SUM(cost) だけが 2 倍になる。"""
-    db.init()
-    conn = db.connect()
-    try:
-        _write_daily_a_doubled(tmp_path)
-        _copy_fixture(tmp_path, "daily_b.csv")
+    _write_daily_a_doubled(tmp_path)
+    _copy_fixture(tmp_path, "daily_b.csv")
 
-        results = csv_import.import_all(str(tmp_path), conn)
+    results = csv_import.import_all(str(tmp_path), db_conn)
 
-        assert len(results) == 2
-        assert _count_and_sum(conn) == (5, 21.0)
-        assert _sum_for_day(conn, _DAY_20635) == 12.0
-    finally:
-        conn.close()
+    assert len(results) == 2
+    assert _count_and_sum(db_conn) == (5, 21.0)
+    assert _sum_for_day(db_conn, _DAY_20635) == 12.0
 
 
-def test_scan_ignores_non_csv_files(sqlite_db_dsn, tmp_path):
+def test_scan_ignores_non_csv_files(db_conn, tmp_path):
     """`.txt` や拡張子なしのファイルが混在しても `.csv` だけが処理される。"""
-    db.init()
-    conn = db.connect()
-    try:
-        _copy_fixture(tmp_path, "daily_a.csv")
-        (tmp_path / "note.txt").write_text("not a csv")
-        (tmp_path / "noext").write_text("not a csv")
+    _copy_fixture(tmp_path, "daily_a.csv")
+    (tmp_path / "note.txt").write_text("not a csv")
+    (tmp_path / "noext").write_text("not a csv")
 
-        results = csv_import.import_all(str(tmp_path), conn)
+    results = csv_import.import_all(str(tmp_path), db_conn)
 
-        assert len(results) == 1
-        assert results[0]["file"] == "daily_a.csv"
-        assert _count_and_sum(conn) == (3, 6.0)
-    finally:
-        conn.close()
+    assert len(results) == 1
+    assert results[0]["file"] == "daily_a.csv"
+    assert _count_and_sum(db_conn) == (3, 6.0)
 
 
-def test_scan_missing_directory_returns_empty(sqlite_db_dsn, tmp_path):
+def test_scan_missing_directory_returns_empty(db_conn, tmp_path):
     """ディレクトリが存在しなければ 0 件を返し、例外を投げない。"""
-    db.init()
-    conn = db.connect()
-    try:
-        missing_dir = str(tmp_path / "does-not-exist")
+    missing_dir = str(tmp_path / "does-not-exist")
 
-        results = csv_import.import_all(missing_dir, conn)
+    results = csv_import.import_all(missing_dir, db_conn)
 
-        assert results == []
-        assert _count_and_sum(conn) == (0, None)
-    finally:
-        conn.close()
+    assert results == []
+    assert _count_and_sum(db_conn) == (0, None)
 
 
 def _has_cost_daily_stats(conn) -> bool:
@@ -437,48 +377,33 @@ def _has_cost_daily_stats(conn) -> bool:
     return cur.fetchone()[0] > 0
 
 
-def test_analyze_called_after_import(sqlite_db_dsn, tmp_path):
+def test_analyze_called_after_import(db_conn, tmp_path):
     """取込の前には統計情報が無く、後には在る。"""
-    db.init()
-    conn = db.connect()
-    try:
-        _copy_fixture(tmp_path, "daily_a.csv")
-        assert _has_cost_daily_stats(conn) is False
+    _copy_fixture(tmp_path, "daily_a.csv")
+    assert _has_cost_daily_stats(db_conn) is False
 
-        csv_import.import_all(str(tmp_path), conn)
+    csv_import.import_all(str(tmp_path), db_conn)
 
-        assert _has_cost_daily_stats(conn) is True
-    finally:
-        conn.close()
+    assert _has_cost_daily_stats(db_conn) is True
 
 
-def test_analyze_called_on_reimport_no_change(sqlite_db_dsn, tmp_path):
+def test_analyze_called_on_reimport_no_change(db_conn, tmp_path):
     """直後にもう 1 度取り込んでも例外にならず、COUNT(*)・SUM(cost) が変わらない。"""
-    db.init()
-    conn = db.connect()
-    try:
-        _copy_fixture(tmp_path, "daily_a.csv")
-        csv_import.import_all(str(tmp_path), conn)
-        csv_import.import_all(str(tmp_path), conn)
+    _copy_fixture(tmp_path, "daily_a.csv")
+    csv_import.import_all(str(tmp_path), db_conn)
+    csv_import.import_all(str(tmp_path), db_conn)
 
-        assert _count_and_sum(conn) == (3, 6.0)
-    finally:
-        conn.close()
+    assert _count_and_sum(db_conn) == (3, 6.0)
 
 
-def test_analyze_called_with_empty_directory(sqlite_db_dsn, tmp_path, monkeypatch):
+def test_analyze_called_with_empty_directory(db_conn, tmp_path, monkeypatch):
     """`.csv` が 1 本も無くても例外にならず、0 件を返し db.analyze() は呼ばれる。"""
-    db.init()
-    conn = db.connect()
     calls = []
     monkeypatch.setattr(csv_import.db, "analyze", lambda c: calls.append(c))
-    try:
-        results = csv_import.import_all(str(tmp_path), conn)
+    results = csv_import.import_all(str(tmp_path), db_conn)
 
-        assert results == []
-        assert calls == [conn]
-    finally:
-        conn.close()
+    assert results == []
+    assert calls == [db_conn]
 
 
 @pytest.fixture
@@ -611,7 +536,7 @@ def test_csv_import_has_no_flask_import():
     assert hits == []
 
 
-def test_scan_skips_file_with_missing_required_column(sqlite_db_dsn, tmp_path):
+def test_scan_skips_file_with_missing_required_column(db_conn, tmp_path):
     """必須列を欠くファイルが混在しても、他のファイルの取込を止めない。"""
     _copy_fixture(tmp_path, "daily_a.csv")
     header = "Workspace ID,User Name"
@@ -619,18 +544,13 @@ def test_scan_skips_file_with_missing_required_column(sqlite_db_dsn, tmp_path):
         (header + "\r\nworkspace-01,someone\r\n").encode("utf-8")
     )
 
-    db.init()
-    conn = db.connect()
-    try:
-        results = csv_import.import_all(str(tmp_path), conn)
+    results = csv_import.import_all(str(tmp_path), db_conn)
 
-        assert len(results) == 2
-        by_file = {r["file"]: r for r in results}
-        assert by_file["daily_a.csv"]["rows"] == 3
-        assert "error" in by_file["unrelated.csv"]
-        assert _count_and_sum(conn) == (3, 6.0)
-    finally:
-        conn.close()
+    assert len(results) == 2
+    by_file = {r["file"]: r for r in results}
+    assert by_file["daily_a.csv"]["rows"] == 3
+    assert "error" in by_file["unrelated.csv"]
+    assert _count_and_sum(db_conn) == (3, 6.0)
 
 
 def test_overview_shows_error_for_failed_file(sqlite_db_dsn, tmp_path):
@@ -665,50 +585,35 @@ def test_overview_shows_error_for_failed_file(sqlite_db_dsn, tmp_path):
         importlib.reload(app_module)
 
 
-def test_scan_continues_when_one_file_is_unreadable(sqlite_db_dsn, tmp_path):
+def test_scan_continues_when_one_file_is_unreadable(db_conn, tmp_path):
     """読めないファイル（OSError）が 1 本混在しても、走査全体が落ちず他ファイルは取り込まれる。"""
     _copy_fixture(tmp_path, "daily_a.csv", "a_good.csv")
     bad_path = tmp_path / "z_bad.csv"
     bad_path.write_bytes(b"Date,Cost\r\n2026-07-01,1.0\r\n")
     os.chmod(bad_path, 0o000)
 
-    db.init()
-    conn = db.connect()
     try:
-        try:
-            results = csv_import.import_all(str(tmp_path), conn)
-        finally:
-            os.chmod(bad_path, 0o644)  # tmp_path の後始末を妨げないよう必ず戻す
-
-        assert len(results) == 2
-        by_file = {r["file"]: r for r in results}
-        assert by_file["a_good.csv"]["rows"] == 3
-        assert "error" in by_file["z_bad.csv"]
-        assert _count_and_sum(conn) == (3, 6.0)
+        results = csv_import.import_all(str(tmp_path), db_conn)
     finally:
-        conn.close()
+        os.chmod(bad_path, 0o644)  # tmp_path の後始末を妨げないよう必ず戻す
+
+    assert len(results) == 2
+    by_file = {r["file"]: r for r in results}
+    assert by_file["a_good.csv"]["rows"] == 3
+    assert "error" in by_file["z_bad.csv"]
+    assert _count_and_sum(db_conn) == (3, 6.0)
 
 
-def test_bom_prefixed_utf8_csv_is_read(sqlite_db_dsn):
+def test_bom_prefixed_utf8_csv_is_read(db_conn):
     """BOM 付き UTF-8 の CSV でもヘッダが正しく解決され、取り込める。"""
-    db.init()
-    conn = db.connect()
-    try:
-        result = csv_import.import_file(str(FIXTURES / "bom.csv"), conn)
-        assert result == {"file": "bom.csv", "rows": 1, "dropped": 0}
-        assert _count_and_sum(conn) == (1, 9.0)
-    finally:
-        conn.close()
+    result = csv_import.import_file(str(FIXTURES / "bom.csv"), db_conn)
+    assert result == {"file": "bom.csv", "rows": 1, "dropped": 0}
+    assert _count_and_sum(db_conn) == (1, 9.0)
 
 
-def test_slash_format_file_reaches_day_via_import_file(sqlite_db_dsn):
+def test_slash_format_file_reaches_day_via_import_file(db_conn):
     """スラッシュ書式（slash.csv）が import_file を通って cost_daily の day まで届く。"""
-    db.init()
-    conn = db.connect()
-    try:
-        result = csv_import.import_file(str(FIXTURES / "slash.csv"), conn)
-        assert result == {"file": "slash.csv", "rows": 2, "dropped": 0}
-        assert _count_and_sum(conn) == (2, 15.0)
-        assert _sum_for_day(conn, 20666) == 15.0  # 2026/8/1 -> 20666
-    finally:
-        conn.close()
+    result = csv_import.import_file(str(FIXTURES / "slash.csv"), db_conn)
+    assert result == {"file": "slash.csv", "rows": 2, "dropped": 0}
+    assert _count_and_sum(db_conn) == (2, 15.0)
+    assert _sum_for_day(db_conn, 20666) == 15.0  # 2026/8/1 -> 20666

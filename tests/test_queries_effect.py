@@ -11,17 +11,14 @@ from known_data import (
     seed_effect_data,
 )
 
-from ccgov.store import db, queries_policy
+from ccgov.store import queries_policy
 
 
 @pytest.fixture
-def effect_db(sqlite_db_dsn):
+def effect_db(db_conn):
     """この画面専用の既知データ（`policy_state` 4 行・`cost_daily` 10 行）を投入した接続。"""
-    db.init()
-    conn = db.connect()
-    seed_effect_data(conn)
-    yield conn
-    conn.close()
+    seed_effect_data(db_conn)
+    return db_conn
 
 
 def test_compliance_start_dates(effect_db):
@@ -127,48 +124,38 @@ def test_event_study_row_count_excludes_zero_day_and_zero_denominator(effect_db)
     assert len(rows) == len(relative_days)
 
 
-def test_context_distribution_first_rollout_has_no_before(sqlite_db_dsn):
+def test_context_distribution_first_rollout_has_no_before(db_conn):
     """初回展開: 準拠前の PreCompact 行が無いため 'before' キー自体を返さない。"""
-    db.init()
-    conn = db.connect()
-    try:
-        insert_compliant_policy(conn, "cq1", 20010, "u1", "h1")
-        insert_precompact(conn, "ce1", 20011, 120000)
-        insert_precompact(conn, "ce2", 20012, 130000)
-        starts = queries_policy.compliance_start_dates(conn, K, "60")
-        result = queries_policy.context_distribution(conn, "PreCompact", starts)
-        assert "before" not in result
-        assert result["after"] == [(120000, 2)]
-    finally:
-        conn.close()
+    insert_compliant_policy(db_conn, "cq1", 20010, "u1", "h1")
+    insert_precompact(db_conn, "ce1", 20011, 120000)
+    insert_precompact(db_conn, "ce2", 20012, 130000)
+    starts = queries_policy.compliance_start_dates(db_conn, K, "60")
+    result = queries_policy.context_distribution(db_conn, "PreCompact", starts)
+    assert "before" not in result
+    assert result["after"] == [(120000, 2)]
 
 
-def test_context_distribution_second_change_has_both_sides(sqlite_db_dsn):
+def test_context_distribution_second_change_has_both_sides(db_conn):
     """2 回目以降: 準拠前 80000 台に 1 件、準拠後 120000 台に 1 件。"""
-    db.init()
-    conn = db.connect()
-    try:
-        insert_compliant_policy(conn, "cq2", 20010, "u1", "h1")
-        insert_precompact(conn, "ce3", 20008, 90000)
-        insert_precompact(conn, "ce4", 20011, 120000)
-        starts = queries_policy.compliance_start_dates(conn, K, "60")
-        result = queries_policy.context_distribution(conn, "PreCompact", starts)
-        assert result["before"] == [(80000, 1)]
-        assert result["after"] == [(120000, 1)]
+    insert_compliant_policy(db_conn, "cq2", 20010, "u1", "h1")
+    insert_precompact(db_conn, "ce3", 20008, 90000)
+    insert_precompact(db_conn, "ce4", 20011, 120000)
+    starts = queries_policy.compliance_start_dates(db_conn, K, "60")
+    result = queries_policy.context_distribution(db_conn, "PreCompact", starts)
+    assert result["before"] == [(80000, 1)]
+    assert result["after"] == [(120000, 1)]
 
-        def compute():
-            return queries_policy.context_distribution(conn, "PreCompact", starts)
+    def compute():
+        return queries_policy.context_distribution(db_conn, "PreCompact", starts)
 
-        before_dup = compute()
-        duplicate_events(conn)
-        after_dup = compute()
-        assert before_dup == after_dup
+    before_dup = compute()
+    duplicate_events(db_conn)
+    after_dup = compute()
+    assert before_dup == after_dup
 
-        # 対照実験: distinct を通さないと重複後に度数が 2 倍になる
-        cur = conn.cursor()
-        cur.execute(
-            "SELECT COUNT(*) FROM events WHERE hook_event = 'PreCompact' AND context_tokens = 90000"
-        )
-        assert cur.fetchone()[0] == 2
-    finally:
-        conn.close()
+    # 対照実験: distinct を通さないと重複後に度数が 2 倍になる
+    cur = db_conn.cursor()
+    cur.execute(
+        "SELECT COUNT(*) FROM events WHERE hook_event = 'PreCompact' AND context_tokens = 90000"
+    )
+    assert cur.fetchone()[0] == 2

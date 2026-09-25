@@ -49,16 +49,22 @@ def sqlite_db_dsn():
 
 
 @pytest.fixture
-def known_db(sqlite_db_dsn):
-    """DDL 適用済みの一時 SQLite に 3 つの既知データを投入した接続を返す。"""
-    from known_data import seed_known_data
-
+def db_conn(sqlite_db_dsn):
+    """契約の DDL で初期化した一時 SQLite の接続を返す。"""
     from ccgov.store import db
 
     db.init()
     conn = db.connect()
     try:
-        seed_known_data(conn)
         yield conn
     finally:
         conn.close()
+
+
+@pytest.fixture
+def known_db(db_conn):
+    """DDL 適用済みの一時 SQLite に 3 つの既知データを投入した接続を返す。"""
+    from known_data import seed_known_data
+
+    seed_known_data(db_conn)
+    return db_conn

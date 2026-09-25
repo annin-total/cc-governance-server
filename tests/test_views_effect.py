@@ -5,15 +5,12 @@ import importlib
 from conftest import ADMIN, admin_client
 from known_data import K, insert_compliant_policy, insert_precompact, seed_effect_data
 
-from ccgov.store import db, queries_policy
+from ccgov.store import queries_policy
 
 
-def test_effect_page_row_count_matches_query(sqlite_db_dsn):
+def test_effect_page_row_count_matches_query(db_conn):
     """イベントスタディの表の行数が、クエリの戻り行数と一致する（相対日 0 と分母 0 を除いた数）。"""
-    db.init()
-    conn = db.connect()
-    seed_effect_data(conn)
-    conn.close()
+    seed_effect_data(db_conn)
 
     import app as app_module
 
@@ -31,21 +28,14 @@ def test_effect_page_row_count_matches_query(sqlite_db_dsn):
     assert match
     rendered_rows = re.findall(r"<tr>", match.group(1))[1:]
 
-    conn = db.connect()
-    try:
-        expected = queries_policy.event_study(conn, K, "60", "aws-bedrock")
-    finally:
-        conn.close()
+    expected = queries_policy.event_study(db_conn, K, "60", "aws-bedrock")
     assert len(rendered_rows) == len(expected)
 
 
-def test_effect_page_shows_no_data_for_first_rollout_before_side(sqlite_db_dsn):
+def test_effect_page_shows_no_data_for_first_rollout_before_side(db_conn):
     """初回展開: 準拠前の PreCompact 分布が表ではなく「データなし」の 1 行として出る。"""
-    db.init()
-    conn = db.connect()
-    insert_compliant_policy(conn, "cq1", 20010, "u1", "h1")
-    insert_precompact(conn, "ce1", 20011, 120000)
-    conn.close()
+    insert_compliant_policy(db_conn, "cq1", 20010, "u1", "h1")
+    insert_precompact(db_conn, "ce1", 20011, 120000)
 
     import app as app_module
 
