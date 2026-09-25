@@ -6,6 +6,7 @@ _EXPECTED_INDEX_NAMES = [
     "ix_cost_daily_day_user_email",
     "ix_events_day_hook_event_context_tokens",
     "ix_events_day_user_email_event_id",
+    "ix_events_hook_event_user_email_day_context_tokens_event_id",
     "ix_events_skill_name_day_user_email_event_id",
     "ix_events_tool_name_day_user_email_event_id",
     "ix_policy_state_key_name_prev_value_user_email",
@@ -17,6 +18,7 @@ _EXPECTED_INDEXES = {
     ("events", ("skill_name", "day", "user_email", "event_id")),
     ("events", ("tool_name", "day", "user_email", "event_id")),
     ("events", ("day", "hook_event", "context_tokens")),
+    ("events", ("hook_event", "user_email", "day", "context_tokens", "event_id")),
     ("policy_state", ("key_name", "prev_value", "user_email")),
     ("policy_state", ("user_email", "ts")),
     ("cost_daily", ("day", "user_email")),
@@ -55,7 +57,7 @@ def _index_names(conn) -> list:
 
 
 def _assert_expected_indexes(conn) -> None:
-    """7 本のインデックスが期待どおりの列順と名前で揃っている。"""
+    """8 本のインデックスが期待どおりの列順と名前で揃っている。"""
     assert _indexes_with_columns(conn) == _EXPECTED_INDEXES
     assert _index_names(conn) == _EXPECTED_INDEX_NAMES
 
@@ -65,12 +67,12 @@ def test_init_creates_three_tables(db_conn):
     assert _table_names(db_conn) == {"events", "policy_state", "cost_daily"}
 
 
-def test_init_creates_seven_indexes_with_expected_columns(db_conn):
-    """1 回の init() で 7 本のインデックスが期待どおりの列順で作られる。"""
+def test_init_creates_eight_indexes_with_expected_columns(db_conn):
+    """1 回の init() で 8 本のインデックスが期待どおりの列順で作られる。"""
     _assert_expected_indexes(db_conn)
 
 
-def test_init_twice_keeps_seven_indexes(sqlite_db_dsn):
+def test_init_twice_keeps_eight_indexes(sqlite_db_dsn):
     """2 回目の init() でインデックスが重複して作られない。"""
     db.init()
     db.init()
@@ -82,7 +84,7 @@ def test_init_twice_keeps_seven_indexes(sqlite_db_dsn):
 
 
 def test_init_recreates_dropped_index(sqlite_db_dsn):
-    """インデックスを 1 本 DROP した状態から init() すれば 7 本に戻る。"""
+    """インデックスを 1 本 DROP した状態から init() すれば 8 本に戻る。"""
     db.init()
     conn = db.connect()
     try:
