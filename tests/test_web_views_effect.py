@@ -5,7 +5,7 @@ import importlib
 from conftest import ADMIN, admin_client, rows_in_table
 from known_data import K, insert_compliant_policy, insert_precompact, seed_effect_data
 
-from ccgov.constants import REFERENCE_KEY, REFERENCE_VALUE
+from ccgov.constants import CSV_SETTLE_DAYS, REFERENCE_KEY, REFERENCE_VALUE
 from ccgov.store import queries_policy
 from ccgov.vendor import contract, policy
 
@@ -62,3 +62,13 @@ def test_effect_page_is_fixed_to_reference_experiment(db_conn, monkeypatch):
 def test_reference_value_is_in_stored_notation():
     """比較値は `policy_state.prev_value` と同じ表記で書かれている（数値で書くと一致しない）。"""
     assert contract.policy_text(REFERENCE_VALUE) == REFERENCE_VALUE
+
+
+def test_effect_page_warns_against_reading_difference_as_effect(db_conn):
+    """前後差を効果と読まない注意と、除いた未確定の日数を画面に出す。"""
+    import app as app_module
+
+    importlib.reload(app_module)
+    html = admin_client(app_module.app).get(ADMIN + "/effect").get_data(as_text=True)
+    assert "前後差を施策の効果と読まない" in html
+    assert f"未確定の直近 {CSV_SETTLE_DAYS} 日は含めていません" in html
