@@ -1,6 +1,7 @@
 """`/ingest` の受信処理。生のバイト列と DB 接続だけを扱う。"""
 
 import json
+from time import monotonic
 from typing import Optional
 
 from ccgov.store import db
@@ -13,6 +14,10 @@ from ccgov.vendor.contract import (
 )
 
 _KINDS = ("event", "policy")
+
+# 受信のたびの ANALYZE は重いため、プロセス内で前回からこの秒数が経つまで呼ばない
+ANALYZE_INTERVAL_SECONDS = 3600
+_last_analyzed_at: Optional[float] = None
 
 _EVENTS_COLUMNS = tuple(EXTRA_COLUMNS) + tuple(
     (name, type_) for name, _, type_ in HOOK_FIELDS
@@ -84,6 +89,19 @@ def _insert(cur, table: str, columns: tuple, values: list) -> None:
     cur.executemany(sql, values)
 
 
+def _analyze_if_due(conn) -> None:
+    """前回の ANALYZE から `ANALYZE_INTERVAL_SECONDS` 以上経っていれば（初回を含む）呼ぶ。"""
+    global _last_analyzed_at
+    now = monotonic()
+    if (
+        _last_analyzed_at is not None
+        and now - _last_analyzed_at < ANALYZE_INTERVAL_SECONDS
+    ):
+        return
+    _last_analyzed_at = now
+    db.analyze(conn)
+
+
 def ingest(raw: bytes, conn) -> dict:
     """NDJSON を検査して kind ごとに振り分け、1 トランザクションで保存する。"""
     rows, dropped = parse_lines(raw)
@@ -100,4 +118,5 @@ def ingest(raw: bytes, conn) -> dict:
         conn.rollback()
         raise
 
+    _analyze_if_due(conn)
     return {"stored": len(rows), "dropped": dropped}
