@@ -241,11 +241,13 @@ _EFFECT_COST_ROWS = (
     (20014, "u3", "aws-bedrock", 7.0),
     (20016, "u3", "aws-bedrock", 7.0),
     (20011, "u1", "openai", 99.0),
+    # CSV の最終日。未確定の末尾を除いた在籍の上限は 20024 - CSV_SETTLE_DAYS になる
+    (20024, "u9", "aws-bedrock", 1.0),
 )
 
 
 def seed_effect_data(conn) -> None:
-    """`/effect` 専用の既知データ（`policy_state` 4 行・`cost_daily` 10 行）を投入する。"""
+    """`/effect` 専用の既知データ（`policy_state` 4 行・`cost_daily` 11 行）を投入する。"""
     for event_id, day, user_email, prev_value in _EFFECT_POLICY_ROWS:
         host = "h" + user_email[1:]
         insert_compliant_policy(

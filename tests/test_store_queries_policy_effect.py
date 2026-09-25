@@ -11,12 +11,13 @@ from known_data import (
     seed_effect_data,
 )
 
+from ccgov.constants import CSV_SETTLE_DAYS
 from ccgov.store import queries_policy
 
 
 @pytest.fixture
 def effect_db(db_conn):
-    """この画面専用の既知データ（`policy_state` 4 行・`cost_daily` 10 行）を投入した接続。"""
+    """この画面専用の既知データ（`policy_state` 4 行・`cost_daily` 11 行）を投入した接続。"""
     seed_effect_data(db_conn)
     return db_conn
 
@@ -44,6 +45,14 @@ def test_event_study_expected_values(effect_db):
     assert rows[2] == (1, 0.0, 0)
     assert rows[11] == (1, 0.0, 0)
     assert 12 not in rows
+
+
+def test_event_study_excludes_unsettled_tail(effect_db):
+    """在籍の上限は CSV の最終日 20024 から未確定の日数を引いた日。それより後の相対日は出ない。"""
+    rows = queries_policy.event_study(effect_db, K, "60", "aws-bedrock")
+    last_settled = 20024 - CSV_SETTLE_DAYS
+    assert max(r[0] for r in rows) == last_settled - 20010
+    assert all(r[1] == 1 for r in rows if r[0] > last_settled - 20020)
 
 
 def test_event_study_fills_zero_for_unused_days(effect_db):
