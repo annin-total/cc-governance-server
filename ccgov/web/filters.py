@@ -6,7 +6,6 @@ from typing import Any, Optional
 from ccgov.constants import CONTEXT_BIN
 
 EM_DASH = "—"
-_JST_OFFSET_SECONDS = 9 * 3600
 _SECONDS_PER_DAY = 86400
 
 

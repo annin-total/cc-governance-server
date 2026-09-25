@@ -75,7 +75,7 @@ def test_every_context_variable_is_referenced(app_module, monkeypatch, path):
     )
 
 
-def test_import_results_is_referenced_by_overview(app_module, monkeypatch):
+def test_import_results_is_referenced_by_overview(app_module):
     """CSV 取込の結果も画面が参照していること（`/import` は POST でのみ渡す）。"""
     referenced = _referenced_names(app_module.app.jinja_env, "overview.html")
     assert "import_results" in referenced, (
