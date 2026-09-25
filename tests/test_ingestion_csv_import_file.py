@@ -8,13 +8,26 @@ from ccgov.ingestion import csv_import
 _DAY_20635 = 20635  # 2026-07-01
 
 
-def test_idempotent_reimport_same_file(db_conn):
-    """同じファイルを 2 回取り込んでも COUNT(*)=3・SUM(cost)=6.0 のまま変わらない。"""
-    csv_import.import_file(str(FIXTURES / "daily_a.csv"), db_conn)
-    assert count_and_sum(db_conn) == (3, 6.0)
+@pytest.mark.parametrize(
+    "first, second, expected",
+    [
+        ("daily_a.csv", "daily_a.csv", (3, 6.0)),
+        ("weekly.csv", "daily_a.csv", (6, 21.0)),
+        ("extra_column.csv", "daily_a.csv", (3, 6.0)),
+    ],
+    ids=[
+        "reimport_same_file",
+        "overlapping_files_reverse_order",
+        "unknown_column_replaces_existing_rows",
+    ],
+)
+def test_idempotent_second_import_keeps_totals(db_conn, first, second, expected):
+    """同じ・包含される・Region 付きのファイルの後に取り込み直しても COUNT(*)・SUM(cost) が変わらない。"""
+    csv_import.import_file(str(FIXTURES / first), db_conn)
+    assert count_and_sum(db_conn) == expected
 
-    csv_import.import_file(str(FIXTURES / "daily_a.csv"), db_conn)
-    assert count_and_sum(db_conn) == (3, 6.0)
+    csv_import.import_file(str(FIXTURES / second), db_conn)
+    assert count_and_sum(db_conn) == expected
 
 
 def test_idempotent_overlapping_files_forward_order(db_conn):
@@ -39,15 +52,6 @@ def test_idempotent_overlapping_files_forward_order(db_conn):
     assert [row[0] for row in cur.fetchall()] == ["weekly.csv"]
 
 
-def test_idempotent_overlapping_files_reverse_order(db_conn):
-    """weekly -> daily_a の逆順で取り込んでも COUNT(*)=6・SUM(cost)=21.0 のまま。"""
-    csv_import.import_file(str(FIXTURES / "weekly.csv"), db_conn)
-    assert count_and_sum(db_conn) == (6, 21.0)
-
-    csv_import.import_file(str(FIXTURES / "daily_a.csv"), db_conn)
-    assert count_and_sum(db_conn) == (6, 21.0)
-
-
 def test_idempotent_partial_failure_leaves_no_partial_rows(db_conn, monkeypatch):
     """weekly.csv の INSERT 中に例外が起きても、直前の daily_a の行がそのまま残る。"""
     csv_import.import_file(str(FIXTURES / "daily_a.csv"), db_conn)
@@ -65,15 +69,6 @@ def test_idempotent_partial_failure_leaves_no_partial_rows(db_conn, monkeypatch)
 
     assert count_and_sum(db_conn) == (3, 6.0)
     assert sum_for_day(db_conn, 20637) is None  # 2026-07-03 の行が無い
-
-
-def test_idempotent_unknown_column_replaces_existing_rows(db_conn):
-    """extra_column.csv（Region 付き）を取り込んでから daily_a.csv で置き換えても変わらない。"""
-    csv_import.import_file(str(FIXTURES / "extra_column.csv"), db_conn)
-    assert count_and_sum(db_conn) == (3, 6.0)
-
-    csv_import.import_file(str(FIXTURES / "daily_a.csv"), db_conn)
-    assert count_and_sum(db_conn) == (3, 6.0)
 
 
 def test_bom_prefixed_utf8_csv_is_read(db_conn):

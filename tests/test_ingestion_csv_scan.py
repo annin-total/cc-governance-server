@@ -2,6 +2,7 @@
 
 import os
 
+import pytest
 from conftest import CSV_HEADER, copy_fixture, count_and_sum, sum_for_day
 
 from ccgov.ingestion import csv_import
@@ -52,24 +53,18 @@ def test_scan_repeated_call_same_result(db_conn, tmp_path):
     assert count_and_sum(db_conn) == (5, 15.0)
 
 
-def test_scan_three_files_order_independent_forward(db_conn, tmp_path):
-    """daily_a / daily_b / weekly の 3 本を置いて押すと COUNT=6・SUM=21.0・3 件、day=20635 は 6.0。"""
-    copy_fixture(tmp_path, "daily_a.csv")
-    copy_fixture(tmp_path, "daily_b.csv")
-    copy_fixture(tmp_path, "weekly.csv")
-
-    results = csv_import.import_all(str(tmp_path), db_conn)
-
-    assert len(results) == 3
-    assert count_and_sum(db_conn) == (6, 21.0)
-    assert sum_for_day(db_conn, _DAY_20635) == 6.0
-
-
-def test_scan_three_files_order_independent_reversed(db_conn, tmp_path):
-    """同じ 3 本を作成順を入れ替えて置いても、結果は変わらない。"""
-    copy_fixture(tmp_path, "weekly.csv")
-    copy_fixture(tmp_path, "daily_b.csv")
-    copy_fixture(tmp_path, "daily_a.csv")
+@pytest.mark.parametrize(
+    "names",
+    [
+        ("daily_a.csv", "daily_b.csv", "weekly.csv"),
+        ("weekly.csv", "daily_b.csv", "daily_a.csv"),
+    ],
+    ids=["forward", "reversed"],
+)
+def test_scan_three_files_order_independent(db_conn, tmp_path, names):
+    """daily_a / daily_b / weekly の 3 本を作成順によらず置いて押すと COUNT=6・SUM=21.0・3 件、day=20635 は 6.0。"""
+    for name in names:
+        copy_fixture(tmp_path, name)
 
     results = csv_import.import_all(str(tmp_path), db_conn)
 
