@@ -1,4 +1,4 @@
-"""`/assets` 画面のテストクライアント検証。基準日を `time.time()` の monkeypatch で 20005 に固定する。"""
+"""`/assets` 画面のテストクライアント検証。基準日は `today_client` が固定する。"""
 
 from conftest import ADMIN, rows_in_table
 from known_data import TODAY
