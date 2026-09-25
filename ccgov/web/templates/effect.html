@@ -17,8 +17,8 @@
 {% set max_cost = study|map(attribute=2)|max if study else 0 %}
 <div class="tbl">
 <table data-testid="event-study">
-<caption>相対日ごとの 1 人あたりコスト・入力トークン</caption>
-<tr><th scope="col">相対日</th><th scope="col">分母人数</th><th scope="col">1人あたりコスト</th><th scope="col">1人あたり入力トークン</th><th scope="col"></th></tr>
+<caption>相対日ごとの 1 人あたりコスト・処理トークン</caption>
+<tr><th scope="col">相対日</th><th scope="col">分母人数</th><th scope="col">1人あたりコスト</th><th scope="col">1人あたり処理トークン（入力+キャッシュ）</th><th scope="col"></th></tr>
 {% for relative_day, denominator, cost, tokens in study %}
 <tr>
   <td>{{ relative_day|rel }}</td>
