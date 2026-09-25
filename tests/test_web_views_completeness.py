@@ -3,31 +3,12 @@
 テンプレートの AST から参照名を取るため、条件分岐で出ない枝も参照として数える。
 """
 
-# ruff: noqa: F811
-
-import importlib
-
 import pytest
 from conftest import ADMIN, admin_client
 from jinja2 import meta
-from test_fixtures import (
-    TODAY,
-    known_db,  # noqa: F401
-)
 
 # 渡すが描画に使わないキー。足すときは理由をコメントで残す。
 _ALLOWED_UNUSED = set()
-
-
-@pytest.fixture
-def app_module(known_db, monkeypatch):
-    """基準日を固定した `app` モジュールを返す。"""
-    import app as module
-    from ccgov.web import admin
-
-    importlib.reload(module)
-    monkeypatch.setattr(admin.time, "time", lambda: TODAY * 86400)
-    return module
 
 
 def _capture_context(module, monkeypatch, path):
@@ -64,10 +45,10 @@ def _referenced_names(env, template_name, seen=None):
 
 
 @pytest.mark.parametrize("path", ["/", "/policy", "/effect", "/assets"])
-def test_every_context_variable_is_referenced(app_module, monkeypatch, path):
+def test_every_context_variable_is_referenced(today_app, monkeypatch, path):
     """ビューが渡した変数を、テンプレートが 1 つ残らず参照していること。"""
-    template_name, context_keys = _capture_context(app_module, monkeypatch, path)
-    referenced = _referenced_names(app_module.app.jinja_env, template_name)
+    template_name, context_keys = _capture_context(today_app, monkeypatch, path)
+    referenced = _referenced_names(today_app.app.jinja_env, template_name)
     unused = context_keys - referenced - _ALLOWED_UNUSED
     assert not unused, (
         f"{path} ({template_name}): 集計したが画面が参照していない変数がある: "
@@ -75,9 +56,9 @@ def test_every_context_variable_is_referenced(app_module, monkeypatch, path):
     )
 
 
-def test_import_results_is_referenced_by_overview(app_module):
+def test_import_results_is_referenced_by_overview(today_app):
     """CSV 取込の結果も画面が参照していること（`/import` は POST でのみ渡す）。"""
-    referenced = _referenced_names(app_module.app.jinja_env, "overview.html")
+    referenced = _referenced_names(today_app.app.jinja_env, "overview.html")
     assert "import_results" in referenced, (
         "取込結果を画面が参照していない。失敗が黙って消える"
     )

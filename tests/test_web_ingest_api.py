@@ -5,26 +5,9 @@
 
 import importlib
 import json
-import os
 
 import pytest
-
-
-@pytest.fixture
-def ingest_client(sqlite_db_dsn):
-    """`DB_DSN` を一時 SQLite に向け、`INGEST_TOKEN=tok` で `app` を読み込んだテストクライアントを返す。"""
-    import app as app_module
-
-    original_token = os.environ.get("INGEST_TOKEN")
-    os.environ["INGEST_TOKEN"] = "tok"
-    try:
-        importlib.reload(app_module)
-        yield app_module.app.test_client()
-    finally:
-        if original_token is None:
-            os.environ.pop("INGEST_TOKEN", None)
-        else:
-            os.environ["INGEST_TOKEN"] = original_token
+from conftest import env_var
 
 
 def _count(table: str) -> int:
@@ -45,73 +28,40 @@ def _event_line(event_id: str) -> str:
     return json.dumps({"kind": "event", "event_id": event_id, "ts": 1758400000})
 
 
-def test_stored_two_dropped_zero(ingest_client):
-    """正しいトークン + 正常な event 2 行 -> 200、stored=2, dropped=0。"""
-    body = "\n".join([_event_line("e1"), _event_line("e2")])
+@pytest.mark.parametrize(
+    "body, stored, dropped",
+    [
+        ("\n".join([_event_line("e1"), _event_line("e2")]), 2, 0),
+        ("\n".join([_event_line("e1"), "not-json"]), 1, 1),
+        ("not-json\n{}", 0, 2),
+        (b"", 0, 0),
+    ],
+    ids=[
+        "stored_two_dropped_zero",
+        "stored_one_dropped_one",
+        "stored_zero_dropped_two",
+        "empty_body",
+    ],
+)
+def test_valid_token_returns_200_with_counts(ingest_client, body, stored, dropped):
+    """正しいトークンなら 200 で stored / dropped を返し、events に stored 行が入る。"""
     response = ingest_client.post(
         "/ingest", data=body, headers={"X-Ingest-Token": "tok"}
     )
     assert response.status_code == 200
-    assert response.get_json() == {"stored": 2, "dropped": 0}
-    assert _count("events") == 2
+    assert response.get_json() == {"stored": stored, "dropped": dropped}
+    assert _count("events") == stored
 
 
-def test_stored_one_dropped_one(ingest_client):
-    """正しいトークン + 正常 1 行 + 壊れた 1 行 -> 200、stored=1, dropped=1。"""
-    body = "\n".join([_event_line("e1"), "not-json"])
-    response = ingest_client.post(
-        "/ingest", data=body, headers={"X-Ingest-Token": "tok"}
-    )
-    assert response.status_code == 200
-    assert response.get_json() == {"stored": 1, "dropped": 1}
-    assert _count("events") == 1
-
-
-def test_stored_zero_dropped_two(ingest_client):
-    """正しいトークン + 壊れた 2 行 -> 200、stored=0, dropped=2。"""
-    body = "not-json\n{}"
-    response = ingest_client.post(
-        "/ingest", data=body, headers={"X-Ingest-Token": "tok"}
-    )
-    assert response.status_code == 200
-    assert response.get_json() == {"stored": 0, "dropped": 2}
-    assert _count("events") == 0
-
-
-def test_empty_body(ingest_client):
-    """正しいトークン + 空ボディ -> 200、stored=0, dropped=0。"""
-    response = ingest_client.post(
-        "/ingest", data=b"", headers={"X-Ingest-Token": "tok"}
-    )
-    assert response.status_code == 200
-    assert response.get_json() == {"stored": 0, "dropped": 0}
-    assert _count("events") == 0
-
-
-def test_missing_token_header_rejected(ingest_client):
-    """`X-Ingest-Token` ヘッダ無し + 正常な 2 行 -> 401、events は 0 行のまま。"""
+@pytest.mark.parametrize(
+    "headers",
+    [{}, {"X-Ingest-Token": "wrong"}, {"X-Ingest-Token": "tok\xa0"}],
+    ids=["missing_token_header", "wrong_token", "non_ascii_token"],
+)
+def test_bad_token_is_rejected_with_401(ingest_client, headers):
+    """トークンが無い・違う・非 ASCII（500 になってはならない）なら 401、events は 0 行のまま。"""
     body = "\n".join([_event_line("e1"), _event_line("e2")])
-    response = ingest_client.post("/ingest", data=body)
-    assert response.status_code == 401
-    assert _count("events") == 0
-
-
-def test_wrong_token_rejected(ingest_client):
-    """`X-Ingest-Token: wrong` + 正常な 2 行 -> 401、events は 0 行のまま。"""
-    body = "\n".join([_event_line("e1"), _event_line("e2")])
-    response = ingest_client.post(
-        "/ingest", data=body, headers={"X-Ingest-Token": "wrong"}
-    )
-    assert response.status_code == 401
-    assert _count("events") == 0
-
-
-def test_non_ascii_token_rejected_with_401(ingest_client):
-    """非 ASCII を含むヘッダは 401 で拒否する（500 になってはならない）。"""
-    body = "\n".join([_event_line("e1"), _event_line("e2")])
-    response = ingest_client.post(
-        "/ingest", data=body, headers={"X-Ingest-Token": "tok\xa0"}
-    )
+    response = ingest_client.post("/ingest", data=body, headers=headers)
     assert response.status_code == 401
     assert _count("events") == 0
 
@@ -121,15 +71,11 @@ def test_non_ascii_token_matching_value_is_accepted(sqlite_db_dsn):
 
     `test_client()` の `headers=` は UTF-8 を latin-1 で復号する WSGI の符号化を経ないため、environ を直接組む。
     """
-    import importlib
-
     token_value = "トークン"
     wire_bytes = token_value.encode("utf-8")
     wsgi_header_str = wire_bytes.decode("latin-1")  # WSGI サーバが実際に作る str
 
-    original_token = os.environ.get("INGEST_TOKEN")
-    os.environ["INGEST_TOKEN"] = token_value
-    try:
+    with env_var("INGEST_TOKEN", token_value):
         import app as app_module
 
         importlib.reload(app_module)
@@ -143,11 +89,6 @@ def test_non_ascii_token_matching_value_is_accepted(sqlite_db_dsn):
         )
         assert response.status_code == 200
         assert response.get_json() == {"stored": 2, "dropped": 0}
-    finally:
-        if original_token is None:
-            os.environ.pop("INGEST_TOKEN", None)
-        else:
-            os.environ["INGEST_TOKEN"] = original_token
 
 
 @pytest.mark.parametrize("value", [None, ""])

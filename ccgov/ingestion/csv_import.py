@@ -56,6 +56,9 @@ def _extract_row(row: list, index_by_header: dict, source_file: str) -> Optional
             values[db_name] = _parse_day(raw) if raw is not None else None
         else:
             values[db_name] = coerce(raw, type_str)
+    # 端末側は小文字にそろえて送る。大文字が混ざると events・policy_state と永久に一致しない
+    if isinstance(values["user_email"], str):
+        values["user_email"] = values["user_email"].strip().lower()
     if values["day"] is None:
         return None
     return values
@@ -119,8 +122,6 @@ def import_file(path: str, conn) -> dict:
 
 def _list_csv_files(csv_dir: str) -> list:
     """`csv_dir` 配下の `*.csv` をファイル名の昇順で返す。"""
-    if not os.path.isdir(csv_dir):
-        return []
     return sorted(glob.glob(os.path.join(csv_dir, "*.csv")))
 
 
@@ -137,6 +138,8 @@ def _import_file_or_error(path: str, conn) -> dict:
 
 def import_all(csv_dir: str, conn) -> list:
     """`csv_dir` 配下の全 `*.csv` を毎回取り直し、最後に `db.analyze()` を 1 回呼ぶ（0 件でも呼ぶ）。"""
+    if not os.path.isdir(csv_dir):
+        return [{"file": "CSV_DIR", "error": f"ディレクトリが存在しない: {csv_dir}"}]
     results = [_import_file_or_error(path, conn) for path in _list_csv_files(csv_dir)]
     db.analyze(conn)
     return results

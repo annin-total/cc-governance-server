@@ -6,7 +6,7 @@ from ccgov.constants import (
     POLICY_DAYS,
     STALE_DAYS,
 )
-from ccgov.store import db
+from ccgov.store import db, queries_events
 
 _LATEST_VALUES_SQL = (
     "SELECT user_email, host, prev_value, day, ts FROM ("
@@ -21,6 +21,12 @@ def _window_start(today: int) -> int:
     return today - POLICY_DAYS + 1
 
 
+def _cost_window_start(conn, today: int) -> int:
+    """`cost_daily` を数える窓の始端。終端は `queries_events.cost_window_end`（空なら `today`）。"""
+    end = queries_events.cost_window_end(conn, today)
+    return _window_start(today if end is None else end)
+
+
 def latest_values(conn, today: int, key_name: str) -> list:
     """`POLICY_DAYS` 日の窓で、端末ごとの `ts` が最新の 1 行を返す。"""
     cur = conn.cursor()
@@ -29,17 +35,17 @@ def latest_values(conn, today: int, key_name: str) -> list:
 
 
 def _distinct_users_with_cost(conn, today: int) -> set:
-    """直近 `POLICY_DAYS` 日に `cost_daily` へコストが立っている `user_email` の集合。"""
+    """`POLICY_DAYS` 日の窓で `cost_daily` へコストが立っている `user_email` の集合。"""
     cur = conn.cursor()
     cur.execute(
         db.q("SELECT DISTINCT user_email FROM cost_daily WHERE day >= ?"),
-        (_window_start(today),),
+        (_cost_window_start(conn, today),),
     )
     return {row[0] for row in cur.fetchall()}
 
 
 def compliance_rate(conn, today: int, key_name: str, expected_value: str) -> list:
-    """施策項目 1 つの準拠率を `[(分子, 分母, 率)]` で返す。1 台でも未準拠なら利用者は未準拠。"""
+    """施策項目 1 つの準拠率を `[(分子, 分母, 率)]` で返す。1 台でも未準拠なら利用者は未準拠。分母 0 の率は None。"""
     rows = latest_values(conn, today, key_name)
     compliant_by_user: dict = {}
     for user_email, _host, prev_value, _day, _ts in rows:
@@ -49,7 +55,7 @@ def compliance_rate(conn, today: int, key_name: str, expected_value: str) -> lis
     denom_users = _distinct_users_with_cost(conn, today)
     denominator = len(denom_users)
     numerator = sum(1 for u in denom_users if compliant_by_user.get(u, False))
-    rate = round(numerator / denominator * 100, 1) if denominator else 0.0
+    rate = round(numerator / denominator * 100, 1) if denominator else None
     return [(numerator, denominator, rate)]
 
 
@@ -64,7 +70,7 @@ def non_compliant(conn, today: int, key_name: str, expected_value: str) -> list:
 
 
 def not_introduced(conn, today: int) -> list:
-    """直近 `POLICY_DAYS` 日に `cost_daily` に居て、同期間の `policy_state` に行が無い利用者。"""
+    """`POLICY_DAYS` 日の窓で `cost_daily` に居て、直近 `POLICY_DAYS` 日の `policy_state` に行が無い利用者。"""
     cur = conn.cursor()
     cur.execute(
         db.q(
@@ -75,7 +81,7 @@ def not_introduced(conn, today: int) -> list:
             ") p ON c.user_email = p.user_email"
             " WHERE p.user_email IS NULL ORDER BY c.user_email"
         ),
-        (_window_start(today), _window_start(today)),
+        (_cost_window_start(conn, today), _window_start(today)),
     )
     return cur.fetchall()
 
@@ -124,9 +130,9 @@ def compliance_start_dates(conn, key_name: str, expected_value: str) -> dict:
 
 
 def event_study(conn, key_name: str, expected_value: str, provider: str) -> list:
-    """相対日ごとの分母人数・1 人あたり日次コスト・入力トークン。相対日 0 は除き、欠損日は 0 とする。
+    """相対日ごとの分母人数・1 人あたり日次コスト・処理トークン（入力とキャッシュの読み書きの和）。
 
-    分母は `cost_daily` 全体の day 範囲に在籍する準拠者で数える。
+    相対日 0 は除き、欠損日は 0 とする。分母は `cost_daily` の day 範囲に在籍する準拠者。
     """
     start_dates = compliance_start_dates(conn, key_name, expected_value)
     if not start_dates:
@@ -134,7 +140,9 @@ def event_study(conn, key_name: str, expected_value: str, provider: str) -> list
     cur = conn.cursor()
     cur.execute(
         db.q(
-            "SELECT user_email, day, COALESCE(SUM(cost), 0), COALESCE(SUM(input_tokens), 0)"
+            "SELECT user_email, day, COALESCE(SUM(cost), 0),"
+            " COALESCE(SUM(COALESCE(input_tokens, 0) + COALESCE(cache_read_tokens, 0)"
+            "   + COALESCE(cache_write_tokens, 0)), 0)"
             " FROM cost_daily WHERE provider = ? GROUP BY user_email, day"
         ),
         (provider,),
@@ -160,9 +168,7 @@ def event_study(conn, key_name: str, expected_value: str, provider: str) -> list
             total_cost += cost
             total_tokens += tokens
         n = len(population)
-        rows.append(
-            (relative_day, n, round(total_cost / n, 1), round(total_tokens / n))
-        )
+        rows.append((relative_day, n, total_cost / n, round(total_tokens / n)))
     return rows
 
 

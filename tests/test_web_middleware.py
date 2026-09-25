@@ -1,11 +1,10 @@
 """`BASE_PATH` を剥がす WSGI ラッパの回帰テスト。設定は import 時に読まれるため reload する。"""
 
 import importlib
-import os
 import re
 
 import pytest
-from conftest import ADMIN, admin_client
+from conftest import ADMIN, admin_client, env_var
 
 
 @pytest.fixture
@@ -15,16 +14,9 @@ def app_with_base_path(sqlite_db_dsn):
     def _build(base_path: str):
         import app as app_module
 
-        original = os.environ.get("BASE_PATH")
-        os.environ["BASE_PATH"] = base_path
-        try:
+        with env_var("BASE_PATH", base_path):
             importlib.reload(app_module)
             return app_module.app
-        finally:
-            if original is None:
-                os.environ.pop("BASE_PATH", None)
-            else:
-                os.environ["BASE_PATH"] = original
 
     return _build
 
@@ -77,3 +69,18 @@ def test_stylesheet_is_served_under_base_path(app_with_base_path, base_path):
         f"BASE_PATH が前置されていない: {href!r}"
     )
     assert client.get(href).status_code == 200, f"{href} が 200 で返らない"
+
+
+def test_form_action_follows_base_path(sqlite_db_dsn):
+    """`BASE_PATH` を与えた状態で概況画面を描画すると、フォームの action が BASE_PATH を含む。"""
+    import app as app_module
+
+    try:
+        with env_var("BASE_PATH", "/gov/cc"):
+            importlib.reload(app_module)
+            client = admin_client(app_module.app)
+            response = client.get("/gov/cc" + ADMIN)
+            body = response.get_data(as_text=True)
+            assert "/gov/cc" + ADMIN + "/import" in body
+    finally:
+        importlib.reload(app_module)

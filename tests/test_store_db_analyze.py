@@ -41,41 +41,26 @@ def _insert_cost_daily_rows(conn) -> None:
     conn.commit()
 
 
-def test_analyze_populates_sqlite_stat1(sqlite_db_dsn):
+def test_analyze_populates_sqlite_stat1(db_conn):
     """cost_daily に行がある状態で analyze() すると sqlite_stat1 に反映される。"""
-    db.init()
-    conn = db.connect()
-    try:
-        _insert_cost_daily_rows(conn)
-        db.analyze(conn)
+    _insert_cost_daily_rows(db_conn)
+    db.analyze(db_conn)
 
-        cur = conn.cursor()
-        cur.execute("SELECT tbl FROM sqlite_stat1 WHERE tbl='cost_daily'")
-        assert len(cur.fetchall()) > 0
-    finally:
-        conn.close()
+    cur = db_conn.cursor()
+    cur.execute("SELECT tbl FROM sqlite_stat1 WHERE tbl='cost_daily'")
+    assert len(cur.fetchall()) > 0
 
 
-def test_analyze_on_empty_tables_does_not_raise(sqlite_db_dsn):
+def test_analyze_on_empty_tables_does_not_raise(db_conn):
     """3 テーブルとも空でも analyze() は例外にならない。"""
-    db.init()
-    conn = db.connect()
-    try:
-        db.analyze(conn)
-    finally:
-        conn.close()
+    db.analyze(db_conn)
 
 
-def test_analyze_can_be_called_repeatedly(sqlite_db_dsn):
+def test_analyze_can_be_called_repeatedly(db_conn):
     """行がある状態で analyze() を連続して呼んでも例外にならない。"""
-    db.init()
-    conn = db.connect()
-    try:
-        _insert_cost_daily_rows(conn)
-        db.analyze(conn)
-        db.analyze(conn)
-    finally:
-        conn.close()
+    _insert_cost_daily_rows(db_conn)
+    db.analyze(db_conn)
+    db.analyze(db_conn)
 
 
 def test_analyze_sqlite_issues_analysis_limit_before_analyze(monkeypatch):

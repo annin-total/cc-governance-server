@@ -1,20 +1,15 @@
 """`queries_policy.py` の集計クエリを既知データで検証する。基準日は 20005、窓は `day >= 19976`。"""
 
-# ruff: noqa: F811
-
-from test_fixtures import (
+from known_data import (
     TODAY,
+    A,
+    K,
     assert_invariant_under_duplication,
-    duplicate_all,
-    insert_policy_state,
-    known_db,  # noqa: F401
+    insert_compliant_policy,
 )
 
 from ccgov.constants import REFERENCE_KEY
 from ccgov.store import queries_policy
-
-K = "env.CLAUDE_AUTOCOMPACT_PCT_OVERRIDE"
-A = "extraKnownMarketplaces.cc-marketplace-governance-bmsd.autoUpdate"
 
 
 def test_latest_values_returns_one_row_per_terminal(known_db):
@@ -68,44 +63,12 @@ def test_latest_values_picks_max_ts_not_max_day(known_db):
 
     `day` の降順だと ts=1000・day=20003（80）が選ばれるが、正しくは ts=5000・day=20000（60）。
     """
-    insert_policy_state(
-        known_db,
-        event_id="tie1",
-        ts=5000,
-        day=20000,
-        user_email="ux",
-        host="hx",
-        key_name=K,
-        value="60",
-        prev_value="60",
-        apply_result="already_ok",
-        plugin_version="1.4.0",
+    insert_compliant_policy(known_db, "tie1", 20000, "ux", "hx", ts=5000)
+    insert_compliant_policy(
+        known_db, "tie2", 20001, "ux", "hx", ts=3000, prev_value="70"
     )
-    insert_policy_state(
-        known_db,
-        event_id="tie2",
-        ts=3000,
-        day=20001,
-        user_email="ux",
-        host="hx",
-        key_name=K,
-        value="60",
-        prev_value="70",
-        apply_result="already_ok",
-        plugin_version="1.4.0",
-    )
-    insert_policy_state(
-        known_db,
-        event_id="tie3",
-        ts=1000,
-        day=20003,
-        user_email="ux",
-        host="hx",
-        key_name=K,
-        value="60",
-        prev_value="80",
-        apply_result="already_ok",
-        plugin_version="1.4.0",
+    insert_compliant_policy(
+        known_db, "tie3", 20003, "ux", "hx", ts=1000, prev_value="80"
     )
     rows = queries_policy.latest_values(known_db, TODAY, K)
     by_terminal = {(r[0], r[1]): r for r in rows}
@@ -220,30 +183,18 @@ def test_plugin_version_distribution(known_db):
 
 def test_plugin_version_distribution_picks_max_ts_not_max_day(known_db):
     """版分布も `ts` の降順で最新 1 行を選ぶ。`day` の降順にすると別の版が数えられる。"""
-    insert_policy_state(
-        known_db,
-        event_id="tie4",
-        ts=5000,
-        day=20000,
-        user_email="uy",
-        host="hy",
-        key_name=REFERENCE_KEY,
-        value="60",
-        prev_value="60",
-        apply_result="already_ok",
-        plugin_version="1.4.0",
+    insert_compliant_policy(
+        known_db, "tie4", 20000, "uy", "hy", ts=5000, key_name=REFERENCE_KEY
     )
-    insert_policy_state(
+    insert_compliant_policy(
         known_db,
-        event_id="tie5",
+        "tie5",
+        20003,
+        "uy",
+        "hy",
         ts=1000,
-        day=20003,
-        user_email="uy",
-        host="hy",
         key_name=REFERENCE_KEY,
-        value="60",
         prev_value="80",
-        apply_result="already_ok",
         plugin_version="1.3.0",
     )
     rows = dict(
@@ -266,32 +217,37 @@ def test_plugin_version_distribution_unchanged_after_duplicate_injection(known_d
 
 
 def test_all_numbers_survive_full_duplication_at_once(known_db):
-    """policy_state と cost_daily の全行を複製しても、この画面の数字が一切変わらない。"""
-    before = {
-        "rate_k": queries_policy.compliance_rate(known_db, TODAY, K, "60"),
-        "rate_a": queries_policy.compliance_rate(known_db, TODAY, A, "true"),
-        "non_compliant_k": sorted(
-            queries_policy.non_compliant(known_db, TODAY, K, "60")
-        ),
-        "not_introduced": sorted(queries_policy.not_introduced(known_db, TODAY)),
-        "stale": sorted(queries_policy.stale_terminals(known_db, TODAY)),
-        "versions": sorted(
-            queries_policy.plugin_version_distribution(known_db, TODAY, REFERENCE_KEY)
-        ),
-    }
-    duplicate_all(known_db)
-    after = {
-        "rate_k": queries_policy.compliance_rate(known_db, TODAY, K, "60"),
-        "rate_a": queries_policy.compliance_rate(known_db, TODAY, A, "true"),
-        "non_compliant_k": sorted(
-            queries_policy.non_compliant(known_db, TODAY, K, "60")
-        ),
-        "not_introduced": sorted(queries_policy.not_introduced(known_db, TODAY)),
-        "stale": sorted(queries_policy.stale_terminals(known_db, TODAY)),
-        "versions": sorted(
-            queries_policy.plugin_version_distribution(known_db, TODAY, REFERENCE_KEY)
-        ),
-    }
-    assert before == after
-    assert before["rate_k"][0][2] <= 100.0
-    assert before["rate_a"][0][2] <= 100.0
+    """events・policy_state・cost_daily の全行を複製しても、この画面の数字が一切変わらない。"""
+
+    def compute():
+        return {
+            "rate_k": queries_policy.compliance_rate(known_db, TODAY, K, "60"),
+            "rate_a": queries_policy.compliance_rate(known_db, TODAY, A, "true"),
+            "non_compliant_k": sorted(
+                queries_policy.non_compliant(known_db, TODAY, K, "60")
+            ),
+            "not_introduced": sorted(queries_policy.not_introduced(known_db, TODAY)),
+            "stale": sorted(queries_policy.stale_terminals(known_db, TODAY)),
+            "versions": sorted(
+                queries_policy.plugin_version_distribution(
+                    known_db, TODAY, REFERENCE_KEY
+                )
+            ),
+        }
+
+    result = assert_invariant_under_duplication(known_db, compute)
+    assert result["rate_k"][0][2] <= 100.0
+    assert result["rate_a"][0][2] <= 100.0
+
+
+def test_compliance_rate_is_none_without_cost_users(db_conn):
+    """`cost_daily` に誰も居ないとき、準拠率は None。"""
+    assert queries_policy.compliance_rate(db_conn, TODAY, K, "60") == [(0, 0, None)]
+
+
+def test_cost_window_ends_at_last_csv_day(known_db):
+    """CSV の取込が 30 日以上空いても、`cost_daily` 側の窓は最終日で終わる（`policy_state` 側は今日）。"""
+    later = TODAY + 40
+    assert queries_policy.compliance_rate(known_db, later, K, "60") == [(0, 5, 0.0)]
+    rows = queries_policy.not_introduced(known_db, later)
+    assert [r[0] for r in rows] == ["u1", "u2", "u3", "u4", "u5"]

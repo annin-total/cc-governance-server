@@ -1,6 +1,17 @@
 """filters.py の単体テスト。"""
 
+import pytest
+
 from ccgov.web import filters
+
+_ALL_FILTERS = [
+    filters.day,
+    filters.num,
+    filters.usd,
+    filters.pct,
+    filters.bin_range,
+    filters.rel,
+]
 
 
 class TestDay:
@@ -14,14 +25,6 @@ class TestDay:
     def test_ordinary_value(self):
         assert filters.day(20005) == "2024-10-09"
 
-    def test_none_returns_em_dash(self):
-        assert filters.day(None) == "—"
-
-    def test_non_numeric_returns_em_dash(self):
-        assert filters.day("abc") == "—"
-        assert filters.day([]) == "—"
-        assert filters.day({}) == "—"
-
 
 class TestNum:
     def test_thousands_separator(self):
@@ -30,14 +33,6 @@ class TestNum:
     def test_small_value(self):
         assert filters.num(0) == "0"
 
-    def test_none_returns_em_dash(self):
-        assert filters.num(None) == "—"
-
-    def test_non_numeric_returns_em_dash(self):
-        assert filters.num("abc") == "—"
-        assert filters.num([]) == "—"
-        assert filters.num({}) == "—"
-
 
 class TestUsd:
     def test_two_decimal_places(self):
@@ -45,14 +40,6 @@ class TestUsd:
 
     def test_zero(self):
         assert filters.usd(0) == "$0.00"
-
-    def test_none_returns_em_dash(self):
-        assert filters.usd(None) == "—"
-
-    def test_non_numeric_returns_em_dash(self):
-        assert filters.usd("abc") == "—"
-        assert filters.usd([]) == "—"
-        assert filters.usd({}) == "—"
 
 
 class TestPct:
@@ -70,14 +57,6 @@ class TestPct:
         assert filters.pct(0) == "0.0%"
         assert filters.pct(100) == "100.0%"
 
-    def test_none_returns_em_dash(self):
-        assert filters.pct(None) == "—"
-
-    def test_non_numeric_returns_em_dash(self):
-        assert filters.pct("abc") == "—"
-        assert filters.pct([]) == "—"
-        assert filters.pct({}) == "—"
-
 
 class TestBinRange:
     def test_zero(self):
@@ -88,14 +67,6 @@ class TestBinRange:
 
     def test_large_value(self):
         assert filters.bin_range(200000) == "200k–220k"
-
-    def test_none_returns_em_dash(self):
-        assert filters.bin_range(None) == "—"
-
-    def test_non_numeric_returns_em_dash(self):
-        assert filters.bin_range("abc") == "—"
-        assert filters.bin_range([]) == "—"
-        assert filters.bin_range({}) == "—"
 
 
 class TestRel:
@@ -108,10 +79,14 @@ class TestRel:
     def test_zero_does_not_raise(self):
         assert filters.rel(0) == "0 日"
 
-    def test_none_returns_em_dash(self):
-        assert filters.rel(None) == "—"
 
-    def test_non_numeric_returns_em_dash(self):
-        assert filters.rel("abc") == "—"
-        assert filters.rel([]) == "—"
-        assert filters.rel({}) == "—"
+@pytest.mark.parametrize("fn", _ALL_FILTERS, ids=lambda fn: fn.__name__)
+def test_none_returns_em_dash(fn):
+    assert fn(None) == "—"
+
+
+@pytest.mark.parametrize("fn", _ALL_FILTERS, ids=lambda fn: fn.__name__)
+def test_non_numeric_returns_em_dash(fn):
+    assert fn("abc") == "—"
+    assert fn([]) == "—"
+    assert fn({}) == "—"

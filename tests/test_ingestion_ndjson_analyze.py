@@ -5,21 +5,14 @@ import importlib
 import pytest
 
 from ccgov.ingestion import ndjson
-from ccgov.store import db
 
 _LINE = b'{"kind":"event","event_id":"e1","ts":1758400000}'
 
 
-@pytest.fixture
-def db_conn(sqlite_db_dsn):
-    """初期化済みの一時 SQLite の接続を返す。モジュールを読み直して起動直後の状態にする。"""
+@pytest.fixture(autouse=True)
+def _fresh_ndjson():
+    """モジュールを読み直して起動直後の状態にする。"""
     importlib.reload(ndjson)
-    db.init()
-    conn = db.connect()
-    try:
-        yield conn
-    finally:
-        conn.close()
 
 
 def test_first_ingest_populates_events_stats(db_conn):

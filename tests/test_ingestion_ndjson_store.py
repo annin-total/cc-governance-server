@@ -5,18 +5,6 @@ import sqlite3
 import pytest
 
 from ccgov.ingestion.ndjson import ingest
-from ccgov.store import db
-
-
-@pytest.fixture
-def db_conn(sqlite_db_dsn):
-    """契約の DDL で初期化した一時 SQLite の接続を返す。"""
-    db.init()
-    conn = db.connect()
-    try:
-        yield conn
-    finally:
-        conn.close()
 
 
 def _event_line(event_id: str) -> bytes:

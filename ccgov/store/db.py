@@ -21,6 +21,8 @@ _INDEXES = (
     ("events", ("skill_name", "day", "user_email", "event_id")),
     ("events", ("tool_name", "day", "user_email", "event_id")),
     ("events", ("day", "hook_event", "context_tokens")),
+    # /effect のコンテキスト分布が準拠者 1 人ずつ引く。無いと 200 名で 10 分を超える
+    ("events", ("hook_event", "user_email", "day", "context_tokens", "event_id")),
     ("policy_state", ("key_name", "prev_value", "user_email")),
     ("policy_state", ("user_email", "ts")),
     ("cost_daily", ("day", "user_email")),

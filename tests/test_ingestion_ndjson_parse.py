@@ -1,5 +1,7 @@
 """ndjson.parse_line / parse_lines の検査と列変換を確かめる。"""
 
+import pytest
+
 from ccgov.ingestion.ndjson import parse_line, parse_lines
 from ccgov.vendor.contract import EXTRA_COLUMNS, HOOK_FIELDS, POLICY_COLUMNS
 
@@ -93,51 +95,31 @@ def test_missing_optional_hook_fields_become_none():
     assert _events_value(values, "context_tokens") is None
 
 
-def test_missing_event_id_is_dropped():
-    """event_id が無い行は破棄する。"""
-    line = b'{"kind":"event","ts":1758400000}'
-    assert parse_line(line) is None
-
-
-def test_empty_event_id_is_dropped():
-    """event_id が空文字の行は破棄する。"""
-    line = b'{"kind":"event","event_id":"","ts":1758400000}'
-    assert parse_line(line) is None
-
-
-def test_missing_ts_is_dropped():
-    """ts が無い行は破棄する。"""
-    line = b'{"kind":"event","event_id":"e11"}'
-    assert parse_line(line) is None
-
-
-def test_null_ts_is_dropped():
-    """ts が null の行は破棄する。"""
-    line = b'{"kind":"event","event_id":"e12","ts":null}'
-    assert parse_line(line) is None
-
-
-def test_unknown_kind_is_dropped():
-    """kind が未知の値の行は破棄する。"""
-    line = b'{"kind":"foo","event_id":"e13","ts":1758400000}'
-    assert parse_line(line) is None
-
-
-def test_missing_kind_is_dropped():
-    """kind が無い行は破棄する。"""
-    line = b'{"event_id":"e14","ts":1758400000}'
-    assert parse_line(line) is None
-
-
-def test_invalid_json_is_dropped():
-    """JSON としてパースできない行は破棄する。"""
-    line = b'{"kind":"event","event_id":'
-    assert parse_line(line) is None
-
-
-def test_non_dict_json_is_dropped():
-    """dict ではない JSON（配列）は破棄する。"""
-    line = b"[1,2,3]"
+@pytest.mark.parametrize(
+    "line",
+    [
+        b'{"kind":"event","ts":1758400000}',
+        b'{"kind":"event","event_id":"","ts":1758400000}',
+        b'{"kind":"event","event_id":"e11"}',
+        b'{"kind":"event","event_id":"e12","ts":null}',
+        b'{"kind":"foo","event_id":"e13","ts":1758400000}',
+        b'{"event_id":"e14","ts":1758400000}',
+        b'{"kind":"event","event_id":',
+        b"[1,2,3]",
+    ],
+    ids=[
+        "missing_event_id",
+        "empty_event_id",
+        "missing_ts",
+        "null_ts",
+        "unknown_kind",
+        "missing_kind",
+        "invalid_json",
+        "non_dict_json",
+    ],
+)
+def test_invalid_line_is_dropped(line):
+    """必須項目の欠落・未知の kind・JSON でない行・dict でない JSON は破棄する。"""
     assert parse_line(line) is None
 
 
@@ -162,40 +144,20 @@ def test_policy_row_is_accepted_with_policy_columns():
     assert _policy_value(values, "day") == 20352
 
 
-def test_ts_non_numeric_string_is_dropped_but_sibling_row_is_stored():
-    """ts が数値化できない文字列の行は破棄し、同じリクエスト内の正常行は保存される。"""
-    good = b'{"kind":"event","event_id":"e19a","ts":1758400000}'
-    poison = b'{"kind":"event","event_id":"e19b","ts":"abc"}'
-    rows, dropped = parse_lines(good + b"\n" + poison)
-    assert dropped == 1
-    assert len(rows) == 1
-    assert rows[0][0] == "event"
-
-
-def test_ts_array_is_dropped_but_sibling_row_is_stored():
-    """ts が配列の行は破棄し、同じリクエスト内の正常行は保存される。"""
-    good = b'{"kind":"event","event_id":"e20a","ts":1758400000}'
-    poison = b'{"kind":"event","event_id":"e20b","ts":[1]}'
-    rows, dropped = parse_lines(good + b"\n" + poison)
-    assert dropped == 1
-    assert len(rows) == 1
-    assert rows[0][0] == "event"
-
-
-def test_ts_dict_is_dropped_but_sibling_row_is_stored():
-    """ts が辞書の行は破棄し、同じリクエスト内の正常行は保存される。"""
-    good = b'{"kind":"event","event_id":"e21a","ts":1758400000}'
-    poison = b'{"kind":"event","event_id":"e21b","ts":{"a":1}}'
-    rows, dropped = parse_lines(good + b"\n" + poison)
-    assert dropped == 1
-    assert len(rows) == 1
-    assert rows[0][0] == "event"
-
-
-def test_ts_40_digit_number_is_dropped_but_sibling_row_is_stored():
-    """ts が 40 桁の整数の行は破棄し、同じリクエスト内の正常行は保存される。"""
-    good = b'{"kind":"event","event_id":"e22a","ts":1758400000}'
-    poison = b'{"kind":"event","event_id":"e22b","ts":' + b"1" * 40 + b"}"
+@pytest.mark.parametrize(
+    "event_id, ts",
+    [
+        (b"e19", b'"abc"'),
+        (b"e20", b"[1]"),
+        (b"e21", b'{"a":1}'),
+        (b"e22", b"1" * 40),
+    ],
+    ids=["non_numeric_string", "array", "dict", "40_digit_number"],
+)
+def test_bad_ts_is_dropped_but_sibling_row_is_stored(event_id, ts):
+    """ts が数値化できない行は破棄し、同じリクエスト内の正常行は保存される。"""
+    good = b'{"kind":"event","event_id":"' + event_id + b'a","ts":1758400000}'
+    poison = b'{"kind":"event","event_id":"' + event_id + b'b","ts":' + ts + b"}"
     rows, dropped = parse_lines(good + b"\n" + poison)
     assert dropped == 1
     assert len(rows) == 1
