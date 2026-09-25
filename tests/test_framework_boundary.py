@@ -28,11 +28,3 @@ def test_framework_import_appears_only_in_web_package():
         if hits:
             offenders[str(path.relative_to(_SERVER_DIR))] = hits
     assert offenders == {}
-
-
-def test_csv_import_has_no_flask_import():
-    """`csv_import.py` に flask の import が無い。"""
-    hits = _framework_import_lines(
-        _SERVER_DIR / "ccgov" / "ingestion" / "csv_import.py"
-    )
-    assert hits == []
