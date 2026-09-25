@@ -70,12 +70,6 @@ def test_init_creates_seven_indexes_with_expected_columns(db_conn):
     _assert_expected_indexes(db_conn)
 
 
-def test_init_twice_does_not_raise(sqlite_db_dsn):
-    """init() 済みの状態にもう一度 init() しても例外にならない。"""
-    db.init()
-    db.init()
-
-
 def test_init_twice_keeps_seven_indexes(sqlite_db_dsn):
     """2 回目の init() でインデックスが重複して作られない。"""
     db.init()
