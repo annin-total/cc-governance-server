@@ -217,7 +217,7 @@ def test_plugin_version_distribution_unchanged_after_duplicate_injection(known_d
 
 
 def test_all_numbers_survive_full_duplication_at_once(known_db):
-    """policy_state と cost_daily の全行を複製しても、この画面の数字が一切変わらない。"""
+    """events・policy_state・cost_daily の全行を複製しても、この画面の数字が一切変わらない。"""
 
     def compute():
         return {

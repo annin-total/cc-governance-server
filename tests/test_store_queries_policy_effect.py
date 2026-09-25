@@ -104,7 +104,7 @@ def test_event_study_survives_null_cost_row(effect_db):
 
 
 def test_event_study_unchanged_after_duplicate_injection(effect_db):
-    """`policy_state` と `events` を複製しても、準拠開始日・分母・値は変化しない。
+    """`policy_state` を複製しても、準拠開始日・分母・値は変化しない。
 
     `cost_daily` は event_id を持たないため複製しない。
     """
