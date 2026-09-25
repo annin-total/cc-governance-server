@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Optional
 
 import pytest
-from conftest import ADMIN, admin_client
+from conftest import ADMIN, admin_client, env_var
 
 from ccgov.ingestion import csv_import
 from ccgov.store import db
@@ -416,16 +416,9 @@ def import_client(sqlite_db_dsn, tmp_path):
 
     import app as app_module
 
-    original_csv_dir = os.environ.get("CSV_DIR")
-    os.environ["CSV_DIR"] = str(tmp_path)
-    try:
+    with env_var("CSV_DIR", str(tmp_path)):
         importlib.reload(app_module)
         yield admin_client(app_module.app)
-    finally:
-        if original_csv_dir is None:
-            os.environ.pop("CSV_DIR", None)
-        else:
-            os.environ["CSV_DIR"] = original_csv_dir
 
 
 def test_post_import_processes_csv_dir_and_reports_files(import_client):
@@ -485,19 +478,14 @@ def test_form_action_follows_base_path(sqlite_db_dsn):
 
     import app as app_module
 
-    original_base_path = os.environ.get("BASE_PATH")
-    os.environ["BASE_PATH"] = "/gov/cc"
     try:
-        importlib.reload(app_module)
-        client = admin_client(app_module.app)
-        response = client.get("/gov/cc" + ADMIN)
-        body = response.get_data(as_text=True)
-        assert "/gov/cc" + ADMIN + "/import" in body
+        with env_var("BASE_PATH", "/gov/cc"):
+            importlib.reload(app_module)
+            client = admin_client(app_module.app)
+            response = client.get("/gov/cc" + ADMIN)
+            body = response.get_data(as_text=True)
+            assert "/gov/cc" + ADMIN + "/import" in body
     finally:
-        if original_base_path is None:
-            os.environ.pop("BASE_PATH", None)
-        else:
-            os.environ["BASE_PATH"] = original_base_path
         importlib.reload(app_module)
 
 
@@ -564,24 +552,19 @@ def test_overview_shows_error_for_failed_file(sqlite_db_dsn, tmp_path):
 
     import app as app_module
 
-    original_csv_dir = os.environ.get("CSV_DIR")
-    os.environ["CSV_DIR"] = str(tmp_path)
     try:
-        importlib.reload(app_module)
-        client = admin_client(app_module.app)
-        response = client.post(ADMIN + "/import")
-        body = response.get_data(as_text=True)
-        assert "a_good.csv" in body
-        assert "z_unrelated.csv" in body
-        unrelated_line = next(
-            line for line in body.splitlines() if "z_unrelated.csv" in line
-        )
-        assert "必須列が欠けている" in unrelated_line
+        with env_var("CSV_DIR", str(tmp_path)):
+            importlib.reload(app_module)
+            client = admin_client(app_module.app)
+            response = client.post(ADMIN + "/import")
+            body = response.get_data(as_text=True)
+            assert "a_good.csv" in body
+            assert "z_unrelated.csv" in body
+            unrelated_line = next(
+                line for line in body.splitlines() if "z_unrelated.csv" in line
+            )
+            assert "必須列が欠けている" in unrelated_line
     finally:
-        if original_csv_dir is None:
-            os.environ.pop("CSV_DIR", None)
-        else:
-            os.environ["CSV_DIR"] = original_csv_dir
         importlib.reload(app_module)
 
 

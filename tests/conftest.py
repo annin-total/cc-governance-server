@@ -5,6 +5,7 @@ import importlib
 import os
 import sys
 import tempfile
+from contextlib import contextmanager
 from pathlib import Path
 
 import pytest
@@ -32,21 +33,31 @@ def admin_client(flask_app):
     return client
 
 
+@contextmanager
+def env_var(name: str, value: str):
+    """`os.environ[name]` を直接書き換え、抜けるときに元へ戻す。
+
+    途中で `monkeypatch.undo()` を呼ぶテストがあるため、`monkeypatch.setenv` にしない。
+    """
+    original = os.environ.get(name)
+    os.environ[name] = value
+    try:
+        yield
+    finally:
+        if original is None:
+            os.environ.pop(name, None)
+        else:
+            os.environ[name] = original
+
+
 @pytest.fixture
 def sqlite_db_dsn():
     """DB_DSN を一時 SQLite ファイルに向け、テスト終了後に元へ戻す。"""
     with tempfile.TemporaryDirectory() as tmp_dir:
         db_path = Path(tmp_dir) / "test.db"
         dsn = f"sqlite:///{db_path}"
-        original = os.environ.get("DB_DSN")
-        os.environ["DB_DSN"] = dsn
-        try:
+        with env_var("DB_DSN", dsn):
             yield dsn
-        finally:
-            if original is None:
-                os.environ.pop("DB_DSN", None)
-            else:
-                os.environ["DB_DSN"] = original
 
 
 @pytest.fixture
@@ -54,16 +65,9 @@ def ingest_client(sqlite_db_dsn):
     """`DB_DSN` を一時 SQLite に向け、`INGEST_TOKEN=tok` で `app` を読み込んだテストクライアントを返す。"""
     import app as app_module
 
-    original_token = os.environ.get("INGEST_TOKEN")
-    os.environ["INGEST_TOKEN"] = "tok"
-    try:
+    with env_var("INGEST_TOKEN", "tok"):
         importlib.reload(app_module)
         yield app_module.app.test_client()
-    finally:
-        if original_token is None:
-            os.environ.pop("INGEST_TOKEN", None)
-        else:
-            os.environ["INGEST_TOKEN"] = original_token
 
 
 @pytest.fixture

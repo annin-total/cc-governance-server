@@ -1,11 +1,10 @@
 """`BASE_PATH` を剥がす WSGI ラッパの回帰テスト。設定は import 時に読まれるため reload する。"""
 
 import importlib
-import os
 import re
 
 import pytest
-from conftest import ADMIN, admin_client
+from conftest import ADMIN, admin_client, env_var
 
 
 @pytest.fixture
@@ -15,16 +14,9 @@ def app_with_base_path(sqlite_db_dsn):
     def _build(base_path: str):
         import app as app_module
 
-        original = os.environ.get("BASE_PATH")
-        os.environ["BASE_PATH"] = base_path
-        try:
+        with env_var("BASE_PATH", base_path):
             importlib.reload(app_module)
             return app_module.app
-        finally:
-            if original is None:
-                os.environ.pop("BASE_PATH", None)
-            else:
-                os.environ["BASE_PATH"] = original
 
     return _build
 

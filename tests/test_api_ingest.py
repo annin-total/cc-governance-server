@@ -5,9 +5,9 @@
 
 import importlib
 import json
-import os
 
 import pytest
+from conftest import env_var
 
 
 def _count(table: str) -> int:
@@ -110,9 +110,7 @@ def test_non_ascii_token_matching_value_is_accepted(sqlite_db_dsn):
     wire_bytes = token_value.encode("utf-8")
     wsgi_header_str = wire_bytes.decode("latin-1")  # WSGI サーバが実際に作る str
 
-    original_token = os.environ.get("INGEST_TOKEN")
-    os.environ["INGEST_TOKEN"] = token_value
-    try:
+    with env_var("INGEST_TOKEN", token_value):
         import app as app_module
 
         importlib.reload(app_module)
@@ -126,11 +124,6 @@ def test_non_ascii_token_matching_value_is_accepted(sqlite_db_dsn):
         )
         assert response.status_code == 200
         assert response.get_json() == {"stored": 2, "dropped": 0}
-    finally:
-        if original_token is None:
-            os.environ.pop("INGEST_TOKEN", None)
-        else:
-            os.environ["INGEST_TOKEN"] = original_token
 
 
 @pytest.mark.parametrize("value", [None, ""])
