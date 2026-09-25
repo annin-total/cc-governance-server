@@ -5,7 +5,6 @@ from known_data import (
     A,
     K,
     assert_invariant_under_duplication,
-    duplicate_all,
     insert_compliant_policy,
 )
 
@@ -219,31 +218,23 @@ def test_plugin_version_distribution_unchanged_after_duplicate_injection(known_d
 
 def test_all_numbers_survive_full_duplication_at_once(known_db):
     """policy_state と cost_daily の全行を複製しても、この画面の数字が一切変わらない。"""
-    before = {
-        "rate_k": queries_policy.compliance_rate(known_db, TODAY, K, "60"),
-        "rate_a": queries_policy.compliance_rate(known_db, TODAY, A, "true"),
-        "non_compliant_k": sorted(
-            queries_policy.non_compliant(known_db, TODAY, K, "60")
-        ),
-        "not_introduced": sorted(queries_policy.not_introduced(known_db, TODAY)),
-        "stale": sorted(queries_policy.stale_terminals(known_db, TODAY)),
-        "versions": sorted(
-            queries_policy.plugin_version_distribution(known_db, TODAY, REFERENCE_KEY)
-        ),
-    }
-    duplicate_all(known_db)
-    after = {
-        "rate_k": queries_policy.compliance_rate(known_db, TODAY, K, "60"),
-        "rate_a": queries_policy.compliance_rate(known_db, TODAY, A, "true"),
-        "non_compliant_k": sorted(
-            queries_policy.non_compliant(known_db, TODAY, K, "60")
-        ),
-        "not_introduced": sorted(queries_policy.not_introduced(known_db, TODAY)),
-        "stale": sorted(queries_policy.stale_terminals(known_db, TODAY)),
-        "versions": sorted(
-            queries_policy.plugin_version_distribution(known_db, TODAY, REFERENCE_KEY)
-        ),
-    }
-    assert before == after
-    assert before["rate_k"][0][2] <= 100.0
-    assert before["rate_a"][0][2] <= 100.0
+
+    def compute():
+        return {
+            "rate_k": queries_policy.compliance_rate(known_db, TODAY, K, "60"),
+            "rate_a": queries_policy.compliance_rate(known_db, TODAY, A, "true"),
+            "non_compliant_k": sorted(
+                queries_policy.non_compliant(known_db, TODAY, K, "60")
+            ),
+            "not_introduced": sorted(queries_policy.not_introduced(known_db, TODAY)),
+            "stale": sorted(queries_policy.stale_terminals(known_db, TODAY)),
+            "versions": sorted(
+                queries_policy.plugin_version_distribution(
+                    known_db, TODAY, REFERENCE_KEY
+                )
+            ),
+        }
+
+    result = assert_invariant_under_duplication(known_db, compute)
+    assert result["rate_k"][0][2] <= 100.0
+    assert result["rate_a"][0][2] <= 100.0

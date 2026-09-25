@@ -3,11 +3,7 @@
 基準日は 20005。直近 7 日は `day >= 19999`、前 7 日は `19992..19998`。
 """
 
-from known_data import (
-    TODAY,
-    assert_invariant_under_duplication,
-    duplicate_all,
-)
+from known_data import TODAY, assert_invariant_under_duplication
 
 from ccgov.store import queries_events
 
@@ -91,13 +87,11 @@ def test_reconciliation_rate_unchanged_after_duplicate_injection(known_db):
 
 def test_all_health_numbers_survive_full_duplication_at_once(known_db):
     """健全性の 1 行のすべての数字が、3 テーブル全行の複製後も変化しない。"""
-    before = {
-        "counts": queries_events.health_counts(known_db, TODAY),
-        "reconciliation": queries_events.reconciliation_rate(known_db, TODAY),
-    }
-    duplicate_all(known_db)
-    after = {
-        "counts": queries_events.health_counts(known_db, TODAY),
-        "reconciliation": queries_events.reconciliation_rate(known_db, TODAY),
-    }
-    assert before == after
+
+    def compute():
+        return {
+            "counts": queries_events.health_counts(known_db, TODAY),
+            "reconciliation": queries_events.reconciliation_rate(known_db, TODAY),
+        }
+
+    assert_invariant_under_duplication(known_db, compute)
