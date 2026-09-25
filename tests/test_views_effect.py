@@ -3,11 +3,9 @@
 import importlib
 
 from conftest import ADMIN, admin_client
-from known_data import insert_compliant_policy, insert_precompact, seed_effect_data
+from known_data import K, insert_compliant_policy, insert_precompact, seed_effect_data
 
 from ccgov.store import db, queries_policy
-
-K = "env.CLAUDE_AUTOCOMPACT_PCT_OVERRIDE"
 
 
 def test_effect_page_row_count_matches_query(sqlite_db_dsn):

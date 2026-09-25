@@ -5,10 +5,10 @@ from ccgov.vendor import contract
 
 TODAY = 20005
 
-POLICY_KEY_AUTOCOMPACT = "env.CLAUDE_AUTOCOMPACT_PCT_OVERRIDE"
-POLICY_KEY_AUTOUPDATE = (
-    "extraKnownMarketplaces.cc-marketplace-governance-bmsd.autoUpdate"
-)
+# 検証に使う 2 項目の key_name。K は施策項目（自動圧縮のしきい値）、A は自動更新
+# K は ccgov.constants.REFERENCE_KEY と同値だが参照しない。既知データが定数に追従すると、定数の書き換えを一部の検査が拾わなくなる
+K = "env.CLAUDE_AUTOCOMPACT_PCT_OVERRIDE"
+A = "extraKnownMarketplaces.cc-marketplace-governance-bmsd.autoUpdate"
 
 # events: host は user_email に 1 対 1 で対応させる
 _HOST_BY_USER = {
@@ -52,24 +52,24 @@ _POLICY_FIELDS = (
     "key_name", "value", "prev_value", "apply_result", "plugin_version",
 )
 _POLICY_ROWS = (
-    ("p1", 1000, 20000, "u1", "h1", POLICY_KEY_AUTOCOMPACT, "60", None, "applied", "1.4.0"),
-    ("p2", 2000, 20001, "u1", "h1", POLICY_KEY_AUTOCOMPACT, "60", "60", "already_ok", "1.4.0"),
-    ("p3", 3000, 20002, "u1", "h1", POLICY_KEY_AUTOCOMPACT, "60", "60", "already_ok", "1.4.0"),
-    ("p4", 1500, 20000, "u2", "h2", POLICY_KEY_AUTOCOMPACT, "60", "80", "applied", "1.3.0"),
-    ("p5", 2500, 20001, "u2", "h2", POLICY_KEY_AUTOCOMPACT, "60", "80", "applied", "1.3.0"),
-    ("p6", 1200, 20000, "u3", "h3", POLICY_KEY_AUTOCOMPACT, "60", None, "applied", "1.4.0"),
-    ("p7", 4000, 20003, "u3", "h3", POLICY_KEY_AUTOCOMPACT, "60", "60", "already_ok", "1.4.0"),
-    ("p8", 5000, 20004, "u5", "h5", POLICY_KEY_AUTOCOMPACT, "60", "80", "write_failed", "1.4.0"),
-    ("p9", 1100, 20000, "u5", "h5", POLICY_KEY_AUTOCOMPACT, "60", "60", "already_ok", "1.4.0"),
-    ("p10", 4200, 20003, "u3", "h3b", POLICY_KEY_AUTOCOMPACT, "60", "80", "applied", "1.3.0"),
-    ("p11", 900, 19990, "u7", "h7", POLICY_KEY_AUTOCOMPACT, "60", "60", "already_ok", "1.4.0"),
-    ("p12", 700, 19970, "u11", "h11", POLICY_KEY_AUTOCOMPACT, "60", "60", "already_ok", "1.4.0"),
-    ("p13", 5100, 20004, "u10", "h10", POLICY_KEY_AUTOCOMPACT, "60", "60", "already_ok", "1.4.0"),
-    ("p14", 3100, 20002, "u1", "h1", POLICY_KEY_AUTOUPDATE, "true", "true", "already_ok", "1.4.0"),
-    ("p15", 1600, 20000, "u2", "h2", POLICY_KEY_AUTOUPDATE, "true", "true", "already_ok", "1.3.0"),
-    ("p16", 4100, 20003, "u3", "h3", POLICY_KEY_AUTOUPDATE, "true", "true", "already_ok", "1.4.0"),
-    ("p17", 4300, 20003, "u3", "h3b", POLICY_KEY_AUTOUPDATE, "true", "true", "already_ok", "1.3.0"),
-    ("p18", 5050, 20004, "u5", "h5", POLICY_KEY_AUTOUPDATE, "true", "true", "already_ok", "1.4.0"),
+    ("p1", 1000, 20000, "u1", "h1", K, "60", None, "applied", "1.4.0"),
+    ("p2", 2000, 20001, "u1", "h1", K, "60", "60", "already_ok", "1.4.0"),
+    ("p3", 3000, 20002, "u1", "h1", K, "60", "60", "already_ok", "1.4.0"),
+    ("p4", 1500, 20000, "u2", "h2", K, "60", "80", "applied", "1.3.0"),
+    ("p5", 2500, 20001, "u2", "h2", K, "60", "80", "applied", "1.3.0"),
+    ("p6", 1200, 20000, "u3", "h3", K, "60", None, "applied", "1.4.0"),
+    ("p7", 4000, 20003, "u3", "h3", K, "60", "60", "already_ok", "1.4.0"),
+    ("p8", 5000, 20004, "u5", "h5", K, "60", "80", "write_failed", "1.4.0"),
+    ("p9", 1100, 20000, "u5", "h5", K, "60", "60", "already_ok", "1.4.0"),
+    ("p10", 4200, 20003, "u3", "h3b", K, "60", "80", "applied", "1.3.0"),
+    ("p11", 900, 19990, "u7", "h7", K, "60", "60", "already_ok", "1.4.0"),
+    ("p12", 700, 19970, "u11", "h11", K, "60", "60", "already_ok", "1.4.0"),
+    ("p13", 5100, 20004, "u10", "h10", K, "60", "60", "already_ok", "1.4.0"),
+    ("p14", 3100, 20002, "u1", "h1", A, "true", "true", "already_ok", "1.4.0"),
+    ("p15", 1600, 20000, "u2", "h2", A, "true", "true", "already_ok", "1.3.0"),
+    ("p16", 4100, 20003, "u3", "h3", A, "true", "true", "already_ok", "1.4.0"),
+    ("p17", 4300, 20003, "u3", "h3b", A, "true", "true", "already_ok", "1.3.0"),
+    ("p18", 5050, 20004, "u5", "h5", A, "true", "true", "already_ok", "1.4.0"),
 )
 # fmt: on
 
@@ -139,7 +139,7 @@ def insert_compliant_policy(
         "day": day,
         "user_email": user_email,
         "host": host,
-        "key_name": POLICY_KEY_AUTOCOMPACT,
+        "key_name": K,
         "value": "60",
         "prev_value": "60",
         "apply_result": "already_ok",

@@ -2,6 +2,7 @@
 
 import pytest
 from known_data import (
+    K,
     duplicate_events,
     duplicate_policy_state,
     insert_compliant_policy,
@@ -11,8 +12,6 @@ from known_data import (
 )
 
 from ccgov.store import db, queries_policy
-
-K = "env.CLAUDE_AUTOCOMPACT_PCT_OVERRIDE"
 
 
 @pytest.fixture

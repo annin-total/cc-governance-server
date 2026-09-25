@@ -2,6 +2,8 @@
 
 from known_data import (
     TODAY,
+    A,
+    K,
     assert_invariant_under_duplication,
     duplicate_all,
     insert_compliant_policy,
@@ -9,9 +11,6 @@ from known_data import (
 
 from ccgov.constants import REFERENCE_KEY
 from ccgov.store import queries_policy
-
-K = "env.CLAUDE_AUTOCOMPACT_PCT_OVERRIDE"
-A = "extraKnownMarketplaces.cc-marketplace-governance-bmsd.autoUpdate"
 
 
 def test_latest_values_returns_one_row_per_terminal(known_db):
