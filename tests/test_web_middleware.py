@@ -73,8 +73,6 @@ def test_stylesheet_is_served_under_base_path(app_with_base_path, base_path):
 
 def test_form_action_follows_base_path(sqlite_db_dsn):
     """`BASE_PATH` を与えた状態で概況画面を描画すると、フォームの action が BASE_PATH を含む。"""
-    import importlib
-
     import app as app_module
 
     try:

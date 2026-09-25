@@ -1,5 +1,7 @@
 """管理画面の `/import` と、取込結果の画面への表示のテスト。"""
 
+import importlib
+
 import pytest
 from conftest import ADMIN, admin_client, copy_fixture, count_and_sum, env_var
 
@@ -9,8 +11,6 @@ from ccgov.store import db
 @pytest.fixture
 def import_client(sqlite_db_dsn, tmp_path):
     """`CSV_DIR` を fixture 2 本を置いた一時ディレクトリに向け、`app` を読み込んだテストクライアントを返す。"""
-    import importlib
-
     copy_fixture(tmp_path, "daily_a.csv")
     copy_fixture(tmp_path, "daily_b.csv")
 
@@ -53,8 +53,6 @@ def test_post_import_without_csv_dir_imports_nothing(
     sqlite_db_dsn, tmp_path, monkeypatch
 ):
     """`CSV_DIR` が未設定なら、起動ディレクトリの CSV を読まず、未設定であることを画面に出す。"""
-    import importlib
-
     import app as app_module
 
     copy_fixture(tmp_path, "daily_a.csv")
@@ -74,8 +72,6 @@ def test_post_import_without_csv_dir_imports_nothing(
 
 def test_overview_shows_error_for_failed_file(sqlite_db_dsn, tmp_path):
     """失敗したファイルの `error` が画面（テンプレート）に表示される。"""
-    import importlib
-
     copy_fixture(tmp_path, "daily_a.csv", "a_good.csv")
     (tmp_path / "z_unrelated.csv").write_bytes(
         b"Workspace ID,User Name\r\nworkspace-01,someone\r\n"

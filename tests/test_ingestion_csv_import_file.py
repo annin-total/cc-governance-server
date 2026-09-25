@@ -22,7 +22,7 @@ _DAY_20635 = 20635  # 2026-07-01
     ],
 )
 def test_idempotent_second_import_keeps_totals(db_conn, first, second, expected):
-    """同じ・包含される・Region 付きのファイルの後に取り込み直しても COUNT(*)・SUM(cost) が変わらない。"""
+    """1 本目の後に daily_a.csv を取り込んでも COUNT(*)・SUM(cost) が変わらない。"""
     csv_import.import_file(str(FIXTURES / first), db_conn)
     assert count_and_sum(db_conn) == expected
 

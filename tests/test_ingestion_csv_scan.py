@@ -62,7 +62,7 @@ def test_scan_repeated_call_same_result(db_conn, tmp_path):
     ids=["forward", "reversed"],
 )
 def test_scan_three_files_order_independent(db_conn, tmp_path, names):
-    """daily_a / daily_b / weekly の 3 本を作成順によらず置いて押すと COUNT=6・SUM=21.0・3 件、day=20635 は 6.0。"""
+    """3 本を置く順によらず COUNT=6・SUM=21.0・3 件、day=20635 は 6.0 になる。"""
     for name in names:
         copy_fixture(tmp_path, name)
 

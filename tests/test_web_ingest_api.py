@@ -71,8 +71,6 @@ def test_non_ascii_token_matching_value_is_accepted(sqlite_db_dsn):
 
     `test_client()` の `headers=` は UTF-8 を latin-1 で復号する WSGI の符号化を経ないため、environ を直接組む。
     """
-    import importlib
-
     token_value = "トークン"
     wire_bytes = token_value.encode("utf-8")
     wsgi_header_str = wire_bytes.decode("latin-1")  # WSGI サーバが実際に作る str
