@@ -171,9 +171,7 @@ def event_study(conn, key_name: str, expected_value: str, provider: str) -> list
             total_cost += cost
             total_tokens += tokens
         n = len(population)
-        rows.append(
-            (relative_day, n, round(total_cost / n, 1), round(total_tokens / n))
-        )
+        rows.append((relative_day, n, total_cost / n, round(total_tokens / n)))
     return rows
 
 

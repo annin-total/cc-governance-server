@@ -103,6 +103,18 @@ def test_event_study_survives_null_cost_row(effect_db):
     assert rows[3] == (1, 0.0, 0)
 
 
+def test_event_study_keeps_cost_below_one_decimal(effect_db):
+    """1 人あたりコストを集計で丸めない（$0.1813 が表示で $0.20 にならない）。丸めは表示に任せる。"""
+    insert_cost_daily(
+        effect_db, day=20013, user_email="u1", provider="aws-bedrock", cost=0.1813
+    )
+    rows = {
+        r[0]: r[1:]
+        for r in queries_policy.event_study(effect_db, K, "60", "aws-bedrock")
+    }
+    assert rows[3][:2] == (1, pytest.approx(0.1813))
+
+
 def test_event_study_tokens_include_cache_read_and_write(effect_db):
     """処理トークンは入力・キャッシュ読込・キャッシュ書込の和。NULL の列は 0 として足す。"""
     common = {"day": 20013, "user_email": "u1", "provider": "aws-bedrock", "cost": 1.0}
