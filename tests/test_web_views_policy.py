@@ -58,7 +58,7 @@ def test_latest_values_row_count_matches_query(today_client, known_db):
     assert len(rows) == len(expected) == 7
 
 
-def test_未設定のprev_valueがNoneと表示されない(known_db, today_client):
+def test_null_prev_value_is_not_shown_as_none(known_db, today_client):
     """`prev_value` が NULL の行が「None」ではなく「未設定」と表示される。初回適用時は全端末が当たる。
 
     共有フィクスチャにはこの状態の行が無いので、このテストが自分で 1 行足す。
@@ -91,7 +91,7 @@ def test_未設定のprev_valueがNoneと表示されない(known_db, today_clie
     assert "未設定" in html
 
 
-def test_ADD_ONCEの接頭辞付き行があっても準拠率の対象に入らない(known_db, today_client):
+def test_add_once_prefixed_rows_do_not_enter_compliance_rate(known_db, today_client):
     """`add:` / `once:` 接頭辞の行があっても `/policy` は描画され、準拠率の項目数は変わらない。
 
     `policy.SET` は現状すべてスカラ値なので、対象数は `len(policy.SET)` と一致する。
@@ -146,7 +146,7 @@ def test_ADD_ONCEの接頭辞付き行があっても準拠率の対象に入ら
     assert len(rows) == len(policy_module.SET)
 
 
-def test_SETのdictとNoneは準拠率の対象から除外される(today_client, monkeypatch):
+def test_set_dict_and_none_are_excluded_from_compliance_rate(today_client, monkeypatch):
     """`policy.SET` の値が dict や None の項目は、準拠率の表に出ない。
 
     このフィルタを外すと、項目数が 3 から dict・None を数えた 5 に増えて落ちる。

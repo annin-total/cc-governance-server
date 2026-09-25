@@ -33,7 +33,7 @@ def test_subagent_ratio_shown(today_client):
     assert "15.4%" in html
 
 
-def test_command_sourceがNoneと表示されない(known_db, today_client):
+def test_null_command_source_is_not_shown_as_none(known_db, today_client):
     """`command_source` が NULL のコマンドが「None」ではなく「—」と表示される。
 
     共有フィクスチャには `command_source` が NULL の行が無いので、このテストが自分で足す。
