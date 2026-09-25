@@ -98,13 +98,14 @@ def test_scan_ignores_non_csv_files(db_conn, tmp_path):
     assert count_and_sum(db_conn) == (3, 6.0)
 
 
-def test_scan_missing_directory_returns_empty(db_conn, tmp_path):
-    """ディレクトリが存在しなければ 0 件を返し、例外を投げない。"""
+def test_scan_missing_directory_returns_error(db_conn, tmp_path):
+    """ディレクトリが存在しなければ、例外を投げず、0 件成功ではなくエラーを 1 件返す。"""
     missing_dir = str(tmp_path / "does-not-exist")
 
     results = csv_import.import_all(missing_dir, db_conn)
 
-    assert results == []
+    assert len(results) == 1
+    assert "does-not-exist" in results[0]["error"]
     assert count_and_sum(db_conn) == (0, None)
 
 

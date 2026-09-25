@@ -152,3 +152,17 @@ def test_day_discards_repeated_header_row(tmp_path):
     rows, dropped = csv_import.parse_file(path)
     assert dropped == 1
     assert rows == []
+
+
+def test_user_email_is_stripped_and_lowercased(tmp_path):
+    """`User Email` は前後の空白を除いて小文字にそろえる（端末側の表記に合わせる）。"""
+    row = (
+        "2026-07-01,workspace-01,aws-bedrock,M,user-0001,"
+        " User0001@Example.COM ,user0001,1.0,USD,100,200,0,0,0,100"
+    )
+    path = tmp_path / "upper.csv"
+    path.write_bytes((CSV_HEADER + "\r\n" + row + "\r\n").encode("utf-8"))
+
+    rows, dropped = csv_import.parse_file(str(path))
+    assert dropped == 0
+    assert rows[0]["user_email"] == "user0001@example.com"

@@ -238,3 +238,16 @@ def test_all_numbers_survive_full_duplication_at_once(known_db):
     result = assert_invariant_under_duplication(known_db, compute)
     assert result["rate_k"][0][2] <= 100.0
     assert result["rate_a"][0][2] <= 100.0
+
+
+def test_compliance_rate_is_none_without_cost_users(db_conn):
+    """`cost_daily` に誰も居ないとき、準拠率は None。"""
+    assert queries_policy.compliance_rate(db_conn, TODAY, K, "60") == [(0, 0, None)]
+
+
+def test_cost_window_ends_at_last_csv_day(known_db):
+    """CSV の取込が 30 日以上空いても、`cost_daily` 側の窓は最終日で終わる（`policy_state` 側は今日）。"""
+    later = TODAY + 40
+    assert queries_policy.compliance_rate(known_db, later, K, "60") == [(0, 5, 0.0)]
+    rows = queries_policy.not_introduced(known_db, later)
+    assert [r[0] for r in rows] == ["u1", "u2", "u3", "u4", "u5"]

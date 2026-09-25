@@ -28,7 +28,7 @@ def test_compliance_start_dates(effect_db):
 
 
 def test_event_study_expected_values(effect_db):
-    """期待値の表（相対日ごとの分母・1 人あたりコスト・入力トークン）と一致する。"""
+    """期待値の表（相対日ごとの分母・1 人あたりコスト・処理トークン）と一致する。"""
     rows = {
         r[0]: (r[1], r[2], r[3])
         for r in queries_policy.event_study(effect_db, K, "60", "aws-bedrock")
@@ -101,6 +101,42 @@ def test_event_study_survives_null_cost_row(effect_db):
         for r in queries_policy.event_study(effect_db, K, "60", "aws-bedrock")
     }
     assert rows[3] == (1, 0.0, 0)
+
+
+def test_event_study_keeps_cost_below_one_decimal(effect_db):
+    """1 人あたりコストを集計で丸めない。"""
+    insert_cost_daily(
+        effect_db, day=20013, user_email="u1", provider="aws-bedrock", cost=0.1813
+    )
+    rows = {
+        r[0]: r[1:]
+        for r in queries_policy.event_study(effect_db, K, "60", "aws-bedrock")
+    }
+    assert rows[3][:2] == (1, pytest.approx(0.1813))
+
+
+def test_event_study_tokens_include_cache_read_and_write(effect_db):
+    """処理トークンは入力・キャッシュ読込・書込の和。NULL の列は 0 とする。"""
+    common = {"day": 20013, "user_email": "u1", "provider": "aws-bedrock", "cost": 1.0}
+    insert_cost_daily(
+        effect_db,
+        **common,
+        input_tokens=10,
+        cache_read_tokens=200,
+        cache_write_tokens=3000,
+    )
+    insert_cost_daily(
+        effect_db,
+        **common,
+        input_tokens=None,
+        cache_read_tokens=5,
+        cache_write_tokens=None,
+    )
+    rows = {
+        r[0]: r[1:]
+        for r in queries_policy.event_study(effect_db, K, "60", "aws-bedrock")
+    }
+    assert rows[3] == (1, 2.0, 3215)
 
 
 def test_event_study_unchanged_after_duplicate_injection(effect_db):

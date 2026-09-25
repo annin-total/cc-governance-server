@@ -1,10 +1,23 @@
 """`/` `/assets` 画面の集計クエリ。件数・人数は再送の重複に備えて常に DISTINCT で数える。"""
 
+from typing import Optional
+
 from ccgov.constants import RECENT_DAYS
 from ccgov.store import db
 
-_HEALTH_NULL_COLUMNS = ("tool_name", "skill_name", "context_tokens", "command_source")
+# 列 -> NULL 率の分母に入れるイベント。全イベントを分母にすると平常時から高止まりする
+_HEALTH_NULL_SCOPES = {
+    "tool_name": "hook_event IN ('PostToolUse', 'PostToolUseFailure')",
+    "skill_name": "tool_name = 'Skill'",
+    "context_tokens": "hook_event IN ('PreCompact', 'Stop')",
+    "command_source": "hook_event = 'UserPromptExpansion'",
+}
 _DISTRIBUTION_COLUMNS = ("permission_mode", "effort_level", "source")
+
+
+def _rate(numerator: int, denominator: int) -> Optional[float]:
+    """百分率を小数 1 桁で返す。分母が 0 なら None（0.0% と出すと良好に見える）。"""
+    return round(numerator / denominator * 100, 1) if denominator else None
 
 
 def _recent_window(today: int) -> tuple:
@@ -87,8 +100,7 @@ def subagent_ratio(conn, today: int) -> list:
         (recent_start, recent_end),
     )
     denominator, numerator = cur.fetchone()
-    rate = round(numerator / denominator * 100, 1) if denominator else 0.0
-    return [(numerator, denominator, rate)]
+    return [(numerator, denominator, _rate(numerator, denominator))]
 
 
 def daily_cost(conn) -> list:
@@ -136,29 +148,30 @@ def distribution(conn, today: int, column: str) -> list:
 
 
 def _health_window_stats(conn, start: int, end: int) -> dict:
-    """1 つの窓のイベント件数・送信端末数・4 列の NULL 率を返す。"""
-    null_case_sql = ", ".join(
-        f"COUNT(DISTINCT CASE WHEN {col} IS NULL THEN event_id END)"
-        for col in _HEALTH_NULL_COLUMNS
+    """1 つの窓のイベント件数・送信者数・4 列の NULL 率を返す。分母が 0 の列の率は None。"""
+    scope_sql = ", ".join(
+        f"COUNT(DISTINCT CASE WHEN {scope} THEN event_id END),"
+        f" COUNT(DISTINCT CASE WHEN {scope} AND {col} IS NULL THEN event_id END)"
+        for col, scope in _HEALTH_NULL_SCOPES.items()
     )
     cur = conn.cursor()
     cur.execute(
         db.q(
-            f"SELECT COUNT(DISTINCT event_id), COUNT(DISTINCT user_email), {null_case_sql}"
+            f"SELECT COUNT(DISTINCT event_id), COUNT(DISTINCT user_email), {scope_sql}"
             f" FROM events WHERE day BETWEEN ? AND ?"
         ),
         (start, end),
     )
-    events, terminals, *null_counts = cur.fetchone()
+    events, terminals, *counts = cur.fetchone()
     null_rates = {
-        col: round(count / events * 100, 1) if events else 0.0
-        for col, count in zip(_HEALTH_NULL_COLUMNS, null_counts)
+        col: _rate(counts[2 * i + 1], counts[2 * i])
+        for i, col in enumerate(_HEALTH_NULL_SCOPES)
     }
     return {"events": events, "terminals": terminals, "null_rates": null_rates}
 
 
 def health_counts(conn, today: int) -> dict:
-    """直近／前 7 日のイベント件数・送信端末数・NULL 率を返す。"""
+    """直近／前 7 日のイベント件数・送信者数・NULL 率を返す。"""
     recent_start, recent_end = _recent_window(today)
     prev_start, prev_end = _previous_window(today)
     return {
@@ -167,9 +180,23 @@ def health_counts(conn, today: int) -> dict:
     }
 
 
+def cost_window_end(conn, today: int) -> Optional[int]:
+    """`cost_daily` を数える窓の終端。`today` と CSV の最終日の早いほう（空なら None）。
+
+    CSV は 1〜2 週ごとに取り込むため、今日で終えると CSV の無い日で窓が薄まる。
+    """
+    cur = conn.cursor()
+    cur.execute(db.q("SELECT MAX(day) FROM cost_daily"))
+    (last_day,) = cur.fetchone()
+    return None if last_day is None else min(today, last_day)
+
+
 def reconciliation_rate(conn, today: int) -> list:
-    """直近 7 日に `events` を送った利用者のうち、同期間の `cost_daily` にも居る割合。人数で測る。"""
-    recent_start, recent_end = _recent_window(today)
+    """7 日間に `events` を送った利用者のうち、同期間の `cost_daily` にも居る割合。人数で測る。"""
+    end = cost_window_end(conn, today)
+    if end is None:
+        return [(0, 0, None)]
+    recent_start, recent_end = _recent_window(end)
     cur = conn.cursor()
     cur.execute(
         db.q(
@@ -184,5 +211,4 @@ def reconciliation_rate(conn, today: int) -> list:
         (recent_start, recent_end, recent_start, recent_end, recent_start, recent_end),
     )
     denominator, numerator = cur.fetchone()
-    rate = round(numerator / denominator * 100, 1) if denominator else 0.0
-    return [(numerator, denominator, rate)]
+    return [(numerator, denominator, _rate(numerator, denominator))]

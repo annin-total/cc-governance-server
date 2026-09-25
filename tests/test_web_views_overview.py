@@ -1,8 +1,9 @@
 """`/` 概況画面のテストクライアント検証。基準日は `today_client` が固定する。"""
 
+import importlib
 import re
 
-from conftest import ADMIN, rows_in_table, table_body
+from conftest import ADMIN, admin_client, rows_in_table, table_body
 
 
 def _tile(html: str, label: str) -> str:
@@ -21,12 +22,12 @@ def test_overview_page_returns_200(today_client):
 
 
 def test_health_line_shows_event_and_terminal_counts(today_client):
-    """健全性のタイルに、イベント数・送信端末数の直近7日の値が読める。"""
+    """健全性のタイルに、イベント数・送信者数の直近7日の値が読める。"""
     html = today_client.get(ADMIN + "/").get_data(as_text=True)
     events_tile = _tile(html, "イベント")
     assert "<b>13</b>" in events_tile
 
-    terminals_tile = _tile(html, "送信端末")
+    terminals_tile = _tile(html, "送信者")
     assert "<b>4</b>" in terminals_tile
 
 
@@ -66,3 +67,17 @@ def test_permission_mode_distribution_row_count(today_client):
     html = today_client.get(ADMIN + "/").get_data(as_text=True)
     rows = rows_in_table(html, "permission-mode-distribution")
     assert len(rows) == 3
+
+
+def test_empty_db_shows_dash_without_badge(db_conn):
+    """分母 0 の率は「—」で出し、バッジを付けない。"""
+    import app as app_module
+
+    importlib.reload(app_module)
+    client = admin_client(app_module.app)
+    html = client.get(ADMIN + "/").get_data(as_text=True)
+    body = table_body(html, "null-rates")
+    assert "—" in body
+    assert 'class="pill' not in body
+    for path in ("/policy", "/assets"):
+        assert client.get(ADMIN + path).status_code == 200
