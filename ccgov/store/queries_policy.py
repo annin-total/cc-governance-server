@@ -70,10 +70,7 @@ def non_compliant(conn, today: int, key_name: str, expected_value: str) -> list:
 
 
 def not_introduced(conn, today: int) -> list:
-    """`POLICY_DAYS` 日の窓で `cost_daily` に居て、直近 `POLICY_DAYS` 日の `policy_state` に行が無い利用者。
-
-    `cost_daily` 側の窓だけ終端を `queries_events.cost_window_end` にする。
-    """
+    """`POLICY_DAYS` 日の窓で `cost_daily` に居て、直近 `POLICY_DAYS` 日の `policy_state` に行が無い利用者。"""
     cur = conn.cursor()
     cur.execute(
         db.q(

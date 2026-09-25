@@ -5,7 +5,7 @@ from typing import Optional
 from ccgov.constants import RECENT_DAYS
 from ccgov.store import db
 
-# 列 -> その列が来るはずのイベントの条件。NULL 率の分母をここで絞る（全イベントを分母にすると平常時から高止まりする）
+# 列 -> NULL 率の分母に入れるイベント。全イベントを分母にすると平常時から高止まりする
 _HEALTH_NULL_SCOPES = {
     "tool_name": "hook_event IN ('PostToolUse', 'PostToolUseFailure')",
     "skill_name": "tool_name = 'Skill'",
@@ -16,7 +16,7 @@ _DISTRIBUTION_COLUMNS = ("permission_mode", "effort_level", "source")
 
 
 def _rate(numerator: int, denominator: int) -> Optional[float]:
-    """百分率を小数 1 桁で返す。分母が 0 なら None（0.0% と表示して良好に見せない）。"""
+    """百分率を小数 1 桁で返す。分母が 0 なら None（0.0% と出すと良好に見える）。"""
     return round(numerator / denominator * 100, 1) if denominator else None
 
 
@@ -181,9 +181,9 @@ def health_counts(conn, today: int) -> dict:
 
 
 def cost_window_end(conn, today: int) -> Optional[int]:
-    """`cost_daily` を数える窓の終端。`today` と `cost_daily` の最終日の早いほうで、空なら None。
+    """`cost_daily` を数える窓の終端。`today` と CSV の最終日の早いほう（空なら None）。
 
-    CSV は 1〜2 週ごとに取り込むため、今日を終端にすると CSV の無い日で窓が薄まる。
+    CSV は 1〜2 週ごとに取り込むため、今日で終えると CSV の無い日で窓が薄まる。
     """
     cur = conn.cursor()
     cur.execute(db.q("SELECT MAX(day) FROM cost_daily"))
@@ -192,10 +192,7 @@ def cost_window_end(conn, today: int) -> Optional[int]:
 
 
 def reconciliation_rate(conn, today: int) -> list:
-    """7 日間に `events` を送った利用者のうち、同期間の `cost_daily` にも居る割合。人数で測る。
-
-    窓の終端は `cost_window_end`。`cost_daily` が空なら率は None。
-    """
+    """7 日間に `events` を送った利用者のうち、同期間の `cost_daily` にも居る割合。人数で測る。"""
     end = cost_window_end(conn, today)
     if end is None:
         return [(0, 0, None)]
