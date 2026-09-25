@@ -148,7 +148,7 @@ def distribution(conn, today: int, column: str) -> list:
 
 
 def _health_window_stats(conn, start: int, end: int) -> dict:
-    """1 つの窓のイベント件数・送信端末数・4 列の NULL 率を返す。分母が 0 の列の率は None。"""
+    """1 つの窓のイベント件数・送信者数・4 列の NULL 率を返す。分母が 0 の列の率は None。"""
     scope_sql = ", ".join(
         f"COUNT(DISTINCT CASE WHEN {scope} THEN event_id END),"
         f" COUNT(DISTINCT CASE WHEN {scope} AND {col} IS NULL THEN event_id END)"
@@ -171,7 +171,7 @@ def _health_window_stats(conn, start: int, end: int) -> dict:
 
 
 def health_counts(conn, today: int) -> dict:
-    """直近／前 7 日のイベント件数・送信端末数・NULL 率を返す。"""
+    """直近／前 7 日のイベント件数・送信者数・NULL 率を返す。"""
     recent_start, recent_end = _recent_window(today)
     prev_start, prev_end = _previous_window(today)
     return {
