@@ -1,10 +1,6 @@
 """`POST /ingest` から保存までの往復テスト。応答ではなくテーブルの中身を直接読む。"""
 
-import importlib
 import json
-import os
-
-import pytest
 
 _LINES = (
     {
@@ -41,23 +37,6 @@ _LINES = (
 )
 
 _BODY = "\n".join(json.dumps(line) for line in _LINES)
-
-
-@pytest.fixture
-def ingest_client(sqlite_db_dsn):
-    """`DB_DSN` を一時 SQLite に向け、`INGEST_TOKEN=tok` で `app` を読み込んだテストクライアントを返す。"""
-    import app as app_module
-
-    original_token = os.environ.get("INGEST_TOKEN")
-    os.environ["INGEST_TOKEN"] = "tok"
-    try:
-        importlib.reload(app_module)
-        yield app_module.app.test_client()
-    finally:
-        if original_token is None:
-            os.environ.pop("INGEST_TOKEN", None)
-        else:
-            os.environ["INGEST_TOKEN"] = original_token
 
 
 def _post(client):

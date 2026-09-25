@@ -10,23 +10,6 @@ import os
 import pytest
 
 
-@pytest.fixture
-def ingest_client(sqlite_db_dsn):
-    """`DB_DSN` を一時 SQLite に向け、`INGEST_TOKEN=tok` で `app` を読み込んだテストクライアントを返す。"""
-    import app as app_module
-
-    original_token = os.environ.get("INGEST_TOKEN")
-    os.environ["INGEST_TOKEN"] = "tok"
-    try:
-        importlib.reload(app_module)
-        yield app_module.app.test_client()
-    finally:
-        if original_token is None:
-            os.environ.pop("INGEST_TOKEN", None)
-        else:
-            os.environ["INGEST_TOKEN"] = original_token
-
-
 def _count(table: str) -> int:
     """一時 DB のテーブルの行数を返す。"""
     from ccgov.store import db
