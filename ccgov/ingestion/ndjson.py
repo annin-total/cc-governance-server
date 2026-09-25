@@ -1,7 +1,7 @@
 """`/ingest` の受信処理。生のバイト列と DB 接続だけを扱う。"""
 
 import json
-from time import monotonic, time
+from time import monotonic
 from typing import Optional
 
 from ccgov.store import db
@@ -18,9 +18,6 @@ _KINDS = ("event", "policy")
 # 受信のたびの ANALYZE は重いため、プロセス内で前回からこの秒数が経つまで呼ばない
 ANALYZE_INTERVAL_SECONDS = 3600
 _last_analyzed_at: Optional[float] = None
-
-# 時計が大きく進んだ端末の行は ts が最大のまま残り、端末ごとの最新行を固定し続けるため捨てる
-MAX_FUTURE_SECONDS = 86400
 
 _EVENTS_COLUMNS = tuple(EXTRA_COLUMNS) + tuple(
     (name, type_) for name, _, type_ in HOOK_FIELDS
@@ -58,7 +55,7 @@ def parse_line(line: bytes) -> Optional[tuple]:
     if not obj.get("event_id"):
         return None
     ts = coerce(obj.get("ts"), "INTEGER")
-    if ts is None or ts > time() + MAX_FUTURE_SECONDS:
+    if ts is None:
         return None
     _, columns = _TABLE_COLUMNS[kind]
     return kind, _row_values(obj, columns, ts)
