@@ -129,6 +129,41 @@ def insert_cost_daily(conn, **overrides) -> None:
     _insert(conn, "cost_daily", _cost_columns(), [overrides])
 
 
+def insert_compliant_policy(
+    conn, event_id: str, day: int, user_email: str, host: str, **overrides
+) -> None:
+    """K を "60" に準拠済みの `policy_state` を 1 行投入する。`ts` の既定は `day * 86400`。"""
+    row = {
+        "event_id": event_id,
+        "ts": day * 86400,
+        "day": day,
+        "user_email": user_email,
+        "host": host,
+        "key_name": POLICY_KEY_AUTOCOMPACT,
+        "value": "60",
+        "prev_value": "60",
+        "apply_result": "already_ok",
+        "plugin_version": "1.4.0",
+    }
+    insert_policy_state(conn, **{**row, **overrides})
+
+
+def insert_precompact(conn, event_id: str, day: int, context_tokens: int) -> None:
+    """u1 / h1 / s1 の PreCompact を 1 行投入する。"""
+    insert_event(
+        conn,
+        event_id=event_id,
+        ts=day * 86400,
+        day=day,
+        user_email="u1",
+        host="h1",
+        hook_event="PreCompact",
+        session_id="s1",
+        context_tokens=context_tokens,
+        permission_mode="default",
+    )
+
+
 def _duplicate_table(conn, table: str, columns: tuple) -> None:
     """`table` の全行を `event_id` を含めて同一のまま複製する（送信のリトライで起きる重複の再現）。"""
     cur = conn.cursor()
@@ -186,3 +221,42 @@ def seed_known_data(conn) -> None:
         insert_policy_state(conn, **dict(zip(_POLICY_FIELDS, row)))
     for row in _COST_ROWS:
         insert_cost_daily(conn, **dict(zip(_COST_FIELDS, row)))
+
+
+# `/effect` 専用。(event_id, day, user_email, prev_value) と (day, user_email, provider, cost)
+_EFFECT_POLICY_ROWS = (
+    ("q1", 20010, "u1", "60"),
+    ("q2", 20012, "u1", "60"),
+    ("q3", 20020, "u2", "60"),
+    ("q4", 20015, "u3", "80"),
+)
+_EFFECT_COST_ROWS = (
+    (20007, "u1", "aws-bedrock", 6.0),
+    (20009, "u1", "aws-bedrock", 3.0),
+    (20010, "u1", "aws-bedrock", 9.0),
+    (20011, "u1", "aws-bedrock", 1.0),
+    (20019, "u2", "aws-bedrock", 5.0),
+    (20020, "u2", "aws-bedrock", 8.0),
+    (20021, "u2", "aws-bedrock", 2.0),
+    (20014, "u3", "aws-bedrock", 7.0),
+    (20016, "u3", "aws-bedrock", 7.0),
+    (20011, "u1", "openai", 99.0),
+)
+
+
+def seed_effect_data(conn) -> None:
+    """`/effect` 専用の既知データ（`policy_state` 4 行・`cost_daily` 10 行）を投入する。"""
+    for event_id, day, user_email, prev_value in _EFFECT_POLICY_ROWS:
+        host = "h" + user_email[1:]
+        insert_compliant_policy(
+            conn, event_id, day, user_email, host, prev_value=prev_value
+        )
+    for day, user_email, provider, cost in _EFFECT_COST_ROWS:
+        insert_cost_daily(
+            conn,
+            day=day,
+            user_email=user_email,
+            provider=provider,
+            cost=cost,
+            input_tokens=cost * 1000,
+        )

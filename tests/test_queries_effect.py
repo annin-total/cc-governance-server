@@ -4,9 +4,10 @@ import pytest
 from known_data import (
     duplicate_events,
     duplicate_policy_state,
+    insert_compliant_policy,
     insert_cost_daily,
-    insert_event,
-    insert_policy_state,
+    insert_precompact,
+    seed_effect_data,
 )
 
 from ccgov.store import db, queries_policy
@@ -19,47 +20,7 @@ def effect_db(sqlite_db_dsn):
     """この画面専用の既知データ（`policy_state` 4 行・`cost_daily` 10 行）を投入した接続。"""
     db.init()
     conn = db.connect()
-    policy_rows = [
-        ("q1", 20010, "u1", "60"),
-        ("q2", 20012, "u1", "60"),
-        ("q3", 20020, "u2", "60"),
-        ("q4", 20015, "u3", "80"),
-    ]
-    for event_id, day, user_email, prev_value in policy_rows:
-        insert_policy_state(
-            conn,
-            event_id=event_id,
-            ts=day * 86400,
-            day=day,
-            user_email=user_email,
-            host="h" + user_email[1:],
-            key_name=K,
-            value="60",
-            prev_value=prev_value,
-            apply_result="already_ok",
-            plugin_version="1.4.0",
-        )
-    cost_rows = [
-        (20007, "u1", "aws-bedrock", 6.0),
-        (20009, "u1", "aws-bedrock", 3.0),
-        (20010, "u1", "aws-bedrock", 9.0),
-        (20011, "u1", "aws-bedrock", 1.0),
-        (20019, "u2", "aws-bedrock", 5.0),
-        (20020, "u2", "aws-bedrock", 8.0),
-        (20021, "u2", "aws-bedrock", 2.0),
-        (20014, "u3", "aws-bedrock", 7.0),
-        (20016, "u3", "aws-bedrock", 7.0),
-        (20011, "u1", "openai", 99.0),
-    ]
-    cur = conn.cursor()
-    cur.executemany(
-        db.q(
-            "INSERT INTO cost_daily (day, user_email, provider, cost, input_tokens)"
-            " VALUES (?, ?, ?, ?, ?)"
-        ),
-        [(d, u, p, c, c * 1000) for d, u, p, c in cost_rows],
-    )
-    conn.commit()
+    seed_effect_data(conn)
     yield conn
     conn.close()
 
@@ -172,43 +133,9 @@ def test_context_distribution_first_rollout_has_no_before(sqlite_db_dsn):
     db.init()
     conn = db.connect()
     try:
-        insert_policy_state(
-            conn,
-            event_id="cq1",
-            ts=20010 * 86400,
-            day=20010,
-            user_email="u1",
-            host="h1",
-            key_name=K,
-            value="60",
-            prev_value="60",
-            apply_result="already_ok",
-            plugin_version="1.4.0",
-        )
-        insert_event(
-            conn,
-            event_id="ce1",
-            ts=20011 * 86400,
-            day=20011,
-            user_email="u1",
-            host="h1",
-            hook_event="PreCompact",
-            session_id="s1",
-            context_tokens=120000,
-            permission_mode="default",
-        )
-        insert_event(
-            conn,
-            event_id="ce2",
-            ts=20012 * 86400,
-            day=20012,
-            user_email="u1",
-            host="h1",
-            hook_event="PreCompact",
-            session_id="s1",
-            context_tokens=130000,
-            permission_mode="default",
-        )
+        insert_compliant_policy(conn, "cq1", 20010, "u1", "h1")
+        insert_precompact(conn, "ce1", 20011, 120000)
+        insert_precompact(conn, "ce2", 20012, 130000)
         starts = queries_policy.compliance_start_dates(conn, K, "60")
         result = queries_policy.context_distribution(conn, "PreCompact", starts)
         assert "before" not in result
@@ -222,43 +149,9 @@ def test_context_distribution_second_change_has_both_sides(sqlite_db_dsn):
     db.init()
     conn = db.connect()
     try:
-        insert_policy_state(
-            conn,
-            event_id="cq2",
-            ts=20010 * 86400,
-            day=20010,
-            user_email="u1",
-            host="h1",
-            key_name=K,
-            value="60",
-            prev_value="60",
-            apply_result="already_ok",
-            plugin_version="1.4.0",
-        )
-        insert_event(
-            conn,
-            event_id="ce3",
-            ts=20008 * 86400,
-            day=20008,
-            user_email="u1",
-            host="h1",
-            hook_event="PreCompact",
-            session_id="s1",
-            context_tokens=90000,
-            permission_mode="default",
-        )
-        insert_event(
-            conn,
-            event_id="ce4",
-            ts=20011 * 86400,
-            day=20011,
-            user_email="u1",
-            host="h1",
-            hook_event="PreCompact",
-            session_id="s1",
-            context_tokens=120000,
-            permission_mode="default",
-        )
+        insert_compliant_policy(conn, "cq2", 20010, "u1", "h1")
+        insert_precompact(conn, "ce3", 20008, 90000)
+        insert_precompact(conn, "ce4", 20011, 120000)
         starts = queries_policy.compliance_start_dates(conn, K, "60")
         result = queries_policy.context_distribution(conn, "PreCompact", starts)
         assert result["before"] == [(80000, 1)]

@@ -4,7 +4,7 @@ from known_data import (
     TODAY,
     assert_invariant_under_duplication,
     duplicate_all,
-    insert_policy_state,
+    insert_compliant_policy,
 )
 
 from ccgov.constants import REFERENCE_KEY
@@ -65,44 +65,12 @@ def test_latest_values_picks_max_ts_not_max_day(known_db):
 
     `day` の降順だと ts=1000・day=20003（80）が選ばれるが、正しくは ts=5000・day=20000（60）。
     """
-    insert_policy_state(
-        known_db,
-        event_id="tie1",
-        ts=5000,
-        day=20000,
-        user_email="ux",
-        host="hx",
-        key_name=K,
-        value="60",
-        prev_value="60",
-        apply_result="already_ok",
-        plugin_version="1.4.0",
+    insert_compliant_policy(known_db, "tie1", 20000, "ux", "hx", ts=5000)
+    insert_compliant_policy(
+        known_db, "tie2", 20001, "ux", "hx", ts=3000, prev_value="70"
     )
-    insert_policy_state(
-        known_db,
-        event_id="tie2",
-        ts=3000,
-        day=20001,
-        user_email="ux",
-        host="hx",
-        key_name=K,
-        value="60",
-        prev_value="70",
-        apply_result="already_ok",
-        plugin_version="1.4.0",
-    )
-    insert_policy_state(
-        known_db,
-        event_id="tie3",
-        ts=1000,
-        day=20003,
-        user_email="ux",
-        host="hx",
-        key_name=K,
-        value="60",
-        prev_value="80",
-        apply_result="already_ok",
-        plugin_version="1.4.0",
+    insert_compliant_policy(
+        known_db, "tie3", 20003, "ux", "hx", ts=1000, prev_value="80"
     )
     rows = queries_policy.latest_values(known_db, TODAY, K)
     by_terminal = {(r[0], r[1]): r for r in rows}
@@ -217,30 +185,18 @@ def test_plugin_version_distribution(known_db):
 
 def test_plugin_version_distribution_picks_max_ts_not_max_day(known_db):
     """版分布も `ts` の降順で最新 1 行を選ぶ。`day` の降順にすると別の版が数えられる。"""
-    insert_policy_state(
-        known_db,
-        event_id="tie4",
-        ts=5000,
-        day=20000,
-        user_email="uy",
-        host="hy",
-        key_name=REFERENCE_KEY,
-        value="60",
-        prev_value="60",
-        apply_result="already_ok",
-        plugin_version="1.4.0",
+    insert_compliant_policy(
+        known_db, "tie4", 20000, "uy", "hy", ts=5000, key_name=REFERENCE_KEY
     )
-    insert_policy_state(
+    insert_compliant_policy(
         known_db,
-        event_id="tie5",
+        "tie5",
+        20003,
+        "uy",
+        "hy",
         ts=1000,
-        day=20003,
-        user_email="uy",
-        host="hy",
         key_name=REFERENCE_KEY,
-        value="60",
         prev_value="80",
-        apply_result="already_ok",
         plugin_version="1.3.0",
     )
     rows = dict(
