@@ -69,3 +69,20 @@ def test_stylesheet_is_served_under_base_path(app_with_base_path, base_path):
         f"BASE_PATH が前置されていない: {href!r}"
     )
     assert client.get(href).status_code == 200, f"{href} が 200 で返らない"
+
+
+def test_form_action_follows_base_path(sqlite_db_dsn):
+    """`BASE_PATH` を与えた状態で概況画面を描画すると、フォームの action が BASE_PATH を含む。"""
+    import importlib
+
+    import app as app_module
+
+    try:
+        with env_var("BASE_PATH", "/gov/cc"):
+            importlib.reload(app_module)
+            client = admin_client(app_module.app)
+            response = client.get("/gov/cc" + ADMIN)
+            body = response.get_data(as_text=True)
+            assert "/gov/cc" + ADMIN + "/import" in body
+    finally:
+        importlib.reload(app_module)

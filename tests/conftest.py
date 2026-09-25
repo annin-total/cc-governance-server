@@ -21,6 +21,33 @@ os.environ["ADMIN_PASSWORD"] = "pw"
 os.environ["INGEST_TOKEN"] = "tok"
 ADMIN = "/adm"
 
+FIXTURES = Path(__file__).parent / "fixtures"
+CSV_HEADER = (
+    "Date,Workspace ID,Provider,Model,User ID,User Email,User Name,Cost,"
+    "Currency,Input Tokens,Output Tokens,Cache Read Tokens,Cache Write Tokens,"
+    "Cached Input Tokens,Uncached Input Tokens"
+)
+
+
+def copy_fixture(tmp_path, src_name: str, dest_name: Optional[str] = None) -> None:
+    """fixture を `tmp_path` 配下へ、指定があれば別名でコピーする。"""
+    dest_name = dest_name or src_name
+    (tmp_path / dest_name).write_bytes((FIXTURES / src_name).read_bytes())
+
+
+def count_and_sum(conn):
+    """`cost_daily` の (COUNT(*), SUM(cost)) を返す。"""
+    cur = conn.cursor()
+    cur.execute("SELECT COUNT(*), SUM(cost) FROM cost_daily")
+    return cur.fetchone()
+
+
+def sum_for_day(conn, day: int):
+    """`cost_daily` の指定した `day` の SUM(cost) を返す。"""
+    cur = conn.cursor()
+    cur.execute("SELECT SUM(cost) FROM cost_daily WHERE day = ?", (day,))
+    return cur.fetchone()[0]
+
 
 def basic_auth(password: str, username: str = "any") -> dict:
     """Basic 認証の `Authorization` ヘッダを組み立てる。"""
