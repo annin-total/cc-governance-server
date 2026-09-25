@@ -2,12 +2,11 @@
 
 from ccgov.constants import (
     CONTEXT_BIN,
-    CSV_SETTLE_DAYS,
     EVENT_STUDY_SPAN,
     POLICY_DAYS,
     STALE_DAYS,
 )
-from ccgov.store import db
+from ccgov.store import db, queries_events
 
 _LATEST_VALUES_SQL = (
     "SELECT user_email, host, prev_value, day, ts FROM ("
@@ -22,6 +21,12 @@ def _window_start(today: int) -> int:
     return today - POLICY_DAYS + 1
 
 
+def _cost_window_start(conn, today: int) -> int:
+    """`cost_daily` を数える窓の始端。終端は `queries_events.cost_window_end`（空なら `today`）。"""
+    end = queries_events.cost_window_end(conn, today)
+    return _window_start(today if end is None else end)
+
+
 def latest_values(conn, today: int, key_name: str) -> list:
     """`POLICY_DAYS` 日の窓で、端末ごとの `ts` が最新の 1 行を返す。"""
     cur = conn.cursor()
@@ -30,11 +35,11 @@ def latest_values(conn, today: int, key_name: str) -> list:
 
 
 def _distinct_users_with_cost(conn, today: int) -> set:
-    """直近 `POLICY_DAYS` 日に `cost_daily` へコストが立っている `user_email` の集合。"""
+    """`POLICY_DAYS` 日の窓で `cost_daily` へコストが立っている `user_email` の集合。"""
     cur = conn.cursor()
     cur.execute(
         db.q("SELECT DISTINCT user_email FROM cost_daily WHERE day >= ?"),
-        (_window_start(today),),
+        (_cost_window_start(conn, today),),
     )
     return {row[0] for row in cur.fetchall()}
 
@@ -65,7 +70,10 @@ def non_compliant(conn, today: int, key_name: str, expected_value: str) -> list:
 
 
 def not_introduced(conn, today: int) -> list:
-    """直近 `POLICY_DAYS` 日に `cost_daily` に居て、同期間の `policy_state` に行が無い利用者。"""
+    """`POLICY_DAYS` 日の窓で `cost_daily` に居て、直近 `POLICY_DAYS` 日の `policy_state` に行が無い利用者。
+
+    `cost_daily` 側の窓だけ終端を `queries_events.cost_window_end` にする。
+    """
     cur = conn.cursor()
     cur.execute(
         db.q(
@@ -76,7 +84,7 @@ def not_introduced(conn, today: int) -> list:
             ") p ON c.user_email = p.user_email"
             " WHERE p.user_email IS NULL ORDER BY c.user_email"
         ),
-        (_window_start(today), _window_start(today)),
+        (_cost_window_start(conn, today), _window_start(today)),
     )
     return cur.fetchall()
 
@@ -127,7 +135,7 @@ def compliance_start_dates(conn, key_name: str, expected_value: str) -> dict:
 def event_study(conn, key_name: str, expected_value: str, provider: str) -> list:
     """相対日ごとの分母人数・1 人あたり日次コスト・処理トークン（入力とキャッシュの読み書きの和）。
 
-    相対日 0 は除き、欠損日は 0 とする。分母は `cost_daily` の day 範囲（未確定の末尾を除く）に在籍する準拠者。
+    相対日 0 は除き、欠損日は 0 とする。分母は `cost_daily` の day 範囲に在籍する準拠者。
     """
     start_dates = compliance_start_dates(conn, key_name, expected_value)
     if not start_dates:
@@ -144,9 +152,7 @@ def event_study(conn, key_name: str, expected_value: str, provider: str) -> list
     )
     cost_by_key = {(u, d): (c, t) for u, d, c, t in cur.fetchall()}
     cur.execute(db.q("SELECT MIN(day), MAX(day) FROM cost_daily"))
-    min_day, last_day = cur.fetchone()
-    # 未確定の末尾は 0 や欠けた値のまま準拠後の側に落ち、常に「下がった」向きに偏らせる
-    max_day = None if last_day is None else last_day - CSV_SETTLE_DAYS
+    min_day, max_day = cur.fetchone()
 
     rows = []
     for relative_day in range(-EVENT_STUDY_SPAN, EVENT_STUDY_SPAN + 1):
@@ -165,9 +171,7 @@ def event_study(conn, key_name: str, expected_value: str, provider: str) -> list
             total_cost += cost
             total_tokens += tokens
         n = len(population)
-        rows.append(
-            (relative_day, n, round(total_cost / n, 1), round(total_tokens / n))
-        )
+        rows.append((relative_day, n, total_cost / n, round(total_tokens / n)))
     return rows
 
 

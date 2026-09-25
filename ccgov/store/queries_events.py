@@ -148,7 +148,7 @@ def distribution(conn, today: int, column: str) -> list:
 
 
 def _health_window_stats(conn, start: int, end: int) -> dict:
-    """1 つの窓のイベント件数・送信端末数・4 列の NULL 率を返す。分母が 0 の列の率は None。"""
+    """1 つの窓のイベント件数・送信者数・4 列の NULL 率を返す。分母が 0 の列の率は None。"""
     scope_sql = ", ".join(
         f"COUNT(DISTINCT CASE WHEN {scope} THEN event_id END),"
         f" COUNT(DISTINCT CASE WHEN {scope} AND {col} IS NULL THEN event_id END)"
@@ -171,7 +171,7 @@ def _health_window_stats(conn, start: int, end: int) -> dict:
 
 
 def health_counts(conn, today: int) -> dict:
-    """直近／前 7 日のイベント件数・送信端末数・NULL 率を返す。"""
+    """直近／前 7 日のイベント件数・送信者数・NULL 率を返す。"""
     recent_start, recent_end = _recent_window(today)
     prev_start, prev_end = _previous_window(today)
     return {
@@ -180,9 +180,26 @@ def health_counts(conn, today: int) -> dict:
     }
 
 
+def cost_window_end(conn, today: int) -> Optional[int]:
+    """`cost_daily` を数える窓の終端。`today` と `cost_daily` の最終日の早いほうで、空なら None。
+
+    CSV は 1〜2 週ごとに取り込むため、今日を終端にすると CSV の無い日で窓が薄まる。
+    """
+    cur = conn.cursor()
+    cur.execute(db.q("SELECT MAX(day) FROM cost_daily"))
+    (last_day,) = cur.fetchone()
+    return None if last_day is None else min(today, last_day)
+
+
 def reconciliation_rate(conn, today: int) -> list:
-    """直近 7 日に `events` を送った利用者のうち、同期間の `cost_daily` にも居る割合。人数で測る。"""
-    recent_start, recent_end = _recent_window(today)
+    """7 日間に `events` を送った利用者のうち、同期間の `cost_daily` にも居る割合。人数で測る。
+
+    窓の終端は `cost_window_end`。`cost_daily` が空なら率は None。
+    """
+    end = cost_window_end(conn, today)
+    if end is None:
+        return [(0, 0, None)]
+    recent_start, recent_end = _recent_window(end)
     cur = conn.cursor()
     cur.execute(
         db.q(

@@ -7,7 +7,6 @@ from flask import Blueprint, Response, current_app, render_template, request
 
 from ccgov.constants import (
     CONTEXT_BIN,
-    CSV_SETTLE_DAYS,
     EFFECT_PROVIDER,
     EVENT_STUDY_SPAN,
     REFERENCE_KEY,
@@ -158,7 +157,6 @@ def effect_view() -> str:
         provider=EFFECT_PROVIDER,
         span=EVENT_STUDY_SPAN,
         context_bin=CONTEXT_BIN,
-        csv_settle_days=CSV_SETTLE_DAYS,
         study=study,
         context_pre_compact=context_pre_compact,
         context_stop=context_stop,

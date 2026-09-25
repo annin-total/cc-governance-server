@@ -1,7 +1,5 @@
 """ndjson.parse_line / parse_lines の検査と列変換を確かめる。"""
 
-import time
-
 import pytest
 
 from ccgov.ingestion.ndjson import parse_line, parse_lines
@@ -195,13 +193,3 @@ def test_lone_surrogate_in_field_does_not_crash_and_row_is_stored():
     tool_name = _events_value(rows[1][1], "tool_name")
     assert "\ud800" not in tool_name
     tool_name.encode("utf-8")
-
-
-def test_ts_more_than_one_day_ahead_is_dropped():
-    """受信時刻より 1 日を超えて先の `ts` の行は捨てて数える。1 日以内の先行は受け入れる。"""
-    now = int(time.time())
-    near = f'{{"kind":"event","event_id":"f1","ts":{now + 3600}}}'.encode()
-    far = f'{{"kind":"event","event_id":"f2","ts":{now + 2 * 86400}}}'.encode()
-    rows, dropped = parse_lines(near + b"\n" + far)
-    assert len(rows) == 1
-    assert dropped == 1

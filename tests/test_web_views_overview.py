@@ -22,12 +22,12 @@ def test_overview_page_returns_200(today_client):
 
 
 def test_health_line_shows_event_and_terminal_counts(today_client):
-    """健全性のタイルに、イベント数・送信端末数の直近7日の値が読める。"""
+    """健全性のタイルに、イベント数・送信者数の直近7日の値が読める。"""
     html = today_client.get(ADMIN + "/").get_data(as_text=True)
     events_tile = _tile(html, "イベント")
     assert "<b>13</b>" in events_tile
 
-    terminals_tile = _tile(html, "送信端末")
+    terminals_tile = _tile(html, "送信者")
     assert "<b>4</b>" in terminals_tile
 
 

@@ -113,6 +113,17 @@ def test_reconciliation_rate(known_db):
     assert rate == 75.0
 
 
+def test_reconciliation_rate_window_ends_at_last_csv_day(known_db):
+    """CSV の最終日 20004 より後の基準日でも、窓は 20004 で終わり 75.0% のまま（CSV の無い日で薄まらない）。"""
+    assert queries_events.reconciliation_rate(known_db, TODAY + 10) == [(3, 4, 75.0)]
+
+
+def test_reconciliation_rate_is_none_without_cost_daily(db_conn):
+    """`cost_daily` が空なら窓を決められないため、events があっても率は 0.0 ではなく None。"""
+    insert_event(db_conn, event_id="x1", day=TODAY, user_email="u1")
+    assert queries_events.reconciliation_rate(db_conn, TODAY) == [(0, 0, None)]
+
+
 def test_reconciliation_rate_unchanged_after_duplicate_injection(known_db):
     """重複行を注入しても突合率は 75.0% のまま。100% を超える経路も無い。"""
 
