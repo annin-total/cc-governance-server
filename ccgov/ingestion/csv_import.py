@@ -122,8 +122,6 @@ def import_file(path: str, conn) -> dict:
 
 def _list_csv_files(csv_dir: str) -> list:
     """`csv_dir` 配下の `*.csv` をファイル名の昇順で返す。"""
-    if not os.path.isdir(csv_dir):
-        return []
     return sorted(glob.glob(os.path.join(csv_dir, "*.csv")))
 
 
@@ -158,7 +156,10 @@ def import_all(csv_dir: str, conn) -> list:
     """`csv_dir` 配下の全 `*.csv` を毎回取り直し、最後に `db.analyze()` を 1 回呼ぶ（0 件でも呼ぶ）。
 
     同じ `day` を含むファイルが複数あれば、どれが新しいか分からないため、それらは取り込まずエラーにする。
+    ディレクトリが無ければ（パスの誤り・作り忘れ）、0 件成功と区別できるようエラーを 1 件返す。
     """
+    if not os.path.isdir(csv_dir):
+        return [{"file": "CSV_DIR", "error": f"ディレクトリが存在しない: {csv_dir}"}]
     parsed = [_parse_or_error(path) for path in _list_csv_files(csv_dir)]
     overlaps = _overlapping_files(parsed)
     results = []
