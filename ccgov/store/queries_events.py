@@ -1,13 +1,7 @@
-"""`/assets` `/` 画面の集計クエリ。フレームワークを import しない。
+"""`/` `/assets` 画面の集計クエリ。件数・人数は再送の重複に備えて常に DISTINCT で数える。"""
 
-現在時刻は読まない。基準日 `today`（epoch 日）は呼び出し側（`app.py`）が渡す。
-件数・利用者数は必ず `COUNT(DISTINCT event_id)` / `COUNT(DISTINCT user_email)` を通す
-（設計書 §5.4）。`agent_id` はサブエージェント内のツール呼出にのみ付く（設計書 §7.3）。
-"""
-
-import db
-
-RECENT_DAYS = 7
+from ccgov.constants import RECENT_DAYS
+from ccgov.store import db
 
 _HEALTH_NULL_COLUMNS = ("tool_name", "skill_name", "context_tokens", "command_source")
 _DISTRIBUTION_COLUMNS = ("permission_mode", "effort_level", "source")
@@ -27,12 +21,9 @@ def _previous_window(today: int) -> tuple:
 def _usage_with_trend(
     conn, today: int, filter_column: str, group_columns: tuple
 ) -> list:
-    """`filter_column` が非 NULL の行を `group_columns` で束ね、直近／前 7 日の呼出回数・
-    利用者数を返す。戻り値は `group_columns` の各値の後に
-    `(recent_calls, recent_users, prev_calls, prev_users)` が続く。
+    """`group_columns` の各値に続けて (直近呼出, 直近利用者, 前呼出, 前利用者) を返す。
 
-    条件付き集約 1 本で書く。`group_columns` に NULL を取りうる列（例: `command_source`）が
-    含まれても、CTE + LEFT JOIN の結合キーのように `NULL = NULL` が偽になって落ちる経路が無い。
+    条件付き集約 1 本で書く。CTE + LEFT JOIN だと NULL を取りうる結合キーの行が落ちる。
     """
     recent_start, recent_end = _recent_window(today)
     prev_start, prev_end = _previous_window(today)
@@ -81,9 +72,9 @@ def command_usage(conn, today: int) -> list:
 
 
 def subagent_ratio(conn, today: int) -> list:
-    """直近 `RECENT_DAYS` 日の全イベントに対する、`agent_id` が非 NULL のイベントの割合を返す。
+    """直近のイベントのうち `agent_id` が非 NULL の割合を `[(分子, 分母, 率)]` で返す。
 
-    戻り値は `[(numerator, denominator, rate)]`。分子・分母とも `COUNT(DISTINCT event_id)`。
+    `agent_id` はサブエージェント内のツール呼出にだけ付く。
     """
     recent_start, recent_end = _recent_window(today)
     cur = conn.cursor()
@@ -101,10 +92,7 @@ def subagent_ratio(conn, today: int) -> list:
 
 
 def daily_cost(conn) -> list:
-    """`cost_daily` を `day` x `provider` で束ね、`cost` を合計する。
-
-    `cost_daily` は集計済みの小さいテーブルであり `day` で絞らない（events に対する規約とは別）。
-    """
+    """`cost_daily` を `day` x `provider` で束ねて合計する。集計済みの小さい表なので `day` で絞らない。"""
     cur = conn.cursor()
     cur.execute(
         db.q(
@@ -148,7 +136,7 @@ def distribution(conn, today: int, column: str) -> list:
 
 
 def _health_window_stats(conn, start: int, end: int) -> dict:
-    """1 つの窓のイベント件数・送信端末数・4 列の NULL 率を返す。NULL 率の分子は `event_id` の異なり数。"""
+    """1 つの窓のイベント件数・送信端末数・4 列の NULL 率を返す。"""
     null_case_sql = ", ".join(
         f"COUNT(DISTINCT CASE WHEN {col} IS NULL THEN event_id END)"
         for col in _HEALTH_NULL_COLUMNS
@@ -170,7 +158,7 @@ def _health_window_stats(conn, start: int, end: int) -> dict:
 
 
 def health_counts(conn, today: int) -> dict:
-    """健全性の 1 行の左半分。直近／前 7 日のイベント件数・送信端末数・NULL 率を返す。"""
+    """直近／前 7 日のイベント件数・送信端末数・NULL 率を返す。"""
     recent_start, recent_end = _recent_window(today)
     prev_start, prev_end = _previous_window(today)
     return {

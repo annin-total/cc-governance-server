@@ -1,5 +1,6 @@
-"""pytest の共通設定。サーバのモジュールを import 可能にする。"""
+"""pytest の共通設定。サーバのモジュールを import 可能にし、管理画面の設定を与える。"""
 
+import base64
 import os
 import sys
 import tempfile
@@ -9,6 +10,25 @@ import pytest
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
+
+# `app` は import の時点でこの 3 つを要求する。テストでは固定のダミー値を使う。
+os.environ["ADMIN_PATH"] = "adm"
+os.environ["ADMIN_PASSWORD"] = "pw"
+os.environ["INGEST_TOKEN"] = "tok"
+ADMIN = "/adm"
+
+
+def basic_auth(password: str, username: str = "any") -> dict:
+    """Basic 認証の `Authorization` ヘッダを組み立てる。"""
+    raw = f"{username}:{password}".encode()
+    return {"Authorization": "Basic " + base64.b64encode(raw).decode("ascii")}
+
+
+def admin_client(flask_app):
+    """正しいパスワードを常に送るテストクライアントを返す。"""
+    client = flask_app.test_client()
+    client.environ_base["HTTP_AUTHORIZATION"] = basic_auth("pw")["Authorization"]
+    return client
 
 
 @pytest.fixture

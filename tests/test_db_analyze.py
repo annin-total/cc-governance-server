@@ -1,6 +1,6 @@
 """`db.analyze()` が統計情報を更新することを確かめる。"""
 
-import db
+from ccgov.store import db
 
 
 class _FakeCursor:

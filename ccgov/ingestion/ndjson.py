@@ -1,19 +1,28 @@
-"""`/ingest` の受信処理。フレームワークを知らない。生のバイト列と DB 接続だけを扱う。"""
+"""`/ingest` の受信処理。生のバイト列と DB 接続だけを扱う。"""
 
 import json
+from time import monotonic
 from typing import Optional
 
-import db
-from contract import EXTRA_COLUMNS, HOOK_FIELDS, POLICY_COLUMNS, coerce, to_day
+from ccgov.store import db
+from ccgov.vendor.contract import (
+    EXTRA_COLUMNS,
+    HOOK_FIELDS,
+    POLICY_COLUMNS,
+    coerce,
+    to_day,
+)
 
 _KINDS = ("event", "policy")
 
-# events の列は EXTRA_COLUMNS + HOOK_FIELDS から組み立てる（契約が単一の正本）
+# 受信のたびの ANALYZE は重いため、プロセス内で前回からこの秒数が経つまで呼ばない
+ANALYZE_INTERVAL_SECONDS = 3600
+_last_analyzed_at: Optional[float] = None
+
 _EVENTS_COLUMNS = tuple(EXTRA_COLUMNS) + tuple(
     (name, type_) for name, _, type_ in HOOK_FIELDS
 )
 
-# kind ("event" / "policy") -> (投入先テーブル, (列名, 型) の対のリスト)
 _TABLE_COLUMNS = {
     "event": ("events", _EVENTS_COLUMNS),
     "policy": ("policy_state", tuple(POLICY_COLUMNS)),
@@ -71,7 +80,7 @@ def parse_lines(raw: bytes) -> tuple:
 
 
 def _insert(cur, table: str, columns: tuple, values: list) -> None:
-    """1 テーブル分を `executemany` で INSERT する。行が無ければ何もしない。"""
+    """1 テーブル分を INSERT する。"""
     if not values:
         return
     names = ", ".join(name for name, _ in columns)
@@ -80,11 +89,21 @@ def _insert(cur, table: str, columns: tuple, values: list) -> None:
     cur.executemany(sql, values)
 
 
-def ingest(raw: bytes, conn) -> dict:
-    """NDJSON を検査・kind で振り分け、1 トランザクションで保存する。
+def _analyze_if_due(conn) -> None:
+    """前回の ANALYZE から `ANALYZE_INTERVAL_SECONDS` 以上経っていれば（初回を含む）呼ぶ。"""
+    global _last_analyzed_at
+    now = monotonic()
+    if (
+        _last_analyzed_at is not None
+        and now - _last_analyzed_at < ANALYZE_INTERVAL_SECONDS
+    ):
+        return
+    _last_analyzed_at = now
+    db.analyze(conn)
 
-    書き込みが失敗したら rollback し、例外をそのまま送出する。
-    """
+
+def ingest(raw: bytes, conn) -> dict:
+    """NDJSON を検査して kind ごとに振り分け、1 トランザクションで保存する。"""
     rows, dropped = parse_lines(raw)
     by_kind: dict = {"event": [], "policy": []}
     for kind, values in rows:
@@ -99,4 +118,5 @@ def ingest(raw: bytes, conn) -> dict:
         conn.rollback()
         raise
 
+    _analyze_if_due(conn)
     return {"stored": len(rows), "dropped": dropped}

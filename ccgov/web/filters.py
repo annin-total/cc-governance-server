@@ -1,22 +1,15 @@
-"""表示用の整形関数。フレームワークに依存しない素の Python として保つ。
-
-DB の `day` 列（JST 基準の epoch 日）や、桁区切りの無い数値・率を
-画面表示向けの文字列へ変換する。すべての関数は変換できない入力に対して
-例外を投げず、`EM_DASH` を返す。
-"""
+"""表示用の整形関数。変換できない入力には例外を投げず `EM_DASH` を返す。"""
 
 import datetime
 from typing import Any, Optional
 
-from queries_policy import CONTEXT_BIN
+from ccgov.constants import CONTEXT_BIN
 
 EM_DASH = "—"
-_JST_OFFSET_SECONDS = 9 * 3600
 _SECONDS_PER_DAY = 86400
 
 
 def _to_int(value: Any) -> Optional[int]:
-    """value を int に変換できれば返し、できなければ None を返す。"""
     if value is None:
         return None
     try:
@@ -26,7 +19,6 @@ def _to_int(value: Any) -> Optional[int]:
 
 
 def _to_float(value: Any) -> Optional[float]:
-    """value を float に変換できれば返し、できなければ None を返す。"""
     if value is None:
         return None
     try:

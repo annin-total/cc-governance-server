@@ -1,7 +1,4 @@
-"""CSV 取込（`csv_import.py`）のテスト。
-
-このファイルはタスク 1〜8 を通じて育てる。
-"""
+"""CSV 取込（`csv_import.py`）のテスト。"""
 
 import os
 import re
@@ -9,10 +6,11 @@ from pathlib import Path
 from typing import Optional
 
 import pytest
+from conftest import ADMIN, admin_client
 
-import csv_import
-import db
-from contract import CSV_COLUMNS
+from ccgov.ingestion import csv_import
+from ccgov.store import db
+from ccgov.vendor.contract import CSV_COLUMNS
 
 FIXTURES = Path(__file__).parent / "fixtures"
 
@@ -31,20 +29,18 @@ def _sum_for_day(conn, day: int):
     return cur.fetchone()[0]
 
 
-# --- タスク 2: ヘッダの射影 -------------------------------------------------
-
 _EXPECTED_DB_COLUMNS = {db_name for _, db_name, _ in CSV_COLUMNS}
 
 
 def test_projection_key_set_matches_csv_columns():
-    """2-1: daily_a.csv（15 列）の抽出結果のキー集合が CSV_COLUMNS の DB 列名集合と一致する。"""
+    """daily_a.csv（15 列）の抽出結果のキー集合が CSV_COLUMNS の DB 列名集合と一致する。"""
     rows, dropped = csv_import.parse_file(str(FIXTURES / "daily_a.csv"))
     assert dropped == 0
     assert set(rows[0].keys()) == _EXPECTED_DB_COLUMNS
 
 
 def test_projection_ignores_extra_column_key_set():
-    """2-2: extra_column.csv（16 列目に Region）でも 2-1 と同じキー集合。Region は現れない。"""
+    """extra_column.csv（16 列目に Region）でもキー集合は変わらない。Region は現れない。"""
     rows, dropped = csv_import.parse_file(str(FIXTURES / "extra_column.csv"))
     assert dropped == 0
     assert set(rows[0].keys()) == _EXPECTED_DB_COLUMNS
@@ -52,14 +48,14 @@ def test_projection_ignores_extra_column_key_set():
 
 
 def test_projection_extra_column_row_count_is_three():
-    """2-3: extra_column.csv の取り込まれる行数は 3。Region の有無で行が減らない。"""
+    """extra_column.csv の取り込まれる行数は 3。Region の有無で行が減らない。"""
     rows, dropped = csv_import.parse_file(str(FIXTURES / "extra_column.csv"))
     assert len(rows) == 3
     assert dropped == 0
 
 
 def test_projection_column_order_independent(tmp_path):
-    """2-4: ヘッダの列順を入れ替えても user_email の値は User Email 列の値になる。"""
+    """ヘッダの列順を入れ替えても user_email の値は User Email 列の値になる。"""
     header = (
         "Model,Date,Workspace ID,Provider,User ID,User Email,User Name,Cost,"
         "Currency,Input Tokens,Output Tokens,Cache Read Tokens,Cache Write Tokens,"
@@ -79,7 +75,7 @@ def test_projection_column_order_independent(tmp_path):
 
 
 def test_projection_missing_cost_column_fails(tmp_path):
-    """2-5: Cost 列を欠いた CSV は取り込まず、例外で失敗として報告する。"""
+    """Cost 列を欠いた CSV は取り込まず、例外で失敗として報告する。"""
     header = (
         "Date,Workspace ID,Provider,Model,User ID,User Email,User Name,"
         "Currency,Input Tokens,Output Tokens,Cache Read Tokens,Cache Write Tokens,"
@@ -97,7 +93,7 @@ def test_projection_missing_cost_column_fails(tmp_path):
 
 
 def test_projection_scientific_notation_cost(tmp_path):
-    """2-6: `2.3e-05` / `4.60E-05` の Cost が浮動小数として正しく保存される。"""
+    """`2.3e-05` / `4.60E-05` の Cost が浮動小数として正しく保存される。"""
     header = (
         "Date,Workspace ID,Provider,Model,User ID,User Email,User Name,Cost,"
         "Currency,Input Tokens,Output Tokens,Cache Read Tokens,Cache Write Tokens,"
@@ -121,8 +117,6 @@ def test_projection_scientific_notation_cost(tmp_path):
     assert rows[1]["cost"] == 0.0000460
 
 
-# --- タスク 3: Date -> day（epoch 日）の変換 ---------------------------------
-
 _HEADER = (
     "Date,Workspace ID,Provider,Model,User ID,User Email,User Name,Cost,"
     "Currency,Input Tokens,Output Tokens,Cache Read Tokens,Cache Write Tokens,"
@@ -144,22 +138,22 @@ def _one_row_csv(tmp_path, date_value: str, name: str = "d.csv"):
 @pytest.mark.parametrize(
     "date_value, expected_day",
     [
-        ("2026-07-01", 20635),  # 3-1 月初・ハイフン書式
-        ("2026-07-31", 20665),  # 3-2 月末
-        ("2026-08-01", 20666),  # 3-3 月初（月の切り替わり）
-        ("2026-08-31", 20696),  # 3-4 月末（31 日の月）
-        ("2026/8/1", 20666),  # 3-5 ゼロ埋めなし・スラッシュ書式
-        ("2026/08/01", 20666),  # 3-6 ゼロ埋めあり・スラッシュ書式
-        ("2026-12-31", 20818),  # 3-7 年末
-        ("2027-01-01", 20819),  # 3-8 年跨ぎ
-        ("2026-02-28", 20512),  # 3-9 平年の 2 月末
-        ("2026-03-01", 20513),  # 3-10 平年の 2 月末の翌日
-        ("2024-02-29", 19782),  # 3-11 閏日
-        ("1970-01-01", 0),  # 3-12 原点
+        ("2026-07-01", 20635),
+        ("2026-07-31", 20665),
+        ("2026-08-01", 20666),
+        ("2026-08-31", 20696),
+        ("2026/8/1", 20666),
+        ("2026/08/01", 20666),
+        ("2026-12-31", 20818),
+        ("2027-01-01", 20819),
+        ("2026-02-28", 20512),
+        ("2026-03-01", 20513),
+        ("2024-02-29", 19782),
+        ("1970-01-01", 0),
     ],
 )
 def test_day_conversion(tmp_path, date_value, expected_day):
-    """3-1〜3-12: Date の 2 書式・月初・月末・年跨ぎ・閏日が正しく day になる。"""
+    """Date の 2 書式・月初・月末・年跨ぎ・閏日が正しく day になる。"""
     path = _one_row_csv(tmp_path, date_value)
     rows, dropped = csv_import.parse_file(path)
     assert dropped == 0
@@ -167,7 +161,7 @@ def test_day_conversion(tmp_path, date_value, expected_day):
 
 
 def test_day_discards_nonexistent_month(tmp_path):
-    """3-13: 存在しない月（`2026-13-01`）の行は破棄される。"""
+    """存在しない月（`2026-13-01`）の行は破棄される。"""
     path = _one_row_csv(tmp_path, "2026-13-01")
     rows, dropped = csv_import.parse_file(path)
     assert dropped == 1
@@ -175,7 +169,7 @@ def test_day_discards_nonexistent_month(tmp_path):
 
 
 def test_day_discards_empty_date(tmp_path):
-    """3-14: 空文字の Date の行は破棄される。"""
+    """空文字の Date の行は破棄される。"""
     path = _one_row_csv(tmp_path, "")
     rows, dropped = csv_import.parse_file(path)
     assert dropped == 1
@@ -183,20 +177,18 @@ def test_day_discards_empty_date(tmp_path):
 
 
 def test_day_discards_repeated_header_row(tmp_path):
-    """3-15: ヘッダ行が 2 度目に現れた場合（Date 列の値が `Date`）は破棄される。"""
+    """ヘッダ行が 2 度目に現れた場合（Date 列の値が `Date`）は破棄される。"""
     path = _one_row_csv(tmp_path, "Date")
     rows, dropped = csv_import.parse_file(path)
     assert dropped == 1
     assert rows == []
 
 
-# --- タスク 4: day 単位の冪等取込 --------------------------------------------
-
 _DAY_20635 = 20635  # 2026-07-01
 
 
 def test_idempotent_reimport_same_file(sqlite_db_dsn):
-    """4-1: 同じファイルを 2 回取り込んでも COUNT(*)=3・SUM(cost)=6.0 のまま変わらない。"""
+    """同じファイルを 2 回取り込んでも COUNT(*)=3・SUM(cost)=6.0 のまま変わらない。"""
     db.init()
     conn = db.connect()
     try:
@@ -210,7 +202,7 @@ def test_idempotent_reimport_same_file(sqlite_db_dsn):
 
 
 def test_idempotent_overlapping_files_forward_order(sqlite_db_dsn):
-    """4-2: daily_a -> daily_b -> weekly の順で取り込むと、07-01 は weekly 由来だけになる。"""
+    """daily_a -> daily_b -> weekly の順で取り込むと、07-01 は weekly 由来だけになる。"""
     db.init()
     conn = db.connect()
     try:
@@ -237,7 +229,7 @@ def test_idempotent_overlapping_files_forward_order(sqlite_db_dsn):
 
 
 def test_idempotent_overlapping_files_reverse_order(sqlite_db_dsn):
-    """4-2 逆順: weekly -> daily_a の順で取り込んでも COUNT(*)=6・SUM(cost)=21.0 のまま。"""
+    """weekly -> daily_a の逆順で取り込んでも COUNT(*)=6・SUM(cost)=21.0 のまま。"""
     db.init()
     conn = db.connect()
     try:
@@ -251,7 +243,7 @@ def test_idempotent_overlapping_files_reverse_order(sqlite_db_dsn):
 
 
 def test_idempotent_partial_failure_leaves_no_partial_rows(sqlite_db_dsn, monkeypatch):
-    """4-3: weekly.csv の INSERT 中に例外が起きても、直前の daily_a の行がそのまま残る。"""
+    """weekly.csv の INSERT 中に例外が起きても、直前の daily_a の行がそのまま残る。"""
     db.init()
     conn = db.connect()
     try:
@@ -275,7 +267,7 @@ def test_idempotent_partial_failure_leaves_no_partial_rows(sqlite_db_dsn, monkey
 
 
 def test_idempotent_unknown_column_replaces_existing_rows(sqlite_db_dsn):
-    """4-4: extra_column.csv（Region 付き）を取り込んでから daily_a.csv で置き換えても変わらない。"""
+    """extra_column.csv（Region 付き）を取り込んでから daily_a.csv で置き換えても変わらない。"""
     db.init()
     conn = db.connect()
     try:
@@ -286,9 +278,6 @@ def test_idempotent_unknown_column_replaces_existing_rows(sqlite_db_dsn):
         assert _count_and_sum(conn) == (3, 6.0)
     finally:
         conn.close()
-
-
-# --- タスク 5: ディレクトリの走査 --------------------------------------------
 
 
 def _copy_fixture(tmp_path, src_name: str, dest_name: Optional[str] = None) -> None:
@@ -318,7 +307,7 @@ def _write_daily_a_doubled(tmp_path) -> None:
 
 
 def test_scan_processes_all_files_in_directory(sqlite_db_dsn, tmp_path):
-    """5-1: daily_a / daily_b を置いて 1 回押すと、2 本とも処理され COUNT=5・SUM=15.0・2 件返る。"""
+    """daily_a / daily_b を置いて 1 回押すと、2 本とも処理され COUNT=5・SUM=15.0・2 件返る。"""
     db.init()
     conn = db.connect()
     try:
@@ -334,7 +323,7 @@ def test_scan_processes_all_files_in_directory(sqlite_db_dsn, tmp_path):
 
 
 def test_scan_repeated_call_same_result(sqlite_db_dsn, tmp_path):
-    """5-2: 5-1 の直後に同じ状態でもう 1 度押しても結果が変わらない。"""
+    """直後に同じ状態でもう 1 度押しても結果が変わらない。"""
     db.init()
     conn = db.connect()
     try:
@@ -351,7 +340,7 @@ def test_scan_repeated_call_same_result(sqlite_db_dsn, tmp_path):
 
 
 def test_scan_three_files_order_independent_forward(sqlite_db_dsn, tmp_path):
-    """5-3: daily_a / daily_b / weekly の 3 本を置いて押すと COUNT=6・SUM=21.0・3 件、day=20635 は 6.0。"""
+    """daily_a / daily_b / weekly の 3 本を置いて押すと COUNT=6・SUM=21.0・3 件、day=20635 は 6.0。"""
     db.init()
     conn = db.connect()
     try:
@@ -369,7 +358,7 @@ def test_scan_three_files_order_independent_forward(sqlite_db_dsn, tmp_path):
 
 
 def test_scan_three_files_order_independent_reversed(sqlite_db_dsn, tmp_path):
-    """5-4: 同じ 3 本を作成順を入れ替えて置いても、結果は 5-3 と変わらない。"""
+    """同じ 3 本を作成順を入れ替えて置いても、結果は変わらない。"""
     db.init()
     conn = db.connect()
     try:
@@ -387,7 +376,7 @@ def test_scan_three_files_order_independent_reversed(sqlite_db_dsn, tmp_path):
 
 
 def test_scan_replacement_file_doubles_cost(sqlite_db_dsn, tmp_path):
-    """5-5: daily_a をコスト 2 倍の訂正版に差し替えて押すと、その日の SUM(cost) だけが 2 倍になる。"""
+    """daily_a をコスト 2 倍の訂正版に差し替えて押すと、その日の SUM(cost) だけが 2 倍になる。"""
     db.init()
     conn = db.connect()
     try:
@@ -404,7 +393,7 @@ def test_scan_replacement_file_doubles_cost(sqlite_db_dsn, tmp_path):
 
 
 def test_scan_ignores_non_csv_files(sqlite_db_dsn, tmp_path):
-    """5-6: `.txt` や拡張子なしのファイルが混在しても `.csv` だけが処理される。"""
+    """`.txt` や拡張子なしのファイルが混在しても `.csv` だけが処理される。"""
     db.init()
     conn = db.connect()
     try:
@@ -422,7 +411,7 @@ def test_scan_ignores_non_csv_files(sqlite_db_dsn, tmp_path):
 
 
 def test_scan_missing_directory_returns_empty(sqlite_db_dsn, tmp_path):
-    """5-7: ディレクトリが存在しなければ 0 件を返し、例外を投げない。"""
+    """ディレクトリが存在しなければ 0 件を返し、例外を投げない。"""
     db.init()
     conn = db.connect()
     try:
@@ -434,9 +423,6 @@ def test_scan_missing_directory_returns_empty(sqlite_db_dsn, tmp_path):
         assert _count_and_sum(conn) == (0, None)
     finally:
         conn.close()
-
-
-# --- タスク 6: 取込の最後に統計情報を更新する --------------------------------
 
 
 def _has_cost_daily_stats(conn) -> bool:
@@ -452,7 +438,7 @@ def _has_cost_daily_stats(conn) -> bool:
 
 
 def test_analyze_called_after_import(sqlite_db_dsn, tmp_path):
-    """6-1: 取込の前には統計情報が無く、後には在る。"""
+    """取込の前には統計情報が無く、後には在る。"""
     db.init()
     conn = db.connect()
     try:
@@ -467,7 +453,7 @@ def test_analyze_called_after_import(sqlite_db_dsn, tmp_path):
 
 
 def test_analyze_called_on_reimport_no_change(sqlite_db_dsn, tmp_path):
-    """6-2: 直後にもう 1 度取り込んでも例外にならず、COUNT(*)・SUM(cost) が変わらない。"""
+    """直後にもう 1 度取り込んでも例外にならず、COUNT(*)・SUM(cost) が変わらない。"""
     db.init()
     conn = db.connect()
     try:
@@ -481,7 +467,7 @@ def test_analyze_called_on_reimport_no_change(sqlite_db_dsn, tmp_path):
 
 
 def test_analyze_called_with_empty_directory(sqlite_db_dsn, tmp_path, monkeypatch):
-    """6-3: `.csv` が 1 本も無くても例外にならず、0 件を返し db.analyze() は呼ばれる。"""
+    """`.csv` が 1 本も無くても例外にならず、0 件を返し db.analyze() は呼ばれる。"""
     db.init()
     conn = db.connect()
     calls = []
@@ -493,9 +479,6 @@ def test_analyze_called_with_empty_directory(sqlite_db_dsn, tmp_path, monkeypatc
         assert calls == [conn]
     finally:
         conn.close()
-
-
-# --- タスク 7: POST /import と画面のボタン -----------------------------------
 
 
 @pytest.fixture
@@ -512,7 +495,7 @@ def import_client(sqlite_db_dsn, tmp_path):
     os.environ["CSV_DIR"] = str(tmp_path)
     try:
         importlib.reload(app_module)
-        yield app_module.app.test_client()
+        yield admin_client(app_module.app)
     finally:
         if original_csv_dir is None:
             os.environ.pop("CSV_DIR", None)
@@ -521,8 +504,8 @@ def import_client(sqlite_db_dsn, tmp_path):
 
 
 def test_post_import_processes_csv_dir_and_reports_files(import_client):
-    """7-1: `POST /import` で CSV_DIR の全ファイルが処理され、応答にファイル名と行数が含まれる。"""
-    response = import_client.post("/import")
+    """`POST /import` で CSV_DIR の全ファイルが処理され、応答にファイル名と行数が含まれる。"""
+    response = import_client.post(ADMIN + "/import")
     assert response.status_code == 200
     body = response.get_data(as_text=True)
     assert "daily_a.csv" in body
@@ -530,9 +513,9 @@ def test_post_import_processes_csv_dir_and_reports_files(import_client):
 
 
 def test_post_import_twice_gives_same_result(import_client):
-    """7-2: 2 回続けて送っても同じファイル名・行数が返り、SUM(cost) が変わらない。"""
-    first = import_client.post("/import").get_data(as_text=True)
-    second = import_client.post("/import").get_data(as_text=True)
+    """2 回続けて送っても同じファイル名・行数が返り、SUM(cost) が変わらない。"""
+    first = import_client.post(ADMIN + "/import").get_data(as_text=True)
+    second = import_client.post(ADMIN + "/import").get_data(as_text=True)
     assert first == second
 
     conn = db.connect()
@@ -543,13 +526,36 @@ def test_post_import_twice_gives_same_result(import_client):
 
 
 def test_get_import_is_method_not_allowed(import_client):
-    """7-3: `GET /import` は 405。"""
-    response = import_client.get("/import")
+    """`GET /import` は 405。"""
+    response = import_client.get(ADMIN + "/import")
     assert response.status_code == 405
 
 
+def test_post_import_without_csv_dir_imports_nothing(
+    sqlite_db_dsn, tmp_path, monkeypatch
+):
+    """`CSV_DIR` が未設定なら、起動ディレクトリの CSV を読まず、未設定であることを画面に出す。"""
+    import importlib
+
+    import app as app_module
+
+    _copy_fixture(tmp_path, "daily_a.csv")
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.delenv("CSV_DIR", raising=False)
+    importlib.reload(app_module)
+
+    body = admin_client(app_module.app).post(ADMIN + "/import").get_data(as_text=True)
+    assert "未設定のため取り込まなかった" in body
+    assert "daily_a.csv" not in body
+    conn = db.connect()
+    try:
+        assert _count_and_sum(conn)[0] == 0
+    finally:
+        conn.close()
+
+
 def test_form_action_follows_base_path(sqlite_db_dsn):
-    """7-4: `BASE_PATH` を与えた状態で `/` を描画すると、フォームの action が BASE_PATH を含む。"""
+    """`BASE_PATH` を与えた状態で概況画面を描画すると、フォームの action が BASE_PATH を含む。"""
     import importlib
 
     import app as app_module
@@ -558,10 +564,10 @@ def test_form_action_follows_base_path(sqlite_db_dsn):
     os.environ["BASE_PATH"] = "/gov/cc"
     try:
         importlib.reload(app_module)
-        client = app_module.app.test_client()
-        response = client.get("/gov/cc")
+        client = admin_client(app_module.app)
+        response = client.get("/gov/cc" + ADMIN)
         body = response.get_data(as_text=True)
-        assert "/gov/cc/import" in body
+        assert "/gov/cc" + ADMIN + "/import" in body
     finally:
         if original_base_path is None:
             os.environ.pop("BASE_PATH", None)
@@ -570,13 +576,12 @@ def test_form_action_follows_base_path(sqlite_db_dsn):
         importlib.reload(app_module)
 
 
-# --- タスク 8: フレームワークの import が app.py だけに現れることの検査 -------
-
 _FRAMEWORK_IMPORT_RE = re.compile(
     r"^\s*(import|from)\s+(flask|werkzeug|jinja2|waitress)\b", re.IGNORECASE
 )
 
 _SERVER_DIR = Path(__file__).parent.parent
+_WEB_DIR = _SERVER_DIR / "ccgov" / "web"
 
 
 def _framework_import_lines(path: Path) -> list:
@@ -585,21 +590,24 @@ def _framework_import_lines(path: Path) -> list:
     return [line for line in lines if _FRAMEWORK_IMPORT_RE.match(line)]
 
 
-def test_framework_import_appears_only_in_app_py():
-    """8-1: `app.py` を除く `*.py` にフレームワーク名の import が現れない。"""
+def test_framework_import_appears_only_in_web_package():
+    """`ccgov/web/` を除く `*.py` にフレームワーク名の import が現れない。"""
+    paths = [*_SERVER_DIR.glob("*.py"), *(_SERVER_DIR / "ccgov").rglob("*.py")]
     offenders = {}
-    for path in _SERVER_DIR.glob("*.py"):
-        if path.name == "app.py":
+    for path in paths:
+        if _WEB_DIR in path.parents:
             continue
         hits = _framework_import_lines(path)
         if hits:
-            offenders[path.name] = hits
+            offenders[str(path.relative_to(_SERVER_DIR))] = hits
     assert offenders == {}
 
 
 def test_csv_import_has_no_flask_import():
-    """8-2: `csv_import.py` に flask の import が無い（この計画の成果物を名指しで守る）。"""
-    hits = _framework_import_lines(_SERVER_DIR / "csv_import.py")
+    """`csv_import.py` に flask の import が無い。"""
+    hits = _framework_import_lines(
+        _SERVER_DIR / "ccgov" / "ingestion" / "csv_import.py"
+    )
     assert hits == []
 
 
@@ -625,11 +633,8 @@ def test_scan_skips_file_with_missing_required_column(sqlite_db_dsn, tmp_path):
         conn.close()
 
 
-# --- レビュー対応: I-1 --------------------------------------------------------
-
-
 def test_overview_shows_error_for_failed_file(sqlite_db_dsn, tmp_path):
-    """I-1: 失敗したファイルの `error` が画面（テンプレート）に表示される。"""
+    """失敗したファイルの `error` が画面（テンプレート）に表示される。"""
     import importlib
 
     _copy_fixture(tmp_path, "daily_a.csv", "a_good.csv")
@@ -643,12 +648,11 @@ def test_overview_shows_error_for_failed_file(sqlite_db_dsn, tmp_path):
     os.environ["CSV_DIR"] = str(tmp_path)
     try:
         importlib.reload(app_module)
-        client = app_module.app.test_client()
-        response = client.post("/import")
+        client = admin_client(app_module.app)
+        response = client.post(ADMIN + "/import")
         body = response.get_data(as_text=True)
         assert "a_good.csv" in body
         assert "z_unrelated.csv" in body
-        # 失敗したファイルの行に「必須列が欠けている」という error 文言が出ていること
         unrelated_line = next(
             line for line in body.splitlines() if "z_unrelated.csv" in line
         )
@@ -661,11 +665,8 @@ def test_overview_shows_error_for_failed_file(sqlite_db_dsn, tmp_path):
         importlib.reload(app_module)
 
 
-# --- レビュー対応: I-2 --------------------------------------------------------
-
-
 def test_scan_continues_when_one_file_is_unreadable(sqlite_db_dsn, tmp_path):
-    """I-2: 読めないファイル（OSError）が 1 本混在しても、走査全体が落ちず他ファイルは取り込まれる。"""
+    """読めないファイル（OSError）が 1 本混在しても、走査全体が落ちず他ファイルは取り込まれる。"""
     _copy_fixture(tmp_path, "daily_a.csv", "a_good.csv")
     bad_path = tmp_path / "z_bad.csv"
     bad_path.write_bytes(b"Date,Cost\r\n2026-07-01,1.0\r\n")
@@ -688,11 +689,8 @@ def test_scan_continues_when_one_file_is_unreadable(sqlite_db_dsn, tmp_path):
         conn.close()
 
 
-# --- レビュー対応: R-39 -------------------------------------------------------
-
-
 def test_bom_prefixed_utf8_csv_is_read(sqlite_db_dsn):
-    """R-39: BOM 付き UTF-8 の CSV でもヘッダが正しく解決され、取り込める。"""
+    """BOM 付き UTF-8 の CSV でもヘッダが正しく解決され、取り込める。"""
     db.init()
     conn = db.connect()
     try:
@@ -703,11 +701,8 @@ def test_bom_prefixed_utf8_csv_is_read(sqlite_db_dsn):
         conn.close()
 
 
-# --- レビュー対応: M-3 --------------------------------------------------------
-
-
 def test_slash_format_file_reaches_day_via_import_file(sqlite_db_dsn):
-    """M-3: スラッシュ書式（slash.csv）が import_file を通って cost_daily の day まで届く。"""
+    """スラッシュ書式（slash.csv）が import_file を通って cost_daily の day まで届く。"""
     db.init()
     conn = db.connect()
     try:

@@ -1,4 +1,6 @@
 target-version = "py39"
+# ccgov/vendor/ は親リポジトリの scripts/sync_contract.py の生成物であり、直接編集しない。
+extend-exclude = ["ccgov/vendor"]
 
 [lint]
 ignore = ["FA100"]

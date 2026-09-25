@@ -1,8 +1,4 @@
-"""`/effect` 効果測定（`queries_policy.event_study` / `compliance_start_dates` /
-
-`context_distribution`）を、この画面専用の既知データで検証する。共通 fixture
-（`test_fixtures.known_db`）は相対日が足りないため使わない。
-"""
+"""`/effect` の集計を専用の既知データで検証する。共通の `known_db` は相対日が足りないため使わない。"""
 
 import pytest
 from test_fixtures import (
@@ -13,15 +9,14 @@ from test_fixtures import (
     insert_policy_state,
 )
 
-import db
-import queries_policy
+from ccgov.store import db, queries_policy
 
 K = "env.CLAUDE_AUTOCOMPACT_PCT_OVERRIDE"
 
 
 @pytest.fixture
 def effect_db(sqlite_db_dsn):
-    """タスク 5 専用の既知データ（`policy_state` 4 行・`cost_daily` 10 行）を投入した接続。"""
+    """この画面専用の既知データ（`policy_state` 4 行・`cost_daily` 10 行）を投入した接続。"""
     db.init()
     conn = db.connect()
     policy_rows = [
@@ -76,7 +71,7 @@ def test_compliance_start_dates(effect_db):
 
 
 def test_event_study_expected_values(effect_db):
-    """brief の期待値の表（相対日ごとの分母・1 人あたりコスト・入力トークン）と一致する。"""
+    """期待値の表（相対日ごとの分母・1 人あたりコスト・入力トークン）と一致する。"""
     rows = {
         r[0]: (r[1], r[2], r[3])
         for r in queries_policy.event_study(effect_db, K, "60", "aws-bedrock")
@@ -95,7 +90,7 @@ def test_event_study_expected_values(effect_db):
 
 
 def test_event_study_fills_zero_for_unused_days(effect_db):
-    """規約1: 相対日 -2（両者とも行が無い）でも分母 2・値 0.0 の行が出る（行が消えない・分母 0 で落ちない）。"""
+    """相対日 -2（両者とも行が無い）でも分母 2・値 0.0 の行が出る（行が消えない・分母 0 で落ちない）。"""
     rows = {
         r[0]: r[1:]
         for r in queries_policy.event_study(effect_db, K, "60", "aws-bedrock")
@@ -104,7 +99,7 @@ def test_event_study_fills_zero_for_unused_days(effect_db):
 
 
 def test_event_study_relative_day_zero_excluded(effect_db):
-    """規約2: 相対日 0 が出力に含まれず、8.5 という値もどの行にも現れない。"""
+    """相対日 0 が出力に含まれず、8.5 という値もどの行にも現れない。"""
     rows = queries_policy.event_study(effect_db, K, "60", "aws-bedrock")
     assert all(r[0] != 0 for r in rows)
     assert all(r[2] != 8.5 for r in rows)
@@ -123,7 +118,7 @@ def test_event_study_filters_by_provider(effect_db):
     }
     assert rows[1][2] == 1.5
 
-    # 対照実験: provider を絞らずに集計すると 99.0 が混じり、値が変わる
+    # 対照実験: provider を絞らないと 99.0 が混じる
     cur = effect_db.cursor()
     cur.execute(
         "SELECT SUM(cost) FROM cost_daily WHERE user_email = 'u1' AND day = 20011"
@@ -135,9 +130,7 @@ def test_event_study_filters_by_provider(effect_db):
 
 
 def test_event_study_survives_null_cost_row(effect_db):
-    """AI Gateway CSV の Cost 欄が空だった行（`cost IS NULL`）が `cost_daily` に混じっても
-    `event_study` は例外にならず、その相対日は 0 として数える（Imp-1）。
-    """
+    """Cost 欄が空の行（`cost IS NULL`）が混じっても `event_study` は例外にならず、その相対日は 0 と数える。"""
     insert_cost_daily(
         effect_db,
         day=20013,
@@ -154,8 +147,9 @@ def test_event_study_survives_null_cost_row(effect_db):
 
 
 def test_event_study_unchanged_after_duplicate_injection(effect_db):
-    """`policy_state` と `events` を複製しても、準拠開始日・分母・値は変化しない
-    （`cost_daily` は event_id を持たないため複製対象に含めない。§5.4 の対象外）。
+    """`policy_state` と `events` を複製しても、準拠開始日・分母・値は変化しない。
+
+    `cost_daily` は event_id を持たないため複製しない。
     """
     before = queries_policy.event_study(effect_db, K, "60", "aws-bedrock")
     duplicate_policy_state(effect_db)
@@ -278,13 +272,11 @@ def test_context_distribution_second_change_has_both_sides(sqlite_db_dsn):
         after_dup = compute()
         assert before_dup == after_dup
 
-        # 対照実験: COUNT(*) 相当（distinct を通さない）にした場合は重複後に度数が 2 倍になる
+        # 対照実験: distinct を通さないと重複後に度数が 2 倍になる
         cur = conn.cursor()
         cur.execute(
             "SELECT COUNT(*) FROM events WHERE hook_event = 'PreCompact' AND context_tokens = 90000"
         )
-        assert (
-            cur.fetchone()[0] == 2
-        )  # 複製後は 2 件（正しい実装は distinct で 1 件のまま）
+        assert cur.fetchone()[0] == 2
     finally:
         conn.close()

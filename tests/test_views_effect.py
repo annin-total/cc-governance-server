@@ -2,10 +2,10 @@
 
 import importlib
 
+from conftest import ADMIN, admin_client
 from test_fixtures import insert_event, insert_policy_state
 
-import db
-import queries_policy
+from ccgov.store import db, queries_policy
 
 K = "env.CLAUDE_AUTOCOMPACT_PCT_OVERRIDE"
 
@@ -65,8 +65,8 @@ def test_effect_page_row_count_matches_query(sqlite_db_dsn):
     import app as app_module
 
     importlib.reload(app_module)
-    client = app_module.app.test_client()
-    response = client.get("/effect")
+    client = admin_client(app_module.app)
+    response = client.get(ADMIN + "/effect")
     assert response.status_code == 200
     html = response.get_data(as_text=True)
 
@@ -120,7 +120,7 @@ def test_effect_page_shows_no_data_for_first_rollout_before_side(sqlite_db_dsn):
     import app as app_module
 
     importlib.reload(app_module)
-    client = app_module.app.test_client()
-    html = client.get("/effect").get_data(as_text=True)
+    client = admin_client(app_module.app)
+    html = client.get(ADMIN + "/effect").get_data(as_text=True)
     assert "準拠前: データなし" in html
     assert 'data-testid="context-precompact-before"' not in html

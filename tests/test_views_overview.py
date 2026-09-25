@@ -6,6 +6,7 @@ import importlib
 import re
 
 import pytest
+from conftest import ADMIN, admin_client
 from test_fixtures import (
     TODAY,
     known_db,  # noqa: F401
@@ -16,10 +17,11 @@ from test_fixtures import (
 def overview_client(known_db, monkeypatch):
     """`known_db` と同じ DB_DSN を指す `app` を読み込み、基準日を固定したテストクライアントを返す。"""
     import app as app_module
+    from ccgov.web import admin
 
     importlib.reload(app_module)
-    monkeypatch.setattr(app_module.time, "time", lambda: TODAY * 86400)
-    return app_module.app.test_client()
+    monkeypatch.setattr(admin.time, "time", lambda: TODAY * 86400)
+    return admin_client(app_module.app)
 
 
 def _rows_in_table(html: str, testid: str) -> list:
@@ -39,7 +41,7 @@ def _table_body(html: str, testid: str) -> str:
 
 
 def _tile(html: str, label: str) -> str:
-    """`label` を含む `.tile` の DOM 断片を返す（タイル化された KPI の検査に使う）。"""
+    """`label` を含む `.tile` の DOM 断片を返す。"""
     for block in re.findall(r'<div class="tile">.*?</div>', html, re.DOTALL):
         if f">{label}<" in block:
             return block
@@ -47,15 +49,15 @@ def _tile(html: str, label: str) -> str:
 
 
 def test_overview_page_returns_200(overview_client):
-    """`/` が 200 で応答する（既存の取込ボタンを含む）。"""
-    response = overview_client.get("/")
+    """`/` が 200 で応答する（取込ボタンを含む）。"""
+    response = overview_client.get(ADMIN + "/")
     assert response.status_code == 200
     assert "CSV を取り込む" in response.get_data(as_text=True)
 
 
 def test_health_line_shows_event_and_terminal_counts(overview_client):
     """健全性のタイルに、イベント数・送信端末数の直近7日の値が読める。"""
-    html = overview_client.get("/").get_data(as_text=True)
+    html = overview_client.get(ADMIN + "/").get_data(as_text=True)
     events_tile = _tile(html, "イベント")
     assert "<b>13</b>" in events_tile
 
@@ -65,14 +67,14 @@ def test_health_line_shows_event_and_terminal_counts(overview_client):
 
 def test_health_line_shows_all_four_null_rates(overview_client):
     """NULL 率が 4 列とも出る。"""
-    html = overview_client.get("/").get_data(as_text=True)
+    html = overview_client.get(ADMIN + "/").get_data(as_text=True)
     for label in ["tool_name", "skill_name", "context_tokens", "command_source"]:
         assert label in html
 
 
 def test_health_line_shows_reconciliation_and_plugin_versions(overview_client):
     """突合率と plugin_version の分布が出る。plugin_version は版・台数を表の行として持つ。"""
-    html = overview_client.get("/").get_data(as_text=True)
+    html = overview_client.get(ADMIN + "/").get_data(as_text=True)
     assert "75.0%" in html
 
     body = _table_body(html, "plugin-version-distribution")
@@ -87,7 +89,7 @@ def test_health_line_shows_reconciliation_and_plugin_versions(overview_client):
 
 def test_daily_cost_table_row_count(overview_client):
     """コスト推移の表の行数が 7（aws-bedrock 6 行 + openai 1 行）。"""
-    html = overview_client.get("/").get_data(as_text=True)
+    html = overview_client.get(ADMIN + "/").get_data(as_text=True)
     rows = _rows_in_table(html, "daily-cost")
     assert len(rows) == 7
     assert "aws-bedrock" in html
@@ -96,6 +98,6 @@ def test_daily_cost_table_row_count(overview_client):
 
 def test_permission_mode_distribution_row_count(overview_client):
     """`permission_mode` 分布の表の行数が 3。"""
-    html = overview_client.get("/").get_data(as_text=True)
+    html = overview_client.get(ADMIN + "/").get_data(as_text=True)
     rows = _rows_in_table(html, "permission-mode-distribution")
     assert len(rows) == 3

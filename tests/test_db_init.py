@@ -1,6 +1,6 @@
 """`db.init()` の DDL 適用とインデックス作成（冪等性を含む）を確かめる。"""
 
-import db
+from ccgov.store import db
 
 _EXPECTED_INDEX_NAMES = [
     "ix_cost_daily_day_user_email",
