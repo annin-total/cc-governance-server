@@ -6,7 +6,7 @@ from ccgov.constants import (
     POLICY_DAYS,
     STALE_DAYS,
 )
-from ccgov.store import db
+from ccgov.store import db, queries_events
 
 _LATEST_VALUES_SQL = (
     "SELECT user_email, host, prev_value, day, ts FROM ("
@@ -21,6 +21,12 @@ def _window_start(today: int) -> int:
     return today - POLICY_DAYS + 1
 
 
+def _cost_window_start(conn, today: int) -> int:
+    """`cost_daily` を数える窓の始端。終端は `queries_events.cost_window_end`（空なら `today`）。"""
+    end = queries_events.cost_window_end(conn, today)
+    return _window_start(today if end is None else end)
+
+
 def latest_values(conn, today: int, key_name: str) -> list:
     """`POLICY_DAYS` 日の窓で、端末ごとの `ts` が最新の 1 行を返す。"""
     cur = conn.cursor()
@@ -29,11 +35,11 @@ def latest_values(conn, today: int, key_name: str) -> list:
 
 
 def _distinct_users_with_cost(conn, today: int) -> set:
-    """直近 `POLICY_DAYS` 日に `cost_daily` へコストが立っている `user_email` の集合。"""
+    """`POLICY_DAYS` 日の窓で `cost_daily` へコストが立っている `user_email` の集合。"""
     cur = conn.cursor()
     cur.execute(
         db.q("SELECT DISTINCT user_email FROM cost_daily WHERE day >= ?"),
-        (_window_start(today),),
+        (_cost_window_start(conn, today),),
     )
     return {row[0] for row in cur.fetchall()}
 
@@ -64,7 +70,10 @@ def non_compliant(conn, today: int, key_name: str, expected_value: str) -> list:
 
 
 def not_introduced(conn, today: int) -> list:
-    """直近 `POLICY_DAYS` 日に `cost_daily` に居て、同期間の `policy_state` に行が無い利用者。"""
+    """`POLICY_DAYS` 日の窓で `cost_daily` に居て、直近 `POLICY_DAYS` 日の `policy_state` に行が無い利用者。
+
+    `cost_daily` 側の窓だけ終端を `queries_events.cost_window_end` にする。
+    """
     cur = conn.cursor()
     cur.execute(
         db.q(
@@ -75,7 +84,7 @@ def not_introduced(conn, today: int) -> list:
             ") p ON c.user_email = p.user_email"
             " WHERE p.user_email IS NULL ORDER BY c.user_email"
         ),
-        (_window_start(today), _window_start(today)),
+        (_cost_window_start(conn, today), _window_start(today)),
     )
     return cur.fetchall()
 
