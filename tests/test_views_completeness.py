@@ -1,11 +1,6 @@
-"""画面が集計結果を取りこぼしていないことの検査。
+"""ビューが渡した変数をテンプレートがすべて参照しているかの検査（表示漏れの検出）。
 
-ビューが `render_template` に渡したキーの集合と、テンプレート（継承元・import 先を含む）が
-実際に参照している変数名の集合を突き合わせる。渡しているのに一度も参照していない変数があれば
-「集計したが画面に出していない」ということであり、表示漏れとして落とす。
-
-テンプレートを描画せずに AST から参照名を取るため、条件分岐で出ない枝も参照として数える。
-値の有無ではなく「画面がその変数を知っているか」を見る検査である。
+テンプレートの AST から参照名を取るため、条件分岐で出ない枝も参照として数える。
 """
 
 # ruff: noqa: F811
@@ -20,8 +15,7 @@ from test_fixtures import (
     known_db,  # noqa: F401
 )
 
-# ビューが常に渡すが、対応する表示が別の変数に埋め込まれる、または描画に使わないキー。
-# 空にしておき、例外を作るときは理由をコメントで残す。
+# 渡すが描画に使わないキー。足すときは理由をコメントで残す。
 _ALLOWED_UNUSED = set()
 
 
@@ -29,9 +23,10 @@ _ALLOWED_UNUSED = set()
 def app_module(known_db, monkeypatch):
     """基準日を固定した `app` モジュールを返す。"""
     import app as module
+    from ccgov.web import admin
 
     importlib.reload(module)
-    monkeypatch.setattr(module.time, "time", lambda: TODAY * 86400)
+    monkeypatch.setattr(admin.time, "time", lambda: TODAY * 86400)
     return module
 
 
@@ -44,7 +39,9 @@ def _capture_context(module, monkeypatch, path):
         captured["keys"] = set(context)
         return ""
 
-    monkeypatch.setattr(module, "render_template", _fake_render)
+    from ccgov.web import admin
+
+    monkeypatch.setattr(admin, "render_template", _fake_render)
     response = admin_client(module.app).get(ADMIN + path)
     assert response.status_code == 200, f"{path} が 200 で返らない"
     assert captured, f"{path} が render_template を呼んでいない"

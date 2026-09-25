@@ -1,8 +1,4 @@
-"""管理画面のアクセス制御（`ADMIN_PATH` の下に置くことと Basic 認証）の検証。
-
-`ADMIN_PATH` と `ADMIN_PASSWORD` は `app` の import 時に読まれるため、ケースごとに
-`importlib.reload` する。既定値は `conftest.py` が与える（`adm` と `pw`）。
-"""
+"""管理画面のアクセス制御（`ADMIN_PATH` と Basic 認証）の検証。設定は import 時に読まれるため reload する。"""
 
 import importlib
 import json

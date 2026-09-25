@@ -1,7 +1,4 @@
-"""受信 (`POST /ingest`) から保存までを HTTP 越しに確かめる往復テスト。
-
-応答ではなくテーブルの中身を直接読み、値・`day` の再計算・重複の入り方を突き合わせる。
-"""
+"""`POST /ingest` から保存までの往復テスト。応答ではなくテーブルの中身を直接読む。"""
 
 import importlib
 import json
@@ -69,7 +66,7 @@ def _post(client):
 
 def _row(sql: str) -> tuple:
     """一時 DB に対して 1 行を返す SQL を実行し、その行を返す。"""
-    import db
+    from ccgov.store import db
 
     conn = db.connect()
     try:
@@ -81,7 +78,7 @@ def _row(sql: str) -> tuple:
 
 
 def test_single_post_stores_expected_rows(ingest_client):
-    """# 1: 1 回 POST した内容が、値・`day` の再計算とも期待どおりに保存される。"""
+    """1 回 POST した内容が、値・`day` の再計算とも期待どおりに保存される。"""
     response = _post(ingest_client)
     assert response.status_code == 200
 
@@ -102,7 +99,7 @@ def test_single_post_stores_expected_rows(ingest_client):
 
 
 def test_repeated_post_duplicates_rows_not_distinct_event_ids(ingest_client):
-    """# 2: 同じボディを 2 回 POST すると行は増えるが `COUNT(DISTINCT event_id)` は増えない。"""
+    """同じボディを 2 回 POST すると行は増えるが `COUNT(DISTINCT event_id)` は増えない。"""
     _post(ingest_client)
     response = _post(ingest_client)
     assert response.status_code == 200

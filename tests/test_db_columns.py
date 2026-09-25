@@ -1,12 +1,11 @@
 """`db.init()` が契約と実テーブルの列を突き合わせることを確かめる。
 
-契約の定数は import 時に db の名前空間へ束縛されるため、差し替えは
-`monkeypatch.setattr(db, "HOOK_FIELDS", ...)` のように db 側の名前を書き換える。
+契約の定数は import 時に db の名前空間へ束縛されるため、差し替えは db 側の名前を書き換える。
 """
 
 import pytest
 
-import db
+from ccgov.store import db
 
 
 def test_missing_hook_field_column_raises_with_table_and_column(

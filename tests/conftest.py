@@ -11,9 +11,10 @@ import pytest
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-# `app` は import の時点でこの 2 つを要求する。テストでは固定のダミー値を使う。
+# `app` は import の時点でこの 3 つを要求する。テストでは固定のダミー値を使う。
 os.environ["ADMIN_PATH"] = "adm"
 os.environ["ADMIN_PASSWORD"] = "pw"
+os.environ["INGEST_TOKEN"] = "tok"
 ADMIN = "/adm"
 
 

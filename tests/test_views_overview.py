@@ -17,9 +17,10 @@ from test_fixtures import (
 def overview_client(known_db, monkeypatch):
     """`known_db` と同じ DB_DSN を指す `app` を読み込み、基準日を固定したテストクライアントを返す。"""
     import app as app_module
+    from ccgov.web import admin
 
     importlib.reload(app_module)
-    monkeypatch.setattr(app_module.time, "time", lambda: TODAY * 86400)
+    monkeypatch.setattr(admin.time, "time", lambda: TODAY * 86400)
     return admin_client(app_module.app)
 
 
@@ -40,7 +41,7 @@ def _table_body(html: str, testid: str) -> str:
 
 
 def _tile(html: str, label: str) -> str:
-    """`label` を含む `.tile` の DOM 断片を返す（タイル化された KPI の検査に使う）。"""
+    """`label` を含む `.tile` の DOM 断片を返す。"""
     for block in re.findall(r'<div class="tile">.*?</div>', html, re.DOTALL):
         if f">{label}<" in block:
             return block
@@ -48,7 +49,7 @@ def _tile(html: str, label: str) -> str:
 
 
 def test_overview_page_returns_200(overview_client):
-    """`/` が 200 で応答する（既存の取込ボタンを含む）。"""
+    """`/` が 200 で応答する（取込ボタンを含む）。"""
     response = overview_client.get(ADMIN + "/")
     assert response.status_code == 200
     assert "CSV を取り込む" in response.get_data(as_text=True)

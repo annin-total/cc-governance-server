@@ -1,4 +1,4 @@
-"""`/` 概況画面の健全性の 1 行（`queries_events.health_counts` / `reconciliation_rate`）を検証する。
+"""概況画面の健全性（`health_counts` / `reconciliation_rate`）の検証。
 
 基準日は 20005。直近 7 日は `day >= 19999`、前 7 日は `19992..19998`。
 """
@@ -12,7 +12,7 @@ from test_fixtures import (
     known_db,  # noqa: F401
 )
 
-import queries_events
+from ccgov.store import queries_events
 
 
 def test_health_counts_recent_window(known_db):
@@ -49,12 +49,10 @@ def test_health_counts_unchanged_after_duplicate_injection(known_db):
 
 
 def test_health_counts_null_rate_count_star_would_exceed_100_percent(known_db):
-    """NULL 率の分子を `COUNT(*)` にした場合、重複注入後に `skill_name` の NULL 率が 100% を超える。
+    """NULL 率の分子を `COUNT(*)` にすると、重複注入後に `skill_name` の NULL 率が 100% を超える。
 
-    `tool_name` は NULL の行が半数に満たないため 100% を超えず、この誤りを捕まえられない。
-    検証には `skill_name` を使う（brief の指示どおり）。
+    `tool_name` は NULL の行が半数に満たず 100% を超えないため、`skill_name` で確かめる。
     """
-    # 素の COUNT(*) 版（誤実装の対照）を直接 SQL で再現する
     from test_fixtures import duplicate_events
 
     duplicate_events(known_db)
@@ -66,13 +64,11 @@ def test_health_counts_null_rate_count_star_would_exceed_100_percent(known_db):
     )
     events, null_count_star = cur.fetchone()
     naive_rate = round(null_count_star / events * 100, 1)
-    assert naive_rate == 138.5  # 分子だけ COUNT(*) にすると重複で 100% を超える
+    assert naive_rate == 138.5
     assert naive_rate > 100.0
 
     correct = queries_events.health_counts(known_db, TODAY)
-    assert (
-        correct["recent"]["null_rates"]["skill_name"] == 69.2
-    )  # 正しい実装は変化しない
+    assert correct["recent"]["null_rates"]["skill_name"] == 69.2
     assert correct["recent"]["null_rates"]["skill_name"] <= 100.0
 
 

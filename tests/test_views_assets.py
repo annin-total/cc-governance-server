@@ -12,16 +12,17 @@ from test_fixtures import (
     known_db,  # noqa: F401
 )
 
-import db
+from ccgov.store import db
 
 
 @pytest.fixture
 def assets_client(known_db, monkeypatch):
     """`known_db` と同じ DB_DSN を指す `app` を読み込み、基準日を固定したテストクライアントを返す。"""
     import app as app_module
+    from ccgov.web import admin
 
     importlib.reload(app_module)
-    monkeypatch.setattr(app_module.time, "time", lambda: TODAY * 86400)
+    monkeypatch.setattr(admin.time, "time", lambda: TODAY * 86400)
     return admin_client(app_module.app)
 
 

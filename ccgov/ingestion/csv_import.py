@@ -1,4 +1,4 @@
-"""AI Gateway CSV を day 単位で冪等に取り込む。フレームワークを import しない。"""
+"""AI Gateway CSV を day 単位で冪等に取り込む。"""
 
 import csv
 import glob
@@ -6,19 +6,18 @@ import os
 from datetime import date
 from typing import Optional
 
-import db
-from contract import CSV_COLUMNS, coerce
+from ccgov.store import db
+from ccgov.vendor.contract import CSV_COLUMNS, coerce
 
 _EPOCH = date(1970, 1, 1)
 
-# CSV ヘッダ名 -> (DB 列名, 型)。source_file はヘッダを持たないため対象外
+# source_file はヘッダを持たないため対象外
 _HEADER_TO_COLUMN = {
     header: (db_name, type_str)
     for header, db_name, type_str in CSV_COLUMNS
     if header is not None
 }
 
-# cost_daily の列名（契約の並び順のまま）
 _DB_COLUMNS = tuple(db_name for _, db_name, _ in CSV_COLUMNS)
 
 
@@ -63,17 +62,16 @@ def _extract_row(row: list, index_by_header: dict, source_file: str) -> Optional
 
 
 def _read_csv_rows(path: str) -> list:
-    """CRLF・UTF-8（BOM 付きも可）の CSV を行のリストとして読む。"""
-    # utf-8-sig: Excel で出し直すと BOM が付き、BOM を剥がさないと先頭の列名が
-    # 一致せず全行が捨てられる。BOM 無しもそのまま読める。
+    """CSV を行のリストとして読む。"""
+    # utf-8-sig: Excel で出し直すと BOM が付き、剥がさないと先頭の列名が一致せず全行が捨てられる。
     with open(path, "r", encoding="utf-8-sig", newline="") as f:
         return list(csv.reader(f))
 
 
 def parse_file(path: str) -> tuple:
-    """1 ファイルを読み、(抽出できた行の dict のリスト, 破棄件数) を返す。
+    """1 ファイルを読み、(行の dict のリスト, 破棄件数) を返す。
 
-    必須列がヘッダに無ければ例外にする（列の欠落を静かに 0 円として通さない）。
+    必須列が無ければ例外にする（列の欠落を静かに 0 円として通さない）。
     """
     rows = _read_csv_rows(path)
     if not rows:
@@ -92,10 +90,7 @@ def parse_file(path: str) -> tuple:
 
 
 def _import_rows(conn, rows: list) -> None:
-    """行が含む `day` の集合を DELETE してから全行を INSERT する。1 トランザクションで行う。
-
-    冪等キーは `day` であり、`source_file` は削除の条件に使わない。
-    """
+    """行が含む `day` を DELETE してから全行を INSERT する。冪等キーは `day` で、`source_file` ではない。"""
     if not rows:
         return
     days = sorted({row["day"] for row in rows})
@@ -123,17 +118,16 @@ def import_file(path: str, conn) -> dict:
 
 
 def _list_csv_files(csv_dir: str) -> list:
-    """`csv_dir` 配下の `*.csv` をファイル名の昇順で返す。存在しなければ空リスト。"""
+    """`csv_dir` 配下の `*.csv` をファイル名の昇順で返す。"""
     if not os.path.isdir(csv_dir):
         return []
     return sorted(glob.glob(os.path.join(csv_dir, "*.csv")))
 
 
 def _import_file_or_error(path: str, conn) -> dict:
-    """1 ファイルを取り込む。必須列が無い・読めない等で失敗したら、そのファイルだけを失敗として報告する。
+    """1 ファイルを取り込む。失敗はそのファイルの結果として返し、他のファイルの取込を止めない。
 
-    `ValueError`（必須列の欠落）・`OSError`（権限等で読めない）・`csv.Error`（CSV として壊れている）
-    のいずれでも、他のファイルの取込は止めない（取込ディレクトリには無関係な CSV も置かれる）。
+    取込ディレクトリには無関係な CSV も置かれる。
     """
     try:
         return import_file(path, conn)
@@ -142,11 +136,7 @@ def _import_file_or_error(path: str, conn) -> dict:
 
 
 def import_all(csv_dir: str, conn) -> list:
-    """`csv_dir` 配下の全 `*.csv` を毎回取り直し、最後に `db.analyze()` を 1 回だけ呼ぶ。
-
-    未取込判定は持たない。ファイルが 1 つも無くても analyze は呼ぶ。
-    1 ファイルの解釈失敗は他のファイルの取込を止めない。
-    """
+    """`csv_dir` 配下の全 `*.csv` を毎回取り直し、最後に `db.analyze()` を 1 回呼ぶ（0 件でも呼ぶ）。"""
     results = [_import_file_or_error(path, conn) for path in _list_csv_files(csv_dir)]
     db.analyze(conn)
     return results

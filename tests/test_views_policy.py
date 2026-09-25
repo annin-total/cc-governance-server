@@ -13,17 +13,18 @@ from test_fixtures import (
     known_db,  # noqa: F401
 )
 
-import db
-import queries_policy
+from ccgov.constants import REFERENCE_KEY
+from ccgov.store import db, queries_policy
 
 
 @pytest.fixture
 def policy_client(known_db, monkeypatch):
     """`known_db` と同じ DB_DSN を指す `app` を読み込み、基準日を固定したテストクライアントを返す。"""
     import app as app_module
+    from ccgov.web import admin
 
     importlib.reload(app_module)
-    monkeypatch.setattr(app_module.time, "time", lambda: TODAY * 86400)
+    monkeypatch.setattr(admin.time, "time", lambda: TODAY * 86400)
     return admin_client(app_module.app)
 
 
@@ -42,7 +43,7 @@ def _rows_in_table(html: str, testid: str, key: Optional[str] = None) -> list:
     match = re.search(pattern, html, re.DOTALL)
     assert match, f"table data-testid={testid} data-key={key} が見つからない"
     body = match.group(1)
-    return re.findall(r"<tr>", body)[1:]  # 先頭の見出し行を除く
+    return re.findall(r"<tr>", body)[1:]
 
 
 def test_policy_page_returns_200(policy_client):
@@ -92,17 +93,13 @@ def test_latest_values_row_count_matches_query(policy_client, known_db):
     """「最後に観測した値」の表の行数が、クエリの戻り行数（7）と一致する。"""
     html = policy_client.get(ADMIN + "/policy").get_data(as_text=True)
     rows = _rows_in_table(html, "latest-values")
-    expected = queries_policy.latest_values(
-        known_db, TODAY, queries_policy.REFERENCE_KEY
-    )
+    expected = queries_policy.latest_values(known_db, TODAY, REFERENCE_KEY)
     assert len(rows) == len(expected) == 7
 
 
 def test_未設定のprev_valueがNoneと表示されない(known_db, policy_client):
-    """`prev_value` が NULL の行が「None」ではなく「未設定」と表示される。
+    """`prev_value` が NULL の行が「None」ではなく「未設定」と表示される。初回適用時は全端末が当たる。
 
-    キーが無い端末では `prev_value` が NULL になる。**初回適用時は全端末がこれに当たる**ため、
-    ここが「None」だと運用開始直後の画面がほぼ全行「None」で埋まる。
     共有フィクスチャにはこの状態の行が無いので、このテストが自分で 1 行足す。
     """
     cur = known_db.cursor()
@@ -118,7 +115,7 @@ def test_未設定のprev_valueがNoneと表示されない(known_db, policy_cli
             TODAY,
             "u-first-time",
             "h-first-time",
-            queries_policy.REFERENCE_KEY,
+            REFERENCE_KEY,
             "60",
             None,
             "applied",
@@ -136,10 +133,9 @@ def test_未設定のprev_valueがNoneと表示されない(known_db, policy_cli
 def test_ADD_ONCEの接頭辞付き行があっても準拠率の対象に入らない(
     known_db, policy_client
 ):
-    """`add:` / `once:` 接頭辞の `key_name` の行が `policy_state` にあっても、
-    `/policy` は 200 のまま描画され、準拠率の表の項目数は SET のスカラ値の数のまま変わらない。
+    """`add:` / `once:` 接頭辞の行があっても `/policy` は描画され、準拠率の項目数は変わらない。
 
-    `policy.SET` は現状すべてスカラ値なので、準拠率の対象数は `len(policy.SET)` と一致する。
+    `policy.SET` は現状すべてスカラ値なので、対象数は `len(policy.SET)` と一致する。
     """
     cur = known_db.cursor()
     cur.execute(
@@ -186,7 +182,7 @@ def test_ADD_ONCEの接頭辞付き行があっても準拠率の対象に入ら
     assert response.status_code == 200
     html = response.get_data(as_text=True)
     rows = _rows_in_table(html, "compliance-rate")
-    import policy as policy_module
+    from ccgov.vendor import policy as policy_module
 
     assert len(rows) == len(policy_module.SET)
 
@@ -194,14 +190,12 @@ def test_ADD_ONCEの接頭辞付き行があっても準拠率の対象に入ら
 def test_SETのdictとNoneは準拠率の対象から除外される(policy_client, monkeypatch):
     """`policy.SET` の値が dict や None の項目は、準拠率の表に出ない。
 
-    dict は `policy_state.value` が JSON 文字列になり `prev_value`（コアース後は常に None）と
-    比較できず、None（キー削除）は「キーが無いこと」を prev_value の一致では判定できないため。
-    このフィルタを外すと、この項目数（3）が dict・None を数えた数（5）に増えて失敗する。
+    このフィルタを外すと、項目数が 3 から dict・None を数えた 5 に増えて落ちる。
     """
-    import app as app_module
+    from ccgov.web import admin
 
     monkeypatch.setattr(
-        app_module.policy,
+        admin.policy,
         "SET",
         {
             "env.CLAUDE_AUTOCOMPACT_PCT_OVERRIDE": "60",

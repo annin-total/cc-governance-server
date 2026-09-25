@@ -1,10 +1,16 @@
 """DB 方言（SQLite / MySQL）の差をこの 1 ファイルに閉じ込める層。"""
 
-import os
 import sqlite3
 from urllib.parse import urlparse
 
-from contract import CSV_COLUMNS, EXTRA_COLUMNS, HOOK_FIELDS, POLICY_COLUMNS, ddl
+from ccgov.config import db_dsn
+from ccgov.vendor.contract import (
+    CSV_COLUMNS,
+    EXTRA_COLUMNS,
+    HOOK_FIELDS,
+    POLICY_COLUMNS,
+    ddl,
+)
 
 _SQLITE_PATH_PREFIX = "sqlite:///"
 
@@ -23,10 +29,7 @@ _INDEXES = (
 
 def _dialect() -> str:
     """`DB_DSN` のスキームから方言を決める。未設定・未知のスキームは例外にする。"""
-    dsn = os.environ.get("DB_DSN")
-    if not dsn:
-        raise RuntimeError("DB_DSN が設定されていない")
-    scheme = urlparse(dsn).scheme
+    scheme = urlparse(db_dsn()).scheme
     if scheme == "sqlite":
         return "sqlite"
     if scheme == "mysql":
@@ -35,8 +38,8 @@ def _dialect() -> str:
 
 
 def _sqlite_path() -> str:
-    """`sqlite:///<パス>` から絶対・相対いずれかのパスを取り出す。prefix が無ければ例外にする。"""
-    dsn = os.environ["DB_DSN"]
+    """`sqlite:///<パス>` からパスを取り出す。"""
+    dsn = db_dsn()
     if not dsn.startswith(_SQLITE_PATH_PREFIX):
         raise RuntimeError(
             f"sqlite の DSN は {_SQLITE_PATH_PREFIX} で始まる必要がある: {dsn}"
@@ -46,7 +49,7 @@ def _sqlite_path() -> str:
 
 def _mysql_kwargs() -> dict:
     """`mysql://user:pass@host[:port]/db` を PyMySQL の接続引数へ分解する。"""
-    parsed = urlparse(os.environ["DB_DSN"])
+    parsed = urlparse(db_dsn())
     return {
         "host": parsed.hostname,
         "port": parsed.port or 3306,
@@ -66,14 +69,13 @@ def connect():
 
 
 def q(sql: str) -> str:
-    """方言が mysql のときだけ `?` を `%s` に置き換える。それ以外は素通しする。"""
+    """方言が mysql のときだけ `?` を `%s` に置き換える。"""
     if _dialect() == "mysql":
         return sql.replace("?", "%s")
     return sql
 
 
 def _index_name(table: str, columns: tuple) -> str:
-    """`ix_<テーブル名>_<列を _ で連結>` の形でインデックス名を組み立てる。"""
     return "ix_" + table + "_" + "_".join(columns)
 
 
@@ -117,7 +119,7 @@ def _required_columns() -> dict:
 
 
 def _check_contract_columns(cur) -> None:
-    """契約が要求する列がすべて実テーブルにあるか確かめる。無ければ全件まとめて例外にする。"""
+    """契約が要求する列が実テーブルに無ければ、全件まとめて例外にする。"""
     missing_by_table = {}
     for table, required in _required_columns().items():
         missing = required - _existing_columns(cur, table)
@@ -132,7 +134,7 @@ def _check_contract_columns(cur) -> None:
 
 
 def analyze(conn) -> None:
-    """統計情報を更新する。方言分岐はここに閉じ、呼ぶ側に方言の知識を出さない。"""
+    """統計情報を更新する。"""
     cur = conn.cursor()
     if _dialect() == "sqlite":
         cur.execute("PRAGMA analysis_limit=400")
