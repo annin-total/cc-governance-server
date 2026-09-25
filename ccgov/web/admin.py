@@ -5,7 +5,13 @@ import time
 
 from flask import Blueprint, Response, current_app, render_template, request
 
-from ccgov.constants import EFFECT_PROVIDER, REFERENCE_KEY
+from ccgov.constants import (
+    CONTEXT_BIN,
+    EFFECT_PROVIDER,
+    EVENT_STUDY_SPAN,
+    REFERENCE_KEY,
+    REFERENCE_VALUE,
+)
 from ccgov.ingestion import csv_import
 from ccgov.store import db, queries_events, queries_policy
 from ccgov.vendor import contract, policy
@@ -133,12 +139,11 @@ def policy_view() -> str:
 @admin.route("/effect")
 def effect_view() -> str:
     """`/effect` 画面。相対日は準拠開始日基準のため基準日は使わない。"""
-    rk = REFERENCE_KEY
-    expected_value = contract.policy_text(policy.SET[rk])
+    rk, rv = REFERENCE_KEY, REFERENCE_VALUE
     conn = db.connect()
     try:
-        study = queries_policy.event_study(conn, rk, expected_value, EFFECT_PROVIDER)
-        start_dates = queries_policy.compliance_start_dates(conn, rk, expected_value)
+        study = queries_policy.event_study(conn, rk, rv, EFFECT_PROVIDER)
+        start_dates = queries_policy.compliance_start_dates(conn, rk, rv)
         context_pre_compact = queries_policy.context_distribution(
             conn, "PreCompact", start_dates
         )
@@ -147,6 +152,11 @@ def effect_view() -> str:
         conn.close()
     return render_template(
         "effect.html",
+        reference_key=rk,
+        reference_value=rv,
+        provider=EFFECT_PROVIDER,
+        span=EVENT_STUDY_SPAN,
+        context_bin=CONTEXT_BIN,
         study=study,
         context_pre_compact=context_pre_compact,
         context_stop=context_stop,

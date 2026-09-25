@@ -6,9 +6,10 @@
 
 <h2>イベントスタディ</h2>
 {{ m.chips([
-  "施策項目: env.CLAUDE_AUTOCOMPACT_PCT_OVERRIDE",
-  "対象 provider: aws-bedrock",
-  "相対日: 準拠開始日を基準に ±14 日",
+  "施策項目: " ~ reference_key,
+  "比較値: " ~ reference_value,
+  "対象 provider: " ~ provider,
+  "相対日: 準拠開始日を基準に ±" ~ span ~ " 日",
 ]) }}
 <div class="note">
   相対日 0 は準拠当日のため意図的に除外しています。分母人数は相対日ごとに、在籍期間で判定するため変わります。
@@ -33,9 +34,9 @@
 
 <h2>コンテキスト分布（PreCompact）</h2>
 {{ m.chips([
-  "ビン幅: 20,000 トークン",
+  "ビン幅: " ~ context_bin|num ~ " トークン",
   "基準日: 準拠開始日（暦日ではない）",
-  "集計範囲: 準拠開始日の前後 14 日",
+  "集計範囲: 準拠開始日の前後 " ~ span ~ " 日",
 ]) }}
 <div class="note">度数 0 のビンは表示していません。</div>
 <div class="grid">
@@ -73,9 +74,9 @@
 
 <h2>コンテキスト分布（Stop）</h2>
 {{ m.chips([
-  "ビン幅: 20,000 トークン",
+  "ビン幅: " ~ context_bin|num ~ " トークン",
   "基準日: 準拠開始日（暦日ではない）",
-  "集計範囲: 準拠開始日の前後 14 日",
+  "集計範囲: 準拠開始日の前後 " ~ span ~ " 日",
 ]) }}
 <div class="note">度数 0 のビンは表示していません。</div>
 <div class="grid">
