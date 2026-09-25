@@ -1,0 +1,5 @@
+# 改行を LF に統一する。契約ファイルの sha256 照合や fixture のバイト一致が Windows の autocrlf で壊れないため
+* text=auto eol=lf
+
+# AI Gateway の実 CSV（CRLF・BOM）をそのまま検証するテスト用フィクスチャ。正規化すると再現対象のバイト列が変わる
+tests/fixtures/*.csv -text
