@@ -2,7 +2,6 @@
 
 from ccgov.constants import (
     CONTEXT_BIN,
-    CSV_SETTLE_DAYS,
     EVENT_STUDY_SPAN,
     POLICY_DAYS,
     STALE_DAYS,
@@ -127,7 +126,7 @@ def compliance_start_dates(conn, key_name: str, expected_value: str) -> dict:
 def event_study(conn, key_name: str, expected_value: str, provider: str) -> list:
     """相対日ごとの分母人数・1 人あたり日次コスト・処理トークン（入力とキャッシュの読み書きの和）。
 
-    相対日 0 は除き、欠損日は 0 とする。分母は `cost_daily` の day 範囲（未確定の末尾を除く）に在籍する準拠者。
+    相対日 0 は除き、欠損日は 0 とする。分母は `cost_daily` の day 範囲に在籍する準拠者。
     """
     start_dates = compliance_start_dates(conn, key_name, expected_value)
     if not start_dates:
@@ -144,9 +143,7 @@ def event_study(conn, key_name: str, expected_value: str, provider: str) -> list
     )
     cost_by_key = {(u, d): (c, t) for u, d, c, t in cur.fetchall()}
     cur.execute(db.q("SELECT MIN(day), MAX(day) FROM cost_daily"))
-    min_day, last_day = cur.fetchone()
-    # 未確定の末尾は 0 や欠けた値のまま準拠後の側に落ち、常に「下がった」向きに偏らせる
-    max_day = None if last_day is None else last_day - CSV_SETTLE_DAYS
+    min_day, max_day = cur.fetchone()
 
     rows = []
     for relative_day in range(-EVENT_STUDY_SPAN, EVENT_STUDY_SPAN + 1):
