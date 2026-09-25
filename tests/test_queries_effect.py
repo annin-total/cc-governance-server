@@ -1,7 +1,7 @@
 """`/effect` の集計を専用の既知データで検証する。共通の `known_db` は相対日が足りないため使わない。"""
 
 import pytest
-from test_fixtures import (
+from known_data import (
     duplicate_events,
     duplicate_policy_state,
     insert_cost_daily,

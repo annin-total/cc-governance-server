@@ -1,7 +1,5 @@
 """集計検証の既知データと、重複行を注入するヘルパ。基準日は 20005（epoch 日）。"""
 
-import pytest
-
 from ccgov.store import db
 from ccgov.vendor import contract
 
@@ -570,110 +568,72 @@ def assert_invariant_under_duplication(conn, compute):
     return after
 
 
-@pytest.fixture
-def known_db(sqlite_db_dsn):
-    """DDL 適用済みの一時 SQLite に 3 つの既知データを投入した接続を返す。"""
-    db.init()
-    conn = db.connect()
-    try:
-        for row in _EVENT_ROWS:
-            (
-                event_id,
-                day,
-                user_email,
-                hook_event,
-                session_id,
-                tool_name,
-                skill_name,
-                command_name,
-                command_source,
-                agent_id,
-                permission_mode,
-                context_tokens,
-            ) = row
-            insert_event(
-                conn,
-                event_id=event_id,
-                ts=day * 86400,
-                day=day,
-                user_email=user_email,
-                host=_HOST_BY_USER.get(user_email),
-                hook_event=hook_event,
-                session_id=session_id,
-                tool_name=tool_name,
-                skill_name=skill_name,
-                command_name=command_name,
-                command_source=command_source,
-                agent_id=agent_id,
-                permission_mode=permission_mode,
-                context_tokens=context_tokens,
-            )
-        for row in _POLICY_ROWS:
-            (
-                event_id,
-                ts,
-                day,
-                user_email,
-                host,
-                key_name,
-                value,
-                prev_value,
-                apply_result,
-                plugin_version,
-            ) = row
-            insert_policy_state(
-                conn,
-                event_id=event_id,
-                ts=ts,
-                day=day,
-                user_email=user_email,
-                host=host,
-                key_name=key_name,
-                value=value,
-                prev_value=prev_value,
-                apply_result=apply_result,
-                plugin_version=plugin_version,
-            )
-        for day, user_email, provider, cost, input_tokens in _COST_ROWS:
-            insert_cost_daily(
-                conn,
-                day=day,
-                user_email=user_email,
-                provider=provider,
-                cost=cost,
-                input_tokens=input_tokens,
-            )
-        yield conn
-    finally:
-        conn.close()
-
-
-def _count_rows(conn, table: str) -> int:
-    """`table` の全行数を数える。"""
-    cur = conn.cursor()
-    cur.execute(f"SELECT COUNT(*) FROM {table}")
-    return cur.fetchone()[0]
-
-
-def _count_distinct_event_id(conn, table: str) -> int:
-    """`table` を `COUNT(DISTINCT event_id)` で数える。"""
-    cur = conn.cursor()
-    cur.execute(f"SELECT COUNT(DISTINCT event_id) FROM {table}")
-    return cur.fetchone()[0]
-
-
-def test_events_row_count_is_seventeen(known_db):
-    """fixture の接続で `events` の全行を数えると 17。"""
-    assert _count_rows(known_db, "events") == 17
-
-
-def test_events_row_count_doubles_after_duplicate(known_db):
-    """重複注入ヘルパを 1 回適用すると `COUNT(*)` は 34 になる。"""
-    duplicate_events(known_db)
-    assert _count_rows(known_db, "events") == 34
-
-
-def test_events_distinct_event_id_unchanged_after_duplicate(known_db):
-    """重複注入後も `COUNT(DISTINCT event_id)` は 17 のまま。"""
-    duplicate_events(known_db)
-    assert _count_distinct_event_id(known_db, "events") == 17
+def seed_known_data(conn) -> None:
+    """3 つの既知データ（events・policy_state・cost_daily）を投入する。"""
+    for row in _EVENT_ROWS:
+        (
+            event_id,
+            day,
+            user_email,
+            hook_event,
+            session_id,
+            tool_name,
+            skill_name,
+            command_name,
+            command_source,
+            agent_id,
+            permission_mode,
+            context_tokens,
+        ) = row
+        insert_event(
+            conn,
+            event_id=event_id,
+            ts=day * 86400,
+            day=day,
+            user_email=user_email,
+            host=_HOST_BY_USER.get(user_email),
+            hook_event=hook_event,
+            session_id=session_id,
+            tool_name=tool_name,
+            skill_name=skill_name,
+            command_name=command_name,
+            command_source=command_source,
+            agent_id=agent_id,
+            permission_mode=permission_mode,
+            context_tokens=context_tokens,
+        )
+    for row in _POLICY_ROWS:
+        (
+            event_id,
+            ts,
+            day,
+            user_email,
+            host,
+            key_name,
+            value,
+            prev_value,
+            apply_result,
+            plugin_version,
+        ) = row
+        insert_policy_state(
+            conn,
+            event_id=event_id,
+            ts=ts,
+            day=day,
+            user_email=user_email,
+            host=host,
+            key_name=key_name,
+            value=value,
+            prev_value=prev_value,
+            apply_result=apply_result,
+            plugin_version=plugin_version,
+        )
+    for day, user_email, provider, cost, input_tokens in _COST_ROWS:
+        insert_cost_daily(
+            conn,
+            day=day,
+            user_email=user_email,
+            provider=provider,
+            cost=cost,
+            input_tokens=input_tokens,
+        )

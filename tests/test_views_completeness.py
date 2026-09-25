@@ -3,17 +3,12 @@
 テンプレートの AST から参照名を取るため、条件分岐で出ない枝も参照として数える。
 """
 
-# ruff: noqa: F811
-
 import importlib
 
 import pytest
 from conftest import ADMIN, admin_client
 from jinja2 import meta
-from test_fixtures import (
-    TODAY,
-    known_db,  # noqa: F401
-)
+from known_data import TODAY
 
 # 渡すが描画に使わないキー。足すときは理由をコメントで残す。
 _ALLOWED_UNUSED = set()

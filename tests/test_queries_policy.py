@@ -1,13 +1,10 @@
 """`queries_policy.py` の集計クエリを既知データで検証する。基準日は 20005、窓は `day >= 19976`。"""
 
-# ruff: noqa: F811
-
-from test_fixtures import (
+from known_data import (
     TODAY,
     assert_invariant_under_duplication,
     duplicate_all,
     insert_policy_state,
-    known_db,  # noqa: F401
 )
 
 from ccgov.constants import REFERENCE_KEY

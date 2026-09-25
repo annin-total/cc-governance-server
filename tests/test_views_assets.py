@@ -1,16 +1,11 @@
 """`/assets` 画面のテストクライアント検証。基準日を `time.time()` の monkeypatch で 20005 に固定する。"""
 
-# ruff: noqa: F811
-
 import importlib
 import re
 
 import pytest
 from conftest import ADMIN, admin_client
-from test_fixtures import (
-    TODAY,
-    known_db,  # noqa: F401
-)
+from known_data import TODAY
 
 from ccgov.store import db
 

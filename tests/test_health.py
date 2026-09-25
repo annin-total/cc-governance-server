@@ -3,13 +3,10 @@
 基準日は 20005。直近 7 日は `day >= 19999`、前 7 日は `19992..19998`。
 """
 
-# ruff: noqa: F811
-
-from test_fixtures import (
+from known_data import (
     TODAY,
     assert_invariant_under_duplication,
     duplicate_all,
-    known_db,  # noqa: F401
 )
 
 from ccgov.store import queries_events
@@ -53,7 +50,7 @@ def test_health_counts_null_rate_count_star_would_exceed_100_percent(known_db):
 
     `tool_name` は NULL の行が半数に満たず 100% を超えないため、`skill_name` で確かめる。
     """
-    from test_fixtures import duplicate_events
+    from known_data import duplicate_events
 
     duplicate_events(known_db)
     cur = known_db.cursor()

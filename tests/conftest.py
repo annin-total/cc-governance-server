@@ -46,3 +46,19 @@ def sqlite_db_dsn():
                 os.environ.pop("DB_DSN", None)
             else:
                 os.environ["DB_DSN"] = original
+
+
+@pytest.fixture
+def known_db(sqlite_db_dsn):
+    """DDL 適用済みの一時 SQLite に 3 つの既知データを投入した接続を返す。"""
+    from known_data import seed_known_data
+
+    from ccgov.store import db
+
+    db.init()
+    conn = db.connect()
+    try:
+        seed_known_data(conn)
+        yield conn
+    finally:
+        conn.close()

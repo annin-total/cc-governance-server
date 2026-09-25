@@ -3,7 +3,7 @@
 import importlib
 
 from conftest import ADMIN, admin_client
-from test_fixtures import insert_event, insert_policy_state
+from known_data import insert_event, insert_policy_state
 
 from ccgov.store import db, queries_policy
 
