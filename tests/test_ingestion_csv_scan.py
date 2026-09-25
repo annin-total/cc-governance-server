@@ -61,40 +61,16 @@ def test_scan_repeated_call_same_result(db_conn, tmp_path):
     ],
     ids=["forward", "reversed"],
 )
-def test_scan_overlapping_files_are_not_imported(db_conn, tmp_path, names):
-    """weekly が daily_a・daily_b と日を共有するため、置く順によらず 3 本とも取り込まずエラーにする。"""
+def test_scan_three_files_order_independent(db_conn, tmp_path, names):
+    """3 本を置く順によらず COUNT=6・SUM=21.0・3 件、day=20635 は 6.0 になる。"""
     for name in names:
         copy_fixture(tmp_path, name)
 
     results = csv_import.import_all(str(tmp_path), db_conn)
 
     assert len(results) == 3
-    for result in results:
-        assert "同じ日を含む CSV が複数あります" in result["error"]
-        assert "weekly.csv" in result["error"]
-    assert count_and_sum(db_conn) == (0, None)
-
-
-def test_scan_redownloaded_file_does_not_overwrite(db_conn, tmp_path):
-    """取込済みの日を含む再ダウンロード版が並ぶと、両方をエラーにし、既存の行を上書きしない。
-
-    重ならないファイルは従来どおり取り込む。
-    """
-    copy_fixture(tmp_path, "daily_a.csv")
-    csv_import.import_all(str(tmp_path), db_conn)
-    _write_daily_a_doubled(tmp_path)
-    (tmp_path / "daily_a.csv").rename(tmp_path / "daily_a (1).csv")
-    copy_fixture(tmp_path, "daily_a.csv")
-    copy_fixture(tmp_path, "daily_b.csv")
-
-    results = csv_import.import_all(str(tmp_path), db_conn)
-
-    by_file = {r["file"]: r for r in results}
-    for name in ("daily_a.csv", "daily_a (1).csv"):
-        assert "daily_a (1).csv, daily_a.csv" in by_file[name]["error"]
-    assert by_file["daily_b.csv"]["rows"] == 2
+    assert count_and_sum(db_conn) == (6, 21.0)
     assert sum_for_day(db_conn, _DAY_20635) == 6.0
-    assert count_and_sum(db_conn) == (5, 15.0)
 
 
 def test_scan_replacement_file_doubles_cost(db_conn, tmp_path):

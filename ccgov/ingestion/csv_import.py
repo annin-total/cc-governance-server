@@ -125,56 +125,21 @@ def _list_csv_files(csv_dir: str) -> list:
     return sorted(glob.glob(os.path.join(csv_dir, "*.csv")))
 
 
-def _parse_or_error(path: str) -> dict:
-    """1 ファイルを解析する。失敗はそのファイルの結果として返し、他のファイルの取込を止めない。
+def _import_file_or_error(path: str, conn) -> dict:
+    """1 ファイルを取り込む。失敗はそのファイルの結果として返し、他のファイルの取込を止めない。
 
     取込ディレクトリには無関係な CSV も置かれる。
     """
-    name = os.path.basename(path)
     try:
-        rows, dropped = parse_file(path)
+        return import_file(path, conn)
     except (ValueError, OSError, csv.Error) as exc:
-        return {"file": name, "error": str(exc)}
-    return {"file": name, "rows": rows, "dropped": dropped}
-
-
-def _overlapping_files(parsed: list) -> dict:
-    """同じ `day` を含むファイルが他にもあるファイルごとに、`day` を共有するファイル名の集合を返す。"""
-    files_by_day: dict = {}
-    for result in parsed:
-        for day in {row["day"] for row in result.get("rows", ())}:
-            files_by_day.setdefault(day, set()).add(result["file"])
-    overlaps: dict = {}
-    for names in files_by_day.values():
-        if len(names) > 1:
-            for name in names:
-                overlaps.setdefault(name, set()).update(names)
-    return overlaps
+        return {"file": os.path.basename(path), "error": str(exc)}
 
 
 def import_all(csv_dir: str, conn) -> list:
     """`csv_dir` 配下の全 `*.csv` を毎回取り直し、最後に `db.analyze()` を 1 回呼ぶ（0 件でも呼ぶ）。"""
     if not os.path.isdir(csv_dir):
         return [{"file": "CSV_DIR", "error": f"ディレクトリが存在しない: {csv_dir}"}]
-    parsed = [_parse_or_error(path) for path in _list_csv_files(csv_dir)]
-    overlaps = _overlapping_files(parsed)
-    results = []
-    for result in parsed:
-        name = result["file"]
-        if "error" in result:
-            results.append(result)
-        elif name in overlaps:
-            names = ", ".join(sorted(overlaps[name]))
-            message = f"同じ日を含む CSV が複数あります: {names}。古いファイルを消してください"
-            results.append({"file": name, "error": message})
-        else:
-            _import_rows(conn, result["rows"])
-            results.append(
-                {
-                    "file": name,
-                    "rows": len(result["rows"]),
-                    "dropped": result["dropped"],
-                }
-            )
+    results = [_import_file_or_error(path, conn) for path in _list_csv_files(csv_dir)]
     db.analyze(conn)
     return results
