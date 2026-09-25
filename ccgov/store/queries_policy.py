@@ -125,11 +125,9 @@ def compliance_start_dates(conn, key_name: str, expected_value: str) -> dict:
 
 
 def event_study(conn, key_name: str, expected_value: str, provider: str) -> list:
-    """相対日ごとの分母人数・1 人あたり日次コスト・処理トークン。相対日 0 は除き、欠損日は 0 とする。
+    """相対日ごとの分母人数・1 人あたり日次コスト・処理トークン（入力とキャッシュの読み書きの和）。
 
-    処理トークンは入力とキャッシュの読み書きの和。非キャッシュの入力だけではコストの数 % しか表さない。
-
-    分母は `cost_daily` の day 範囲に在籍する準拠者で数える。末尾の未確定の `CSV_SETTLE_DAYS` 日は範囲に含めない。
+    相対日 0 は除き、欠損日は 0 とする。分母は `cost_daily` の day 範囲（未確定の末尾を除く）に在籍する準拠者。
     """
     start_dates = compliance_start_dates(conn, key_name, expected_value)
     if not start_dates:
