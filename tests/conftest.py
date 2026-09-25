@@ -1,6 +1,7 @@
 """pytest の共通設定。サーバのモジュールを import 可能にし、管理画面の設定を与える。"""
 
 import base64
+import importlib
 import os
 import sys
 import tempfile
@@ -68,3 +69,22 @@ def known_db(db_conn):
 
     seed_known_data(db_conn)
     return db_conn
+
+
+@pytest.fixture
+def today_app(known_db, monkeypatch):
+    """`known_db` と同じ DB_DSN を指す `app` を読み込み、基準日を `TODAY` に固定したモジュールを返す。"""
+    from known_data import TODAY
+
+    import app as app_module
+    from ccgov.web import admin
+
+    importlib.reload(app_module)
+    monkeypatch.setattr(admin.time, "time", lambda: TODAY * 86400)
+    return app_module
+
+
+@pytest.fixture
+def today_client(today_app):
+    """基準日を固定した `app` のテストクライアント（認証ヘッダ付き）を返す。"""
+    return admin_client(today_app.app)
