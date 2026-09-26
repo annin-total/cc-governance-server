@@ -191,7 +191,7 @@ def cost_window_end(conn, today: int) -> Optional[int]:
 
 
 def reconciliation_rate(conn, today: int) -> list:
-    """CSV の最終日で終わる直近の窓に `events` を送った利用者のうち、`cost_daily` にも居る割合。"""
+    """`cost_window_end` で終わる直近の窓に `events` を送った利用者のうち、同じ窓の `cost_daily` にも居る割合。"""
     end = cost_window_end(conn, today)
     if end is None:
         return [(0, 0, None)]

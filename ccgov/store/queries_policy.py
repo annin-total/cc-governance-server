@@ -70,7 +70,7 @@ def non_compliant(conn, today: int, key_name: str, expected_value: str) -> list:
 
 
 def not_introduced(conn, today: int) -> list:
-    """`cost_daily` の窓（CSV の最終日で終わる）に居て、`policy_state` の窓に行が無い利用者。"""
+    """`cost_daily` の窓（`cost_window_end` で終わる）に居て、`policy_state` の窓に行が無い利用者。"""
     cur = conn.cursor()
     cur.execute(
         db.q(
