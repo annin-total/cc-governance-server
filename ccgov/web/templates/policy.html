@@ -31,7 +31,7 @@
 {% endif %}
 
 <h2>準拠率（施策項目別）</h2>
-{{ m.chips(["直近30日", "分母: 直近30日に cost_daily にコストの記録がある利用者"]) }}
+{{ m.chips(["直近30日", "分母: CSV の最終日までの30日に cost_daily にコストの記録がある利用者"]) }}
 <p class="note">1 台でも未準拠なら、その利用者は未準拠として数える。台数と人数が一致しないのはこのため。</p>
 <div class="tbl">
 <table data-testid="compliance-rate">
@@ -69,7 +69,7 @@
 {% endfor %}
 
 <h2>未導入者の一覧</h2>
-{{ m.chips(["直近30日", "分母: 直近30日に cost_daily にコストの記録があるが、同期間の policy_state に1行も無い利用者"]) }}
+{{ m.chips(["直近30日", "対象: CSV の最終日までの30日に cost_daily にコストの記録があるが、今日までの30日の policy_state に1行も無い利用者"]) }}
 {% if not_introduced %}
 <div class="tbl">
 <table data-testid="not-introduced">

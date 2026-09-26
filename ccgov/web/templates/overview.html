@@ -5,7 +5,7 @@
 {% block content %}
 
 <h2>健全性</h2>
-{{ m.chips(["直近7日 · 前7日と比較"]) }}
+{{ m.chips(["直近7日 · 前7日と比較", "突合率: CSV の最終日までの7日 · 比較なし"]) }}
 <div class="tiles">
   {{ m.tile(health.recent.events|num, "イベント", delta=(health.recent.events - health.prev.events)) }}
   {{ m.tile(health.recent.terminals|num, "送信した利用者", delta=(health.recent.terminals - health.prev.terminals)) }}
