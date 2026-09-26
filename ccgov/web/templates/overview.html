@@ -14,7 +14,7 @@
 </div>
 <div class="tbl">
 <table data-testid="error-summary">
-<caption>hook の失敗（直近7日 · 端末数は host の数）</caption>
+<caption>hook の失敗（直近7日 · 端末: user_email と host の組）</caption>
 <tr><th scope="col">stage</th><th scope="col">error_type</th><th scope="col">件数</th><th scope="col">端末数</th><th scope="col">最新の版</th></tr>
 {% for stage, error_type, count, terminals, version in error_summary %}
 <tr><td>{{ stage }}</td><td>{{ error_type }}</td><td class="num">{{ count|num }}</td><td class="num">{{ terminals|num }}</td><td>{{ version }}</td></tr>
