@@ -182,7 +182,7 @@ def health_counts(conn, today: int) -> dict:
 def cost_window_end(conn, today: int) -> Optional[int]:
     """`cost_daily` を数える集計期間の終了日。`today` と CSV の最終日の早いほう（空なら None）。
 
-    CSV は 1〜2 週ごとに取り込むため、今日で終えると CSV の無い日が集計期間に入り、値が過小になる。
+    CSV は 1〜2 週ごとに取り込むため、今日で終えると CSV の無い日が集計期間に入り、コストの記録がある日が減る。
     """
     cur = conn.cursor()
     cur.execute(db.q("SELECT MAX(day) FROM cost_daily"))
