@@ -12,6 +12,15 @@
   {{ m.tile(reconciliation_rate|pct, "突合率",
             note=(reconciliation_numerator|num) ~ " / " ~ (reconciliation_denominator|num) ~ " 人") }}
 </div>
+<div class="tbl">
+<table data-testid="error-summary">
+<caption>hook の失敗（直近7日 · 端末数は host の数）</caption>
+<tr><th scope="col">stage</th><th scope="col">error_type</th><th scope="col">件数</th><th scope="col">端末数</th><th scope="col">最新の版</th></tr>
+{% for stage, error_type, count, terminals, version in error_summary %}
+<tr><td>{{ stage }}</td><td>{{ error_type }}</td><td class="num">{{ count|num }}</td><td class="num">{{ terminals|num }}</td><td>{{ version }}</td></tr>
+{% endfor %}
+</table>
+</div>
 
 <h2>NULL率</h2>
 {{ m.chips(["直近7日 · 前7日と比較", "分母: その列が来るはずのイベント"]) }}

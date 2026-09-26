@@ -55,6 +55,19 @@ POLICY_COLUMNS = (
     ("plugin_version", "VARCHAR(32)"),
 )
 
+ERROR_COLUMNS = (
+    # errors の列。(列名, 型) の 2 つ組。例外メッセージは持たない
+    ("event_id", "VARCHAR(36)"),
+    ("ts", "INTEGER"),
+    ("day", "INTEGER"),
+    ("user_email", "VARCHAR(255)"),
+    ("host", "VARCHAR(255)"),
+    ("hook_event", "VARCHAR(64)"),
+    ("plugin_version", "VARCHAR(32)"),
+    ("stage", "VARCHAR(255)"),
+    ("error_type", "VARCHAR(255)"),
+)
+
 CSV_COLUMNS = (
     # (CSV ヘッダ名, DB 列名, 型) の 3 つ組。source_file はヘッダを持たないため None
     ("Date", "day", "INTEGER"),
@@ -187,7 +200,7 @@ def _create_table_sql(table_name: str, columns: tuple) -> str:
 
 
 def ddl() -> tuple:
-    """events / policy_state / cost_daily の CREATE TABLE 文を組み立てる。"""
+    """events / policy_state / cost_daily / errors の CREATE TABLE 文を組み立てる。"""
     hook_names = {name for name, _, _ in HOOK_FIELDS}
     extra_names = {name for name, _ in EXTRA_COLUMNS}
     duplicated = hook_names & extra_names
@@ -207,4 +220,5 @@ def ddl() -> tuple:
         _create_table_sql("events", events_columns),
         _create_table_sql("policy_state", policy_columns),
         _create_table_sql("cost_daily", cost_columns),
+        _create_table_sql("errors", ERROR_COLUMNS),
     )

@@ -13,7 +13,7 @@ from ccgov.constants import (
     REFERENCE_VALUE,
 )
 from ccgov.ingestion import csv_import
-from ccgov.store import db, queries_events, queries_policy
+from ccgov.store import db, queries_errors, queries_events, queries_policy
 from ccgov.vendor import contract, policy
 
 # CSS を認証つきで配るため、静的配信はアプリ直下ではなくこの Blueprint が持つ。
@@ -28,6 +28,7 @@ def _overview_context() -> dict:
         reconciliation = queries_events.reconciliation_rate(conn, today)[0]
         return {
             "health": queries_events.health_counts(conn, today),
+            "error_summary": queries_errors.error_summary(conn, today),
             "reconciliation_numerator": reconciliation[0],
             "reconciliation_denominator": reconciliation[1],
             "reconciliation_rate": reconciliation[2],
