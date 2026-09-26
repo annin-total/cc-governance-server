@@ -135,7 +135,7 @@ def test_reconciliation_rate_unchanged_after_duplicate_injection(known_db):
 
 
 def test_all_health_numbers_survive_full_duplication_at_once(known_db):
-    """健全性の 1 行のすべての数字が、3 テーブル全行の複製後も変化しない。"""
+    """健全性の数字がすべて、`events`・`policy_state`・`cost_daily` の全行の複製後も変化しない。"""
 
     def compute():
         return {

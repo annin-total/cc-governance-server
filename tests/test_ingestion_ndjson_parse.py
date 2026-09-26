@@ -13,12 +13,10 @@ _POLICY_NAMES = [name for name, _ in POLICY_COLUMNS]
 
 
 def _events_value(values: tuple, name: str):
-    """events 列定義における `name` の値を取り出す。"""
     return values[_EVENTS_NAMES.index(name)]
 
 
 def _policy_value(values: tuple, name: str):
-    """policy_state 列定義における `name` の値を取り出す。"""
     return values[_POLICY_NAMES.index(name)]
 
 

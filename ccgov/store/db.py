@@ -63,7 +63,6 @@ def _mysql_kwargs() -> dict:
 
 
 def connect():
-    """方言に応じて `sqlite3` または `PyMySQL` の接続を返す。"""
     if _dialect() == "sqlite":
         return sqlite3.connect(_sqlite_path())
     import pymysql
@@ -83,7 +82,7 @@ def _index_name(table: str, columns: tuple) -> str:
 
 
 def _existing_index_names(cur, table: str) -> set:
-    """実テーブルに既にあるインデックス名の集合を取る（方言分岐はここ）。"""
+    """実テーブルに既にあるインデックス名の集合を取る。"""
     if _dialect() == "sqlite":
         cur.execute(f"PRAGMA index_list({table})")
         return {row[1] for row in cur.fetchall()}
@@ -92,7 +91,7 @@ def _existing_index_names(cur, table: str) -> set:
 
 
 def _create_missing_indexes(cur) -> None:
-    """無いインデックスだけを作る。`CREATE INDEX IF NOT EXISTS` は使わない。"""
+    """無いインデックスだけを作る（MySQL は `CREATE INDEX IF NOT EXISTS` を持たない）。"""
     existing_by_table = {table: _existing_index_names(cur, table) for table in _TABLES}
     for table, columns in _INDEXES:
         name = _index_name(table, columns)
@@ -103,7 +102,7 @@ def _create_missing_indexes(cur) -> None:
 
 
 def _existing_columns(cur, table: str) -> set:
-    """実テーブルの列名の集合を取る（方言分岐はここ）。"""
+    """実テーブルの列名の集合を取る。"""
     if _dialect() == "sqlite":
         cur.execute(f"PRAGMA table_info({table})")
         return {row[1] for row in cur.fetchall()}
@@ -138,7 +137,6 @@ def _check_contract_columns(cur) -> None:
 
 
 def analyze(conn) -> None:
-    """統計情報を更新する。"""
     cur = conn.cursor()
     if _dialect() == "sqlite":
         cur.execute("PRAGMA analysis_limit=400")

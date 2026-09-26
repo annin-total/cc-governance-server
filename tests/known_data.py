@@ -1,4 +1,4 @@
-"""集計検証の既知データと、重複行を注入するヘルパ。基準日は 20005（epoch 日）。"""
+"""集計検証の既知データと、重複行を注入するヘルパ。"""
 
 from ccgov.store import db
 from ccgov.vendor import contract
@@ -94,12 +94,10 @@ def _events_columns() -> tuple:
 
 
 def _policy_columns() -> tuple:
-    """`policy_state` の列名を契約の定義順で返す。"""
     return tuple(name for name, _ in contract.POLICY_COLUMNS)
 
 
 def _cost_columns() -> tuple:
-    """`cost_daily` の列名を契約の定義順で返す。"""
     return tuple(db_name for _, db_name, _ in contract.CSV_COLUMNS)
 
 
@@ -115,17 +113,14 @@ def _insert(conn, table: str, columns: tuple, rows) -> None:
 
 
 def insert_event(conn, **overrides) -> None:
-    """`events` に 1 行投入する。未指定の列は NULL。"""
     _insert(conn, "events", _events_columns(), [overrides])
 
 
 def insert_policy_state(conn, **overrides) -> None:
-    """`policy_state` に 1 行投入する。未指定の列は NULL。"""
     _insert(conn, "policy_state", _policy_columns(), [overrides])
 
 
 def insert_cost_daily(conn, **overrides) -> None:
-    """`cost_daily` に 1 行投入する。未指定の列は NULL。"""
     _insert(conn, "cost_daily", _cost_columns(), [overrides])
 
 
@@ -176,22 +171,19 @@ def _duplicate_table(conn, table: str, columns: tuple) -> None:
 
 
 def duplicate_events(conn) -> None:
-    """`events` の全行を複製する。"""
     _duplicate_table(conn, "events", _events_columns())
 
 
 def duplicate_policy_state(conn) -> None:
-    """`policy_state` の全行を複製する。"""
     _duplicate_table(conn, "policy_state", _policy_columns())
 
 
 def duplicate_cost_daily(conn) -> None:
-    """`cost_daily` の全行を複製する。"""
     _duplicate_table(conn, "cost_daily", _cost_columns())
 
 
 def duplicate_all(conn) -> None:
-    """3 テーブルすべての全行を複製する。"""
+    """`events`・`policy_state`・`cost_daily` の全行を複製する。"""
     duplicate_events(conn)
     duplicate_policy_state(conn)
     duplicate_cost_daily(conn)

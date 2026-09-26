@@ -65,7 +65,6 @@ def _require_admin_password():
 
 @admin.route("/", strict_slashes=False)
 def index() -> str:
-    """概況画面。"""
     return render_template("overview.html", **_overview_context())
 
 
@@ -87,13 +86,11 @@ def import_endpoint() -> str:
 
 
 def _today() -> int:
-    """基準日（epoch 日）を現在時刻から算出する。"""
     return contract.to_day(int(time.time()))
 
 
 @admin.route("/policy")
 def policy_view() -> str:
-    """`/policy` 画面。"""
     today = _today()
     rk = REFERENCE_KEY
     conn = db.connect()
@@ -139,7 +136,7 @@ def policy_view() -> str:
 
 @admin.route("/effect")
 def effect_view() -> str:
-    """`/effect` 画面。相対日は準拠開始日基準のため基準日は使わない。"""
+    """相対日は準拠開始日が基準のため、基準日（`_today()`）を使わない。"""
     rk, rv = REFERENCE_KEY, REFERENCE_VALUE
     conn = db.connect()
     try:
@@ -166,7 +163,6 @@ def effect_view() -> str:
 
 @admin.route("/assets")
 def assets_view() -> str:
-    """`/assets` 画面。"""
     today = _today()
     conn = db.connect()
     try:

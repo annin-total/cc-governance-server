@@ -11,7 +11,6 @@ from conftest import env_var
 
 
 def _count(table: str) -> int:
-    """一時 DB のテーブルの行数を返す。"""
     from ccgov.store import db
 
     conn = db.connect()

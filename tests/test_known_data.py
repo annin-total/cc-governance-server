@@ -5,21 +5,18 @@ from known_data import duplicate_all, duplicate_events
 
 
 def _count_rows(conn, table: str) -> int:
-    """`table` の全行数を数える。"""
     cur = conn.cursor()
     cur.execute(f"SELECT COUNT(*) FROM {table}")
     return cur.fetchone()[0]
 
 
 def _count_distinct_event_id(conn, table: str) -> int:
-    """`table` を `COUNT(DISTINCT event_id)` で数える。"""
     cur = conn.cursor()
     cur.execute(f"SELECT COUNT(DISTINCT event_id) FROM {table}")
     return cur.fetchone()[0]
 
 
 def test_events_row_count_is_seventeen(known_db):
-    """fixture の接続で `events` の全行を数えると 17。"""
     assert _count_rows(known_db, "events") == 17
 
 

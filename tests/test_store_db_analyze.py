@@ -27,7 +27,6 @@ class _FakeConnection:
 
 
 def _insert_cost_daily_rows(conn) -> None:
-    """cost_daily に数行 INSERT する。"""
     cur = conn.cursor()
     for i in range(5):
         cur.execute(

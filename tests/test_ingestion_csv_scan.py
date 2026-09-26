@@ -31,7 +31,7 @@ def _write_daily_a_doubled(tmp_path) -> None:
 
 
 def test_scan_processes_all_files_in_directory(db_conn, tmp_path):
-    """daily_a / daily_b を置いて 1 回押すと、2 本とも処理され COUNT=5・SUM=15.0・2 件返る。"""
+    """daily_a / daily_b を置いて 1 回押すと、2 本とも処理される。"""
     copy_fixture(tmp_path, "daily_a.csv")
     copy_fixture(tmp_path, "daily_b.csv")
 
@@ -62,7 +62,7 @@ def test_scan_repeated_call_same_result(db_conn, tmp_path):
     ids=["forward", "reversed"],
 )
 def test_scan_three_files_order_independent(db_conn, tmp_path, names):
-    """3 本を置く順によらず COUNT=6・SUM=21.0・3 件、day=20635 は 6.0 になる。"""
+    """3 本を置く順によらず結果が同じになる。"""
     for name in names:
         copy_fixture(tmp_path, name)
 

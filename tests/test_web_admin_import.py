@@ -44,7 +44,6 @@ def test_post_import_twice_gives_same_result(import_client):
 
 
 def test_get_import_is_method_not_allowed(import_client):
-    """`GET /import` は 405。"""
     response = import_client.get(ADMIN + "/import")
     assert response.status_code == 405
 

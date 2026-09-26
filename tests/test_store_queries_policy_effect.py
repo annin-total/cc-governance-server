@@ -22,7 +22,7 @@ def effect_db(db_conn):
 
 
 def test_compliance_start_dates(effect_db):
-    """u1 = 20010、u2 = 20020。u3 は準拠者でないため現れない。"""
+    """u3 は準拠者でないため現れない。"""
     starts = queries_policy.compliance_start_dates(effect_db, K, "60")
     assert starts == {"u1": 20010, "u2": 20020}
 

@@ -23,7 +23,6 @@ def test_skill_usage_returns_two_rows_ordered_by_recent_calls(known_db):
 
 
 def test_skill_usage_values(known_db):
-    """pdf: 直近呼出 3・利用者 2・前呼出 1・前利用者 1。xlsx: 直近呼出 1・利用者 1・前呼出 1・前利用者 1。"""
     rows = {r[0]: r[1:] for r in queries_events.skill_usage(known_db, TODAY)}
     assert rows["pdf"] == (3, 2, 1, 1)
     assert rows["xlsx"] == (1, 1, 1, 1)
@@ -57,7 +56,6 @@ def test_command_usage_returns_two_rows(known_db):
 
 
 def test_command_usage_values(known_db):
-    """それぞれ直近呼出 1・利用者 1。"""
     rows = {(r[0], r[1]): r[2:4] for r in queries_events.command_usage(known_db, TODAY)}
     assert rows[("review", "project")] == (1, 1)
     assert rows[("review", "user")] == (1, 1)
@@ -198,7 +196,6 @@ def test_user_session_trend_unchanged_after_duplicate_injection(known_db):
 
 
 def test_distribution_permission_mode(known_db):
-    """直近 7 日の `permission_mode` 分布は default 11・plan 1・acceptEdits 1。"""
     rows = dict(queries_events.distribution(known_db, TODAY, "permission_mode"))
     assert rows == {"default": 11, "plan": 1, "acceptEdits": 1}
 
