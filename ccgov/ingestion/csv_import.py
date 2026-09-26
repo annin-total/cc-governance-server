@@ -65,7 +65,6 @@ def _extract_row(row: list, index_by_header: dict, source_file: str) -> Optional
 
 
 def _read_csv_rows(path: str) -> list:
-    """CSV を行のリストとして読む。"""
     # utf-8-sig: Excel で出し直すと BOM が付き、剥がさないと先頭の列名が一致せず全行が捨てられる。
     with open(path, "r", encoding="utf-8-sig", newline="") as f:
         return list(csv.reader(f))
@@ -121,15 +120,11 @@ def import_file(path: str, conn) -> dict:
 
 
 def _list_csv_files(csv_dir: str) -> list:
-    """`csv_dir` 配下の `*.csv` をファイル名の昇順で返す。"""
     return sorted(glob.glob(os.path.join(csv_dir, "*.csv")))
 
 
 def _import_file_or_error(path: str, conn) -> dict:
-    """1 ファイルを取り込む。失敗はそのファイルの結果として返し、他のファイルの取込を止めない。
-
-    取込ディレクトリには無関係な CSV も置かれる。
-    """
+    """失敗はそのファイルの結果として返し、他を止めない（取込ディレクトリには無関係な CSV も置かれる）。"""
     try:
         return import_file(path, conn)
     except (ValueError, OSError, csv.Error) as exc:

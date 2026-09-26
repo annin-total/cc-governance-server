@@ -130,7 +130,6 @@ def test_compliance_rate_without_user_folding_would_differ(known_db):
 
 
 def test_non_compliant_k(known_db):
-    """項目 K の未準拠者一覧は 3 行。u2/h2/80/20001、u3/h3b/80/20003、u5/h5/80/20004。"""
     rows = sorted(queries_policy.non_compliant(known_db, TODAY, K, "60"))
     assert rows == [
         ("u2", "h2", "80", 20001),
@@ -174,7 +173,6 @@ def test_stale_terminals_excludes_kill_switch_terminal(known_db):
 
 
 def test_plugin_version_distribution(known_db):
-    """項目 K の版分布は 1.4.0: 5、1.3.0: 2。"""
     rows = dict(
         queries_policy.plugin_version_distribution(known_db, TODAY, REFERENCE_KEY)
     )

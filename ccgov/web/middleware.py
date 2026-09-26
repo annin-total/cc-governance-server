@@ -1,6 +1,3 @@
-"""WSGI ミドルウェア。前段のリバースプロキシが付けた `BASE_PATH` を剥がす。"""
-
-
 def strip_base_path(wsgi_app, base_path: str):
     """`PATH_INFO` が `base_path` で始まっていれば剥がし、`SCRIPT_NAME` に与える。"""
 

@@ -45,7 +45,7 @@ def _distinct_users_with_cost(conn, today: int) -> set:
 
 
 def compliance_rate(conn, today: int, key_name: str, expected_value: str) -> list:
-    """施策項目 1 つの準拠率を `[(分子, 分母, 率)]` で返す。1 台でも未準拠なら利用者は未準拠。分母 0 の率は None。"""
+    """施策項目 1 つの準拠率を `[(分子, 分母, 率)]` で返す。1 台でも未準拠なら利用者は未準拠。"""
     rows = latest_values(conn, today, key_name)
     compliant_by_user: dict = {}
     for user_email, _host, prev_value, _day, _ts in rows:
@@ -70,7 +70,7 @@ def non_compliant(conn, today: int, key_name: str, expected_value: str) -> list:
 
 
 def not_introduced(conn, today: int) -> list:
-    """`POLICY_DAYS` 日の窓で `cost_daily` に居て、直近 `POLICY_DAYS` 日の `policy_state` に行が無い利用者。"""
+    """`cost_daily` の窓（CSV の最終日で終わる）に居て、`policy_state` の窓に行が無い利用者。"""
     cur = conn.cursor()
     cur.execute(
         db.q(
@@ -87,7 +87,7 @@ def not_introduced(conn, today: int) -> list:
 
 
 def stale_terminals(conn, today: int) -> list:
-    """窓内の最終 `day` が `STALE_DAYS` 以上前の端末。`events` ではなく `policy_state` で判定する。"""
+    """窓内の最終 `day` が `STALE_DAYS` 以上前の端末。無効化スイッチは利用ログ（`events`）だけを止め、policy イベントは送り続けるため、`policy_state` で判定する。"""
     cur = conn.cursor()
     cur.execute(
         db.q(
@@ -130,10 +130,7 @@ def compliance_start_dates(conn, key_name: str, expected_value: str) -> dict:
 
 
 def event_study(conn, key_name: str, expected_value: str, provider: str) -> list:
-    """相対日ごとの分母人数・1 人あたり日次コスト・処理トークン（入力とキャッシュの読み書きの和）。
-
-    相対日 0 は除き、欠損日は 0 とする。分母は `cost_daily` の day 範囲に在籍する準拠者。
-    """
+    """相対日ごとの分母人数・1 人あたり日次コスト・処理トークン（入力とキャッシュの読み書きの和）。"""
     start_dates = compliance_start_dates(conn, key_name, expected_value)
     if not start_dates:
         return []

@@ -8,7 +8,6 @@ from ccgov.store import db, queries_policy
 
 
 def test_policy_page_returns_200(today_client):
-    """`/policy` が 200 で応答する。"""
     response = today_client.get(ADMIN + "/policy")
     assert response.status_code == 200
 
@@ -59,10 +58,7 @@ def test_latest_values_row_count_matches_query(today_client, known_db):
 
 
 def test_null_prev_value_is_not_shown_as_none(known_db, today_client):
-    """`prev_value` が NULL の行が「None」ではなく「未設定」と表示される。初回適用時は全端末が当たる。
-
-    共有フィクスチャにはこの状態の行が無いので、このテストが自分で 1 行足す。
-    """
+    """`prev_value` が NULL の行が「None」ではなく「未設定」と表示される。初回適用時は全端末が当たる。"""
     cur = known_db.cursor()
     cur.execute(
         db.q(
@@ -94,7 +90,7 @@ def test_null_prev_value_is_not_shown_as_none(known_db, today_client):
 def test_add_once_prefixed_rows_do_not_enter_compliance_rate(known_db, today_client):
     """`add:` / `once:` 接頭辞の行があっても `/policy` は描画され、準拠率の項目数は変わらない。
 
-    `policy.SET` は現状すべてスカラ値なので、対象数は `len(policy.SET)` と一致する。
+    対象数を `len(policy.SET)` と比べるため、SET がスカラ値だけであることを前提にする。
     """
     cur = known_db.cursor()
     cur.execute(
@@ -147,10 +143,7 @@ def test_add_once_prefixed_rows_do_not_enter_compliance_rate(known_db, today_cli
 
 
 def test_set_dict_and_none_are_excluded_from_compliance_rate(today_client, monkeypatch):
-    """`policy.SET` の値が dict や None の項目は、準拠率の表に出ない。
-
-    このフィルタを外すと、項目数が 3 から dict・None を数えた 5 に増えて落ちる。
-    """
+    """`policy.SET` の値が dict や None の項目は、準拠率の表に出ない。"""
     from ccgov.web import admin
 
     monkeypatch.setattr(

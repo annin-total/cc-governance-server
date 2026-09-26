@@ -1,4 +1,4 @@
-"""`/` `/assets` 画面の集計クエリ。件数・人数は再送の重複に備えて常に DISTINCT で数える。"""
+"""`/` `/assets` 画面の集計クエリ。"""
 
 from typing import Optional
 
@@ -73,12 +73,11 @@ def _usage_with_trend(
 
 
 def skill_usage(conn, today: int) -> list:
-    """`skill_name` 別の直近／前 7 日の呼出回数・利用者数。直近の呼出回数の降順。"""
     return _usage_with_trend(conn, today, "skill_name", ("skill_name",))
 
 
 def command_usage(conn, today: int) -> list:
-    """`command_name` x `command_source` 別の直近／前 7 日の呼出回数・利用者数。生値のまま。"""
+    """生値のまま。"""
     return _usage_with_trend(
         conn, today, "command_name", ("command_name", "command_source")
     )
@@ -104,7 +103,7 @@ def subagent_ratio(conn, today: int) -> list:
 
 
 def daily_cost(conn) -> list:
-    """`cost_daily` を `day` x `provider` で束ねて合計する。集計済みの小さい表なので `day` で絞らない。"""
+    """集計済みの小さい表なので `day` で絞らない。"""
     cur = conn.cursor()
     cur.execute(
         db.q(
@@ -131,7 +130,7 @@ def user_session_trend(conn, today: int) -> list:
 
 
 def distribution(conn, today: int, column: str) -> list:
-    """`column`（`permission_mode` / `effort_level` / `source`）別の直近 7 日の件数。生値のまま。"""
+    """`column` 別の直近の件数（生値）。`column` は SQL に埋め込むため `_DISTRIBUTION_COLUMNS` で検査する。"""
     if column not in _DISTRIBUTION_COLUMNS:
         raise ValueError(f"未対応の列: {column}")
     recent_start, recent_end = _recent_window(today)
@@ -148,7 +147,7 @@ def distribution(conn, today: int, column: str) -> list:
 
 
 def _health_window_stats(conn, start: int, end: int) -> dict:
-    """1 つの窓のイベント件数・送信者数・4 列の NULL 率を返す。分母が 0 の列の率は None。"""
+    """1 つの窓のイベント件数・送信者数・列ごとの NULL 率を返す。"""
     scope_sql = ", ".join(
         f"COUNT(DISTINCT CASE WHEN {scope} THEN event_id END),"
         f" COUNT(DISTINCT CASE WHEN {scope} AND {col} IS NULL THEN event_id END)"
@@ -192,7 +191,7 @@ def cost_window_end(conn, today: int) -> Optional[int]:
 
 
 def reconciliation_rate(conn, today: int) -> list:
-    """7 日間に `events` を送った利用者のうち、同期間の `cost_daily` にも居る割合。人数で測る。"""
+    """CSV の最終日で終わる直近の窓に `events` を送った利用者のうち、`cost_daily` にも居る割合。"""
     end = cost_window_end(conn, today)
     if end is None:
         return [(0, 0, None)]

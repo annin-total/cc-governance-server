@@ -31,7 +31,6 @@ def _error_line(event_id: str) -> bytes:
 
 
 def _count(conn, sql: str) -> int:
-    """1 件の COUNT(...) 結果を取り出す。"""
     cur = conn.cursor()
     cur.execute(sql)
     return cur.fetchone()[0]

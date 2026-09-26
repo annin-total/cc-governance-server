@@ -33,7 +33,6 @@ def _table_names(conn) -> set:
 
 
 def _indexes_with_columns(conn) -> set:
-    """3 テーブルすべてについて、(テーブル名, 列の並び) の集合を取る。"""
     cur = conn.cursor()
     result = set()
     for table in ("events", "policy_state", "cost_daily"):
@@ -47,7 +46,6 @@ def _indexes_with_columns(conn) -> set:
 
 
 def _index_names(conn) -> list:
-    """3 テーブルの実インデックス名を、重複を潰さず list で集めて整列する。"""
     cur = conn.cursor()
     names = []
     for table in ("events", "policy_state", "cost_daily"):

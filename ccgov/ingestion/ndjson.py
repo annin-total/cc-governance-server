@@ -1,4 +1,4 @@
-"""`/ingest` の受信処理。生のバイト列と DB 接続だけを扱う。"""
+"""`/ingest` の受信処理。"""
 
 import json
 from time import monotonic
@@ -82,7 +82,6 @@ def parse_lines(raw: bytes) -> tuple:
 
 
 def _insert(cur, table: str, columns: tuple, values: list) -> None:
-    """1 テーブル分を INSERT する。"""
     if not values:
         return
     names = ", ".join(name for name, _ in columns)
