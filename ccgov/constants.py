@@ -1,6 +1,6 @@
 """複数のモジュールにまたがる仕様値。"""
 
-# 集計の窓（日数）
+# 集計期間（日数）
 RECENT_DAYS = 7
 POLICY_DAYS = 30
 STALE_DAYS = 14

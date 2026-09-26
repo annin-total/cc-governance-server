@@ -1,4 +1,4 @@
-"""`/ingest` の受信口。"""
+"""`/ingest` の受信エンドポイント。"""
 
 import hmac
 import json

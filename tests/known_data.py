@@ -74,7 +74,7 @@ _POLICY_ROWS = (
 # fmt: on
 
 _COST_FIELDS = ("day", "user_email", "provider", "cost", "input_tokens")
-# u20 は窓（day >= 19976）より前にしかコストが無い離脱者。準拠率の分母が `day` で絞られていることを確かめる。
+# u20 は集計期間（day >= 19976）より前にしかコストが無い離脱者。準拠率の分母が `day` で絞られていることを確かめる。
 _COST_ROWS = (
     (20000, "u1", "aws-bedrock", 1.0, 1000),
     (20001, "u2", "aws-bedrock", 2.0, 2000),

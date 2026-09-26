@@ -1,4 +1,4 @@
-"""`BASE_PATH` を剥がす WSGI ラッパの回帰テスト。設定は import 時に読まれるため reload する。"""
+"""`BASE_PATH` を除く WSGI ラッパの回帰テスト。設定は import 時に読まれるため reload する。"""
 
 import importlib
 import re
@@ -30,7 +30,7 @@ def app_with_base_path(sqlite_db_dsn):
             200,
         ),  # 末尾スラッシュなしでリダイレクトしない
         ("/gov/cc", "/gov/cc/adm/", 200),
-        ("/gov/cc", "/adm/", 200),  # 前段が既に剥がして渡す経路
+        ("/gov/cc", "/adm/", 200),  # 前段のリバースプロキシが既に除いて渡す経路
         ("/gov/cc", "/gov/cc", 404),  # 管理画面は ADMIN_PATH の下にしか無い
         ("/gov/cc", "/other", 404),
         (
