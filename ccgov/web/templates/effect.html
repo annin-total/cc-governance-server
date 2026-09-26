@@ -12,7 +12,7 @@
   "相対日: 準拠開始日を基準に ±" ~ span ~ " 日",
 ]) }}
 <div class="note">
-  相対日 0 は準拠当日のため意図的に除外しています。分母人数は相対日ごとに、在籍期間で判定するため変わります。
+  相対日 0 は準拠当日のため意図的に除外しています。分母人数は、その相対日が CSV の収録期間に入る利用者だけを数えるため、相対日ごとに変わります。
 </div>
 <div class="note">
   暦日の変動（繁忙・モデルの切り替えなど）を差し引いていないため、施策が無くても前後差が出ます（実データでは施策なしで ±十数%）。
@@ -23,7 +23,7 @@
 <div class="tbl">
 <table data-testid="event-study">
 <caption>相対日ごとの 1 人あたりコスト・処理トークン</caption>
-<tr><th scope="col">相対日</th><th scope="col">分母人数</th><th scope="col">1人あたりコスト</th><th scope="col">1人あたり処理トークン（入力+キャッシュ）</th><th scope="col"></th></tr>
+<tr><th scope="col">相対日</th><th scope="col">分母人数</th><th scope="col">1人あたりコスト</th><th scope="col">1人あたり処理トークン（入力+キャッシュ読み書き）</th><th scope="col"></th></tr>
 {% for relative_day, denominator, cost, tokens in study %}
 <tr>
   <td>{{ relative_day|rel }}</td>

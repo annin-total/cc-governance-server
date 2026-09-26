@@ -135,7 +135,7 @@ def test_subagent_ratio_count_star_would_differ(known_db):
 def test_daily_cost_by_provider(known_db):
     """`cost_daily` を day x provider で束ねる。7 行、aws-bedrock と openai が別行。
 
-    `day` で絞らないため、窓より前の u20（day=19970）の行も現れる。
+    `day` で絞らないため、集計期間より前の u20（day=19970）の行も現れる。
     """
     rows = queries_events.daily_cost(known_db)
     assert rows == [
@@ -183,7 +183,7 @@ def test_user_session_trend(known_db):
     assert rows[20002] == (2, 2)
     assert rows[20003] == (1, 1)
     assert rows[20004] == (2, 2)
-    assert 19988 not in rows  # 窓（day >= 19992）より前
+    assert 19988 not in rows  # 集計期間（day >= 19992）より前
 
 
 def test_user_session_trend_unchanged_after_duplicate_injection(known_db):

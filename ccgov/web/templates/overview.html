@@ -8,7 +8,7 @@
 {{ m.chips(["直近7日 · 前7日と比較"]) }}
 <div class="tiles">
   {{ m.tile(health.recent.events|num, "イベント", delta=(health.recent.events - health.prev.events)) }}
-  {{ m.tile(health.recent.terminals|num, "送信者", delta=(health.recent.terminals - health.prev.terminals)) }}
+  {{ m.tile(health.recent.terminals|num, "送信した利用者", delta=(health.recent.terminals - health.prev.terminals)) }}
   {{ m.tile(reconciliation_rate|pct, "突合率",
             note=(reconciliation_numerator|num) ~ " / " ~ (reconciliation_denominator|num) ~ " 人") }}
 </div>
@@ -75,7 +75,7 @@
 </form>
 
 <h2>日次コスト推移</h2>
-{{ m.chips(["全期間 · 窓なし"]) }}
+{{ m.chips(["全期間"]) }}
 <div class="tbl">
 <table data-testid="daily-cost">
 <caption>day × provider の合計コスト（全期間）</caption>

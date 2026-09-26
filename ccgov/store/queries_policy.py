@@ -22,20 +22,20 @@ def _window_start(today: int) -> int:
 
 
 def _cost_window_start(conn, today: int) -> int:
-    """`cost_daily` を数える窓の始端。終端は `queries_events.cost_window_end`（空なら `today`）。"""
+    """`cost_daily` を数える集計期間の開始日。終了日は `queries_events.cost_window_end`（空なら `today`）。"""
     end = queries_events.cost_window_end(conn, today)
     return _window_start(today if end is None else end)
 
 
 def latest_values(conn, today: int, key_name: str) -> list:
-    """`POLICY_DAYS` 日の窓で、端末ごとの `ts` が最新の 1 行を返す。"""
+    """`POLICY_DAYS` 日の集計期間で、端末ごとの `ts` が最新の 1 行を返す。"""
     cur = conn.cursor()
     cur.execute(db.q(_LATEST_VALUES_SQL), (key_name, _window_start(today)))
     return cur.fetchall()
 
 
 def _distinct_users_with_cost(conn, today: int) -> set:
-    """`POLICY_DAYS` 日の窓で `cost_daily` へコストが立っている `user_email` の集合。"""
+    """`POLICY_DAYS` 日の集計期間に `cost_daily` にコストの記録がある `user_email` の集合。"""
     cur = conn.cursor()
     cur.execute(
         db.q("SELECT DISTINCT user_email FROM cost_daily WHERE day >= ?"),
@@ -60,7 +60,7 @@ def compliance_rate(conn, today: int, key_name: str, expected_value: str) -> lis
 
 
 def non_compliant(conn, today: int, key_name: str, expected_value: str) -> list:
-    """最新 1 行の `prev_value` がポリシー値と一致しない端末を返す。"""
+    """最新 1 行の `prev_value` が施策値と一致しない端末を返す。"""
     rows = latest_values(conn, today, key_name)
     return [
         (user_email, host, prev_value, day)
@@ -70,7 +70,7 @@ def non_compliant(conn, today: int, key_name: str, expected_value: str) -> list:
 
 
 def not_introduced(conn, today: int) -> list:
-    """`cost_daily` の窓（`cost_window_end` で終わる）に居て、`policy_state` の窓に行が無い利用者。"""
+    """`cost_daily` の集計期間（`cost_window_end` で終わる）に現れ、`policy_state` の集計期間（今日で終わる）に行が無い利用者。"""
     cur = conn.cursor()
     cur.execute(
         db.q(
@@ -87,7 +87,7 @@ def not_introduced(conn, today: int) -> list:
 
 
 def stale_terminals(conn, today: int) -> list:
-    """窓内の最終 `day` が `STALE_DAYS` 以上前の端末。無効化スイッチは利用ログ（`events`）だけを止め、policy イベントは送り続けるため、`policy_state` で判定する。"""
+    """集計期間内の最終 `day` が `STALE_DAYS` 以上前の端末。無効化スイッチは利用ログ（`events`）だけを止め、policy イベントは送り続けるため、`policy_state` で判定する。"""
     cur = conn.cursor()
     cur.execute(
         db.q(
