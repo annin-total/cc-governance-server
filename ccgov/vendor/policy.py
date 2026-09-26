@@ -7,9 +7,7 @@
 
 """端末の settings.json へ配る標準設定。変えたら plugin.json の version を上げてリリースする。
 
-キーは settings.json 内の `.` 区切りのパス（途中の名前に `.` を含められない）。
-各項目の上に、なぜ配るかをコメントで書く。書き方の見本は `policy_sample.py`、
-操作の意味は `docs/spec/plugin.md` の「設定の自動適用」にある。
+各項目の上に、なぜ配るかをコメントで書く。見本は `policy_sample.py`、操作の意味は `docs/spec/plugin.md`。
 """
 
 from typing import Any
