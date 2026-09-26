@@ -6,6 +6,7 @@ from urllib.parse import urlparse
 from ccgov.config import db_dsn
 from ccgov.vendor.contract import (
     CSV_COLUMNS,
+    ERROR_COLUMNS,
     EXTRA_COLUMNS,
     HOOK_FIELDS,
     POLICY_COLUMNS,
@@ -117,6 +118,7 @@ def _required_columns() -> dict:
         | {name for name, _, _ in HOOK_FIELDS},
         "policy_state": {name for name, _ in POLICY_COLUMNS},
         "cost_daily": {db_name for _, db_name, _ in CSV_COLUMNS},
+        "errors": {name for name, _ in ERROR_COLUMNS},
     }
 
 

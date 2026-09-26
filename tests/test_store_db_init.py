@@ -62,9 +62,34 @@ def _assert_expected_indexes(conn) -> None:
     assert _index_names(conn) == _EXPECTED_INDEX_NAMES
 
 
-def test_init_creates_three_tables(db_conn):
-    """1 回の init() で events / policy_state / cost_daily の 3 テーブルができる。"""
-    assert _table_names(db_conn) == {"events", "policy_state", "cost_daily"}
+def test_init_creates_four_tables(db_conn):
+    """1 回の init() で events / policy_state / cost_daily / errors の 4 テーブルができる。"""
+    assert _table_names(db_conn) == {"events", "policy_state", "cost_daily", "errors"}
+
+
+def test_init_adds_errors_table_to_existing_db(sqlite_db_dsn):
+    """errors の無い既存 DB でも、init() で errors ができ、既存の行は残る。"""
+    db.init()
+    conn = db.connect()
+    try:
+        cur = conn.cursor()
+        cur.execute("INSERT INTO cost_daily (day, cost) VALUES (1, 1.0)")
+        cur.execute("DROP TABLE errors")
+        conn.commit()
+        assert "errors" not in _table_names(conn)
+    finally:
+        conn.close()
+
+    db.init()
+
+    conn = db.connect()
+    try:
+        assert "errors" in _table_names(conn)
+        cur = conn.cursor()
+        cur.execute("SELECT COUNT(*) FROM cost_daily")
+        assert cur.fetchone()[0] == 1
+    finally:
+        conn.close()
 
 
 def test_init_creates_eight_indexes_with_expected_columns(db_conn):

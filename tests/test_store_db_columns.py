@@ -67,6 +67,19 @@ def test_missing_csv_column_raises_with_table_and_column(sqlite_db_dsn, monkeypa
     assert "region" in message
 
 
+def test_missing_error_column_raises_with_table_and_column(sqlite_db_dsn, monkeypatch):
+    """ERROR_COLUMNS に列を足すと、errors と足した列名を含む例外になる。"""
+    db.init()
+    patched = db.ERROR_COLUMNS + (("session_id", "VARCHAR(255)"),)
+    monkeypatch.setattr(db, "ERROR_COLUMNS", patched)
+
+    with pytest.raises(RuntimeError) as excinfo:
+        db.init()
+    message = str(excinfo.value)
+    assert "errors" in message
+    assert "session_id" in message
+
+
 def test_missing_columns_in_two_tables_both_reported(sqlite_db_dsn, monkeypatch):
     """HOOK_FIELDS と CSV_COLUMNS の両方に列を足すと、2 テーブル分がすべて報告される。"""
     db.init()
