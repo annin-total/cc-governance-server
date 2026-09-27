@@ -17,6 +17,9 @@ _SQLITE_PATH_PREFIX = "sqlite:///"
 
 _TABLES = ("events", "policy_state", "cost_daily")
 
+# ロックの解放を待つ上限。端末の送信タイムアウト（`plugin/config.json` の `timeout_sec`）より短く保つ
+SQLITE_BUSY_TIMEOUT_SEC = 30
+
 _INDEXES = (
     ("events", ("day", "user_email", "event_id")),
     ("events", ("skill_name", "day", "user_email", "event_id")),
@@ -64,7 +67,7 @@ def _mysql_kwargs() -> dict:
 
 def connect():
     if _dialect() == "sqlite":
-        return sqlite3.connect(_sqlite_path())
+        return sqlite3.connect(_sqlite_path(), timeout=SQLITE_BUSY_TIMEOUT_SEC)
     import pymysql
 
     return pymysql.connect(**_mysql_kwargs())

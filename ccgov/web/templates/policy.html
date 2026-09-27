@@ -31,7 +31,12 @@
 {% endif %}
 
 <h2>準拠率（施策項目別）</h2>
+{% if csv_imported %}
 {{ m.chips(["直近30日", "分母: CSV の最終日までの30日に cost_daily にコストの記録がある利用者"]) }}
+{% else %}
+{{ m.chips(["直近30日", "分母: 今日までの30日に policy_state に行がある利用者"]) }}
+<p class="note">CSV を取り込んでいないため、分母は policy イベントが届いた利用者です。未導入者は含まない（CSV があれば含める）。</p>
+{% endif %}
 <p class="note">1 台でも未準拠なら、その利用者は未準拠として数える。台数と人数が一致しないのはこのため。</p>
 <div class="tbl">
 <table data-testid="compliance-rate">

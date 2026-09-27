@@ -57,3 +57,20 @@ def test_summary_unchanged_after_duplicate_rows(db_conn):
     before = queries_errors.error_summary(db_conn, TODAY)
     _seed(db_conn)
     assert queries_errors.error_summary(db_conn, TODAY) == before
+
+
+def test_terminals_are_user_host_pairs_and_null_stage_is_a_group(db_conn):
+    """同じ利用者の別 host は別の端末。stage・user_email が NULL の行も 1 つの群・1 台として数える。"""
+    _seed(
+        db_conn,
+        (
+            ("y1", 10, 20005, "u1", "h1", "0.1.0", "collect", "KeyError"),
+            ("y2", 20, 20005, "u1", "h2", "0.2.0", "collect", "KeyError"),
+            ("y3", 30, 20005, None, "h3", "0.3.0", None, "KeyError"),
+            ("y4", 40, 20005, None, "h3", "0.4.0", None, "KeyError"),
+        ),
+    )
+    assert queries_errors.error_summary(db_conn, TODAY) == [
+        (None, "KeyError", 2, 1, "0.4.0"),
+        ("collect", "KeyError", 2, 2, "0.2.0"),
+    ]

@@ -72,4 +72,4 @@ for name in NAMES:
 PY
 
 pip install -r requirements.txt
-waitress-serve --listen=0.0.0.0:5000 app:app
+exec waitress-serve --listen=0.0.0.0:5000 app:app
