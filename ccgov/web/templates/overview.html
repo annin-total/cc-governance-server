@@ -28,8 +28,7 @@
 <table data-testid="null-rates">
 <caption>列別の NULL 率（直近7日 / 前7日）</caption>
 <tr><th scope="col">列</th><th scope="col">直近7日</th><th scope="col">前7日</th></tr>
-{% for column in ["tool_name", "skill_name", "context_tokens", "command_source"] %}
-{% set recent_rate = health.recent.null_rates[column] %}
+{% for column, recent_rate in health.recent.null_rates.items() %}
 {% set prev_rate = health.prev.null_rates[column] %}
 <tr>
   <td>{{ column }}</td>
