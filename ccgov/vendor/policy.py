@@ -18,6 +18,14 @@ SET: dict[str, Any] = {
     "env.CLAUDE_AUTOCOMPACT_PCT_OVERRIDE": "60",
     # このプラグインの更新を端末へ自動で届ける（社外のマーケットプレイスは既定で自動更新しない）
     "extraKnownMarketplaces.cc-marketplace-governance-bmsd.autoUpdate": True,
+    # Claude Code 本体の版を全員そろえる。施策は全員が最新の版にいることを前提にする
+    "autoUpdatesChannel": "latest",
+    # 利用者が自動更新を切っていても打ち消す。キーを消さず "0" で上書きするのは、settings の env が
+    # シェルの export に勝ち、"0" は「無効化しない」と読まれるから
+    "env.DISABLE_AUTOUPDATER": "0",
+    "env.DISABLE_UPDATES": "0",
+    # Homebrew・WinGet で入れた本体もパッケージマネージャ経由で自動更新させる
+    "env.CLAUDE_CODE_PACKAGE_MANAGER_AUTO_UPDATE": "1",
 }
 
 # 配列に無い要素だけ足す

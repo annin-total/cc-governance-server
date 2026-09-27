@@ -40,6 +40,7 @@ EXTRA_COLUMNS = (
     ("host", "VARCHAR(255)"),
     ("hook_event", "VARCHAR(64)"),
     ("context_tokens", "INTEGER"),
+    ("claude_code_version", "VARCHAR(32)"),
 )
 
 POLICY_COLUMNS = (

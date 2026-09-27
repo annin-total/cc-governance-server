@@ -159,6 +159,33 @@ def insert_precompact(conn, event_id: str, day: int, context_tokens: int) -> Non
     )
 
 
+def seed_claude_code_versions(conn) -> None:
+    """版つきの `events` を投入する。端末ごとの最新は 2.1.283 が 2 台、2.1.281 が 1 台になる。
+
+    uv1 は最新行が版なし（PostToolUse）、uv2 は `day` と `ts` の順が逆、uv3 は集計期間の外にだけ版がある。
+    """
+    rows = (
+        ("v1", "uv1", "hv1", 1000, 20000, "Stop", "2.1.281"),
+        ("v2", "uv1", "hv1", 2000, 20001, "PreCompact", "2.1.283"),
+        ("v3", "uv1", "hv1", 3000, 20002, "PostToolUse", None),
+        ("v4", "uv2", "hv2", 5000, 20000, "Stop", "2.1.283"),
+        ("v5", "uv2", "hv2", 1000, 20003, "Stop", "2.1.281"),
+        ("v6", "uv2", "hv2b", 1500, 20001, "Stop", "2.1.281"),
+        ("v7", "uv3", "hv3", 900, 19970, "Stop", "2.1.200"),
+    )
+    for event_id, user_email, host, ts, day, hook_event, version in rows:
+        insert_event(
+            conn,
+            event_id=event_id,
+            ts=ts,
+            day=day,
+            user_email=user_email,
+            host=host,
+            hook_event=hook_event,
+            claude_code_version=version,
+        )
+
+
 def _duplicate_table(conn, table: str, columns: tuple) -> None:
     """`table` の全行を `event_id` を含めて同一のまま複製する（送信のリトライで起きる重複の再現）。"""
     cur = conn.cursor()

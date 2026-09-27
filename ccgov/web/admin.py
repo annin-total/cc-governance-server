@@ -121,6 +121,9 @@ def policy_view() -> str:
         not_introduced = queries_policy.not_introduced(conn, today)
         stale = queries_policy.stale_terminals(conn, today)
         plugin_versions = queries_policy.plugin_version_distribution(conn, today, rk)
+        claude_code_versions = queries_policy.claude_code_version_distribution(
+            conn, today
+        )
     finally:
         conn.close()
     return render_template(
@@ -131,6 +134,7 @@ def policy_view() -> str:
         not_introduced=not_introduced,
         stale=stale,
         plugin_versions=plugin_versions,
+        claude_code_versions=claude_code_versions,
     )
 
 

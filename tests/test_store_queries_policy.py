@@ -6,6 +6,7 @@ from known_data import (
     K,
     assert_invariant_under_duplication,
     insert_compliant_policy,
+    seed_claude_code_versions,
 )
 
 from ccgov.constants import REFERENCE_KEY
@@ -249,3 +250,21 @@ def test_cost_window_ends_at_last_csv_day(known_db):
     assert queries_policy.compliance_rate(known_db, later, K, "60") == [(0, 5, 0.0)]
     rows = queries_policy.not_introduced(known_db, later)
     assert [r[0] for r in rows] == ["u1", "u2", "u3", "u4", "u5"]
+
+
+def test_claude_code_version_distribution(known_db):
+    """端末ごとに版のある最新 1 行（`ts` の降順）を数える。版の無い行と集計期間の外は数えない。"""
+    seed_claude_code_versions(known_db)
+    rows = dict(queries_policy.claude_code_version_distribution(known_db, TODAY))
+    assert rows == {"2.1.283": 2, "2.1.281": 1}
+
+
+def test_claude_code_version_distribution_unchanged_after_duplicate_injection(
+    known_db,
+):
+    seed_claude_code_versions(known_db)
+
+    def compute():
+        return sorted(queries_policy.claude_code_version_distribution(known_db, TODAY))
+
+    assert_invariant_under_duplication(known_db, compute)
