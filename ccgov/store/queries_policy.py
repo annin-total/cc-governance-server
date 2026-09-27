@@ -100,20 +100,44 @@ def stale_terminals(conn, today: int) -> list:
     return cur.fetchall()
 
 
-def plugin_version_distribution(conn, today: int, key_name: str) -> list:
-    """端末ごとの最新 1 行の `plugin_version` を数える。"""
+def _latest_per_terminal_distribution(
+    conn, today: int, table: str, column: str, condition: str, params: tuple
+) -> list:
+    """`condition` を満たす行のうち、端末ごとに `ts` が最新の 1 行の `column` を数える。
+
+    `table`・`column`・`condition` は SQL に埋め込むため、呼び出し側の固定の文字列だけを渡す。
+    """
     cur = conn.cursor()
     cur.execute(
         db.q(
-            "SELECT plugin_version, COUNT(*) FROM ("
-            "  SELECT user_email, host, plugin_version,"
+            f"SELECT {column}, COUNT(*) FROM ("
+            f"  SELECT user_email, host, {column},"
             "         ROW_NUMBER() OVER (PARTITION BY user_email, host ORDER BY ts DESC) AS rn"
-            "    FROM policy_state WHERE key_name = ? AND day >= ?"
-            ") t WHERE rn = 1 GROUP BY plugin_version"
+            f"    FROM {table} WHERE {condition} AND day >= ?"
+            f") t WHERE rn = 1 GROUP BY {column}"
         ),
-        (key_name, _window_start(today)),
+        (*params, _window_start(today)),
     )
     return cur.fetchall()
+
+
+def plugin_version_distribution(conn, today: int, key_name: str) -> list:
+    """端末ごとの最新 1 行の `plugin_version` を数える。"""
+    return _latest_per_terminal_distribution(
+        conn, today, "policy_state", "plugin_version", "key_name = ?", (key_name,)
+    )
+
+
+def claude_code_version_distribution(conn, today: int) -> list:
+    """端末ごとに版のある最新 1 行の `claude_code_version` を数える。"""
+    return _latest_per_terminal_distribution(
+        conn,
+        today,
+        "events",
+        "claude_code_version",
+        "claude_code_version IS NOT NULL",
+        (),
+    )
 
 
 def compliance_start_dates(conn, key_name: str, expected_value: str) -> dict:

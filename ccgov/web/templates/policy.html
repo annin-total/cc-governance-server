@@ -116,4 +116,20 @@
 {{ m.empty("この期間に該当なし") }}
 {% endif %}
 
+<h2>Claude Code の版の分布</h2>
+{{ m.chips(["直近30日", "対象: 版を記録した events がある端末"]) }}
+{% if claude_code_versions %}
+<div class="tbl">
+<table data-testid="claude-code-versions">
+  <caption>Claude Code の版の分布</caption>
+  <tr><th scope="col">version</th><th scope="col">件数</th></tr>
+  {% for version, count in claude_code_versions %}
+  <tr><td>{{ version }}</td><td class="num">{{ count }}</td></tr>
+  {% endfor %}
+</table>
+</div>
+{% else %}
+{{ m.empty("この期間に該当なし") }}
+{% endif %}
+
 {% endblock %}

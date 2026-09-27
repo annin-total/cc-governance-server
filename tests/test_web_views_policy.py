@@ -1,7 +1,7 @@
 """`/policy` 画面のテストクライアント検証。基準日は `today_client` が固定する。"""
 
-from conftest import ADMIN, rows_in_table
-from known_data import TODAY
+from conftest import ADMIN, rows_in_table, table_body
+from known_data import TODAY, seed_claude_code_versions
 
 from ccgov.constants import REFERENCE_KEY
 from ccgov.store import db, queries_policy
@@ -40,11 +40,11 @@ def test_not_introduced_row_count(today_client):
     assert "u4" in html
 
 
-def test_compliance_rate_table_shows_both_items(today_client):
-    """準拠率の表に項目ごとに 1 行、計 2 行出る。"""
+def test_compliance_rate_table_shows_each_set_item(today_client):
+    """準拠率の表に SET のスカラ値の項目ごとに 1 行、計 6 行出る。"""
     html = today_client.get(ADMIN + "/policy").get_data(as_text=True)
     rows = rows_in_table(html, "compliance-rate")
-    assert len(rows) == 2
+    assert len(rows) == 6
     assert "20.0%" in html
     assert "80.0%" in html
 
@@ -163,3 +163,14 @@ def test_set_dict_and_none_are_excluded_from_compliance_rate(today_client, monke
     assert len(rows) == 3
     assert "some.dict.key" not in html
     assert "some.removed.key" not in html
+
+
+def test_claude_code_versions_table_matches_query(known_db, today_client):
+    """Claude Code の版の分布の表の行数と中身が、クエリの戻り値と一致する。"""
+    seed_claude_code_versions(known_db)
+    html = today_client.get(ADMIN + "/policy").get_data(as_text=True)
+    body = table_body(html, "claude-code-versions")
+    expected = queries_policy.claude_code_version_distribution(known_db, TODAY)
+    assert len(rows_in_table(html, "claude-code-versions")) == len(expected) == 2
+    assert "<td>2.1.283</td>" in body
+    assert "<td>2.1.281</td>" in body

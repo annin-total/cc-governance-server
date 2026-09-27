@@ -24,7 +24,7 @@ def test_missing_hook_field_column_raises_with_table_and_column(
 
 
 def test_missing_hook_field_column_does_not_alter_table(sqlite_db_dsn, monkeypatch):
-    """列不足で例外になっても ALTER TABLE は発行されず、列数は 19 のままである。"""
+    """列不足で例外になっても ALTER TABLE は発行されず、列数は 20 のままである。"""
     db.init()
     patched = db.HOOK_FIELDS + (("mcp_server", ("mcp_server",), "VARCHAR(255)"),)
     monkeypatch.setattr(db, "HOOK_FIELDS", patched)
@@ -36,7 +36,7 @@ def test_missing_hook_field_column_does_not_alter_table(sqlite_db_dsn, monkeypat
     try:
         cur = conn.cursor()
         cur.execute("PRAGMA table_info(events)")
-        assert len(cur.fetchall()) == 19
+        assert len(cur.fetchall()) == 20
     finally:
         conn.close()
 
