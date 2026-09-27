@@ -47,7 +47,7 @@ def parse_line(line: bytes) -> Optional[tuple]:
     """1 行の NDJSON を契約由来の検査にかけ、通れば (kind, 値のタプル) を返す。"""
     try:
         obj = json.loads(line)
-    except ValueError:
+    except (ValueError, RecursionError):  # 深い入れ子は RecursionError になる
         return None
     if not isinstance(obj, dict):
         return None

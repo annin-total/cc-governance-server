@@ -240,7 +240,7 @@ def test_all_numbers_survive_full_duplication_at_once(known_db):
 
 
 def test_compliance_rate_is_none_without_cost_users(db_conn):
-    """`cost_daily` に行が無いとき、準拠率は None。"""
+    """`cost_daily` も `policy_state` も空なら、準拠率は None。"""
     assert queries_policy.compliance_rate(db_conn, TODAY, K, "60") == [(0, 0, None)]
 
 

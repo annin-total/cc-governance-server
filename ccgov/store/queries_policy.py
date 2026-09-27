@@ -34,12 +34,22 @@ def latest_values(conn, today: int, key_name: str) -> list:
     return cur.fetchall()
 
 
-def _distinct_users_with_cost(conn, today: int) -> set:
-    """`POLICY_DAYS` 日の集計期間に `cost_daily` にコストの記録がある `user_email` の集合。"""
+def csv_imported(conn) -> bool:
+    """`cost_daily` に行が 1 つでもあるか（CSV を一度でも取り込んだか）。"""
     cur = conn.cursor()
+    cur.execute(db.q("SELECT 1 FROM cost_daily LIMIT 1"))
+    return cur.fetchone() is not None
+
+
+def _denominator_users(conn, today: int) -> set:
+    """準拠率の分母の `user_email` の集合。CSV があれば `cost_daily`、無ければ `policy_state` の集計期間に現れる利用者。"""
+    cur = conn.cursor()
+    if csv_imported(conn):
+        table, start = "cost_daily", _cost_window_start(conn, today)
+    else:
+        table, start = "policy_state", _window_start(today)
     cur.execute(
-        db.q("SELECT DISTINCT user_email FROM cost_daily WHERE day >= ?"),
-        (_cost_window_start(conn, today),),
+        db.q(f"SELECT DISTINCT user_email FROM {table} WHERE day >= ?"), (start,)
     )
     return {row[0] for row in cur.fetchall()}
 
@@ -52,7 +62,7 @@ def compliance_rate(conn, today: int, key_name: str, expected_value: str) -> lis
         ok = prev_value == expected_value
         compliant_by_user[user_email] = compliant_by_user.get(user_email, True) and ok
 
-    denom_users = _distinct_users_with_cost(conn, today)
+    denom_users = _denominator_users(conn, today)
     denominator = len(denom_users)
     numerator = sum(1 for u in denom_users if compliant_by_user.get(u, False))
     rate = round(numerator / denominator * 100, 1) if denominator else None

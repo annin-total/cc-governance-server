@@ -5,9 +5,14 @@
 
 import importlib
 import json
+import sqlite3
+import threading
 
 import pytest
 from conftest import env_var
+
+# sqlite3.connect の既定の待ち（5 秒）を超える長さ
+_LOCK_HOLD_SEC = 6
 
 
 def _count(table: str) -> int:
@@ -34,12 +39,14 @@ def _event_line(event_id: str) -> str:
         ("\n".join([_event_line("e1"), "not-json"]), 1, 1),
         ("not-json\n{}", 0, 2),
         (b"", 0, 0),
+        ("\n".join([_event_line("e1"), "[" * 100000 + "]" * 100000]), 1, 1),
     ],
     ids=[
         "stored_two_dropped_zero",
         "stored_one_dropped_one",
         "stored_zero_dropped_two",
         "empty_body",
+        "deeply_nested_dropped",
     ],
 )
 def test_valid_token_returns_200_with_counts(ingest_client, body, stored, dropped):
@@ -131,3 +138,34 @@ def test_write_failure_returns_5xx(ingest_client):
     )
     assert response.status_code >= 500
     assert _count("policy_state") == 0
+
+
+def test_ingest_waits_for_lock_held_longer_than_sqlite_default(ingest_client):
+    """別の接続が書き込みロックを sqlite3 の既定の待ち（5 秒）より長く握っても、解放を待って 200 を返す。"""
+    from ccgov.store import db
+
+    holder = sqlite3.connect(db._sqlite_path(), check_same_thread=False)
+    holder.execute("BEGIN EXCLUSIVE")
+    release = threading.Timer(_LOCK_HOLD_SEC, holder.commit)
+    release.start()
+    try:
+        response = ingest_client.post(
+            "/ingest", data=_event_line("e1"), headers={"X-Ingest-Token": "tok"}
+        )
+    finally:
+        release.join()
+        holder.close()
+    assert response.status_code == 200
+    assert _count("events") == 1
+
+
+def test_sqlite_busy_timeout_is_explicit(sqlite_db_dsn):
+    """接続の busy timeout は `db.SQLITE_BUSY_TIMEOUT_SEC` になる。"""
+    from ccgov.store import db
+
+    conn = db.connect()
+    try:
+        (busy_ms,) = conn.execute("PRAGMA busy_timeout").fetchone()
+    finally:
+        conn.close()
+    assert busy_ms == db.SQLITE_BUSY_TIMEOUT_SEC * 1000

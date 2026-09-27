@@ -10,6 +10,8 @@ _EVENTS_COLUMNS = tuple(EXTRA_COLUMNS) + tuple(
 )
 _EVENTS_NAMES = [name for name, _ in _EVENTS_COLUMNS]
 _POLICY_NAMES = [name for name, _ in POLICY_COLUMNS]
+# json.loads が RecursionError を投げる深さ
+_DEEPLY_NESTED = b"[" * 100000 + b"]" * 100000
 
 
 def _events_value(values: tuple, name: str):
@@ -104,6 +106,7 @@ def test_missing_optional_hook_fields_become_none():
         b'{"event_id":"e14","ts":1758400000}',
         b'{"kind":"event","event_id":',
         b"[1,2,3]",
+        _DEEPLY_NESTED,
     ],
     ids=[
         "missing_event_id",
@@ -114,10 +117,11 @@ def test_missing_optional_hook_fields_become_none():
         "missing_kind",
         "invalid_json",
         "non_dict_json",
+        "deeply_nested",
     ],
 )
 def test_invalid_line_is_dropped(line):
-    """必須項目の欠落・未知の kind・JSON でない行・dict でない JSON は破棄する。"""
+    """必須項目の欠落・未知の kind・JSON でない行・dict でない JSON・深すぎる入れ子は破棄する。"""
     assert parse_line(line) is None
 
 

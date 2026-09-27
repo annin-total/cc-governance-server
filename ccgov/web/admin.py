@@ -117,6 +117,7 @@ def policy_view() -> str:
                     ),
                 }
             )
+        csv_imported = queries_policy.csv_imported(conn)
         latest_values = queries_policy.latest_values(conn, today, rk)
         not_introduced = queries_policy.not_introduced(conn, today)
         stale = queries_policy.stale_terminals(conn, today)
@@ -129,6 +130,7 @@ def policy_view() -> str:
     return render_template(
         "policy.html",
         items=items,
+        csv_imported=csv_imported,
         reference_key=rk,
         latest_values=latest_values,
         not_introduced=not_introduced,
