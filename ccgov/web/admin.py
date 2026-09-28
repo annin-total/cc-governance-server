@@ -2,53 +2,24 @@
 
 import hmac
 import time
+from typing import Callable
 
 from flask import Blueprint, Response, current_app, render_template, request
 
-from ccgov.constants import (
-    CONTEXT_BIN,
-    EFFECT_PROVIDER,
-    EVENT_STUDY_SPAN,
-    REFERENCE_KEY,
-    REFERENCE_VALUE,
-)
 from ccgov.ingestion import csv_import
-from ccgov.metrics import compliance
-from ccgov.reports import assets, overview
-from ccgov.reports import effect as effect_report
-from ccgov.reports import policy as policy_report
-from ccgov.store import db, queries_errors, queries_events, queries_policy
-from ccgov.vendor import contract, policy
+from ccgov.reports import assets, effect, overview, policy
+from ccgov.store import db
+from ccgov.vendor import contract
 
 # CSS を認証つきで配るため、静的配信はアプリ直下ではなくこの Blueprint が持つ。
 admin = Blueprint("admin", __name__, static_folder="static")
 
 
-def _overview_context() -> dict:
-    """`/` 画面の集計結果を返す（取込結果を除く）。"""
-    today = _today()
+def _build(build: Callable, *args) -> dict:
+    """接続を開いて `build(conn, *args)` を呼び、閉じてから結果を返す。"""
     conn = db.connect()
     try:
-        reconciliation = overview.reconciliation_rate(conn, today)[0]
-        return {
-            "health": overview.health_counts(conn, today),
-            "error_summary": queries_errors.error_summary(conn, today),
-            "reconciliation_numerator": reconciliation[0],
-            "reconciliation_denominator": reconciliation[1],
-            "reconciliation_rate": reconciliation[2],
-            "plugin_versions": queries_policy.plugin_version_distribution(
-                conn, today, REFERENCE_KEY
-            ),
-            "daily_cost": queries_events.daily_cost(conn),
-            "user_session_trend": queries_events.user_session_trend(conn, today),
-            "permission_mode_distribution": queries_events.distribution(
-                conn, today, "permission_mode"
-            ),
-            "effort_level_distribution": queries_events.distribution(
-                conn, today, "effort_level"
-            ),
-            "source_distribution": queries_events.distribution(conn, today, "source"),
-        }
+        return build(conn, *args)
     finally:
         conn.close()
 
@@ -69,7 +40,7 @@ def _require_admin_password():
 
 @admin.route("/", strict_slashes=False)
 def index() -> str:
-    return render_template("overview.html", **_overview_context())
+    return render_template("overview.html", **_build(overview.build, _today()))
 
 
 @admin.route("/import", methods=["POST"])
@@ -85,7 +56,7 @@ def import_endpoint() -> str:
         finally:
             conn.close()
     return render_template(
-        "overview.html", import_results=results, **_overview_context()
+        "overview.html", import_results=results, **_build(overview.build, _today())
     )
 
 
@@ -95,91 +66,15 @@ def _today() -> int:
 
 @admin.route("/policy")
 def policy_view() -> str:
-    today = _today()
-    rk = REFERENCE_KEY
-    conn = db.connect()
-    try:
-        items = []
-        for key_name, expected_value in compliance.targets(policy.SET):
-            numerator, denominator, rate = policy_report.compliance_rate(
-                conn, today, key_name, expected_value
-            )[0]
-            items.append(
-                {
-                    "key_name": key_name,
-                    "numerator": numerator,
-                    "denominator": denominator,
-                    "rate": rate,
-                    "non_compliant": policy_report.non_compliant(
-                        conn, today, key_name, expected_value
-                    ),
-                }
-            )
-        csv_imported = queries_policy.csv_imported(conn)
-        latest_values = queries_policy.latest_values(conn, today, rk)
-        not_introduced = queries_policy.not_introduced(conn, today)
-        stale = queries_policy.stale_terminals(conn, today)
-        plugin_versions = queries_policy.plugin_version_distribution(conn, today, rk)
-        claude_code_versions = queries_policy.claude_code_version_distribution(
-            conn, today
-        )
-    finally:
-        conn.close()
-    return render_template(
-        "policy.html",
-        items=items,
-        csv_imported=csv_imported,
-        reference_key=rk,
-        latest_values=latest_values,
-        not_introduced=not_introduced,
-        stale=stale,
-        plugin_versions=plugin_versions,
-        claude_code_versions=claude_code_versions,
-    )
+    return render_template("policy.html", **_build(policy.build, _today()))
 
 
 @admin.route("/effect")
 def effect_view() -> str:
     """相対日は準拠開始日が基準のため、基準日（`_today()`）を使わない。"""
-    rk, rv = REFERENCE_KEY, REFERENCE_VALUE
-    conn = db.connect()
-    try:
-        study = effect_report.event_study(conn, rk, rv, EFFECT_PROVIDER)
-        start_dates = queries_policy.compliance_start_dates(conn, rk, rv)
-        context_pre_compact = effect_report.context_distribution(
-            conn, "PreCompact", start_dates
-        )
-        context_stop = effect_report.context_distribution(conn, "Stop", start_dates)
-    finally:
-        conn.close()
-    return render_template(
-        "effect.html",
-        reference_key=rk,
-        reference_value=rv,
-        provider=EFFECT_PROVIDER,
-        span=EVENT_STUDY_SPAN,
-        context_bin=CONTEXT_BIN,
-        study=study,
-        context_pre_compact=context_pre_compact,
-        context_stop=context_stop,
-    )
+    return render_template("effect.html", **_build(effect.build))
 
 
 @admin.route("/assets")
 def assets_view() -> str:
-    today = _today()
-    conn = db.connect()
-    try:
-        skills = queries_events.skill_usage(conn, today)
-        commands = queries_events.command_usage(conn, today)
-        numerator, denominator, rate = assets.subagent_ratio(conn, today)[0]
-    finally:
-        conn.close()
-    return render_template(
-        "assets.html",
-        skills=skills,
-        commands=commands,
-        subagent_numerator=numerator,
-        subagent_denominator=denominator,
-        subagent_rate=rate,
-    )
+    return render_template("assets.html", **_build(assets.build, _today()))

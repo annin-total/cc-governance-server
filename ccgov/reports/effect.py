@@ -1,5 +1,12 @@
-"""`/effect` 画面の組み立て。"""
+"""`/effect` 画面の組み立て。相対日は準拠開始日が基準のため、基準日を使わない。"""
 
+from ccgov.constants import (
+    CONTEXT_BIN,
+    EFFECT_PROVIDER,
+    EVENT_STUDY_SPAN,
+    REFERENCE_KEY,
+    REFERENCE_VALUE,
+)
 from ccgov.metrics import context, effect
 from ccgov.store import queries_policy
 
@@ -18,3 +25,18 @@ def context_distribution(conn, hook_event: str, start_dates: dict) -> dict:
     """`context_tokens` の分布を準拠開始日の前後に分けて返す（`metrics.context.bin_counts`）。"""
     samples = queries_policy.context_samples(conn, hook_event, start_dates)
     return context.bin_counts(samples)
+
+
+def build(conn) -> dict:
+    rk, rv = REFERENCE_KEY, REFERENCE_VALUE
+    start_dates = queries_policy.compliance_start_dates(conn, rk, rv)
+    return {
+        "reference_key": rk,
+        "reference_value": rv,
+        "provider": EFFECT_PROVIDER,
+        "span": EVENT_STUDY_SPAN,
+        "context_bin": CONTEXT_BIN,
+        "study": event_study(conn, rk, rv, EFFECT_PROVIDER),
+        "context_pre_compact": context_distribution(conn, "PreCompact", start_dates),
+        "context_stop": context_distribution(conn, "Stop", start_dates),
+    }

@@ -144,10 +144,10 @@ def test_add_once_prefixed_rows_do_not_enter_compliance_rate(known_db, today_cli
 
 def test_set_dict_and_none_are_excluded_from_compliance_rate(today_client, monkeypatch):
     """`policy.SET` の値が dict や None の項目は、準拠率の表に出ない。"""
-    from ccgov.web import admin
+    from ccgov.vendor import policy as policy_module
 
     monkeypatch.setattr(
-        admin.policy,
+        policy_module,
         "SET",
         {
             "env.CLAUDE_AUTOCOMPACT_PCT_OVERRIDE": "60",
