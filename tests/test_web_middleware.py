@@ -56,19 +56,20 @@ def test_base_path_wrapper(app_with_base_path, base_path, path, expected_status)
 
 @pytest.mark.parametrize("base_path", ["", "/gov/cc"])
 def test_stylesheet_is_served_under_base_path(app_with_base_path, base_path):
-    """`BASE_PATH` の有無にかかわらず、画面が指す先のスタイルシートが 200 で返ること。
+    """`BASE_PATH` の有無にかかわらず、画面が指す先のスタイルシートとスクリプトが 200 で返ること。
 
     前置が壊れても画面は 200 のまま見た目だけが崩れるため、参照先を実際に引く。
     """
     client = admin_client(app_with_base_path(base_path))
     html = client.get(base_path + ADMIN + "/").get_data(as_text=True)
-    match = re.search(r'<link[^>]+href="([^"]+app\.css)"', html)
-    assert match, "app.css への link が画面に無い"
-    href = match.group(1)
-    assert href.startswith(base_path + ADMIN + "/static/"), (
-        f"BASE_PATH が前置されていない: {href!r}"
-    )
-    assert client.get(href).status_code == 200, f"{href} が 200 で返らない"
+    hrefs = re.findall(r'<(?:link[^>]+href|script[^>]+src)="([^"]+)"', html)
+    names = sorted(href.rsplit("/", 1)[-1] for href in hrefs)
+    assert names == ["app.js", "components.css", "layout.css", "tokens.css"]
+    for href in hrefs:
+        assert href.startswith(base_path + ADMIN + "/static/"), (
+            f"BASE_PATH が前置されていない: {href!r}"
+        )
+        assert client.get(href).status_code == 200, f"{href} が 200 で返らない"
 
 
 def test_form_action_follows_base_path(db_dsn):

@@ -1,7 +1,6 @@
 {% extends "base.html" %}
 {% import "_macros.html" as m %}
-{% block title %}effect{% endblock %}
-{% block heading %}effect 効果測定{% endblock %}
+{% block styles %}<link rel="stylesheet" href="{{ url_for('admin.static', filename='app.css') }}">{% endblock %}
 {% block content %}
 
 <h2>イベントスタディ</h2>

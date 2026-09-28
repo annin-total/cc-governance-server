@@ -1,11 +1,11 @@
 """CSV を一度も取り込んでいない（`events` と `policy_state` はあるが `cost_daily` は空）DB での 4 画面の検証。"""
 
-import re
-
 import pytest
-from conftest import ADMIN, rows_in_table, table_body
+from conftest import ADMIN, card_value, rows_in_table, table_rows
 
-_NOTE = "未導入者は含まない（CSV があれば含める）"
+from ccgov.web import labels
+
+_NOTE = labels.BASIS_NOTE["policy"]
 
 
 @pytest.fixture
@@ -23,18 +23,20 @@ def test_all_screens_return_200(no_csv_client, path):
 def test_overview_fills_tables_from_events_and_policy(no_csv_client):
     """CSV に依らない表は埋まり、コストの表だけが空になる。"""
     html = no_csv_client.get(ADMIN + "/").get_data(as_text=True)
-    assert len(rows_in_table(html, "permission-mode-distribution")) == 3
-    assert rows_in_table(html, "plugin-version-distribution")
-    assert rows_in_table(html, "daily-cost") == []
+    modes = [r for r in table_rows(html, "modes") if r["tags"] == ["permission_mode"]]
+    assert len(modes) == 3
+    assert card_value(html, "受信した記録") == "13"
+    assert rows_in_table(html, "cost") == []
+    assert card_value(html, "コスト（利用明細）") == "—"
 
 
 def test_policy_denominator_is_policy_users_with_note(no_csv_client):
     """準拠率の分母は `policy_state` の利用者（6 人）になり、その旨の注記が出る。"""
     html = no_csv_client.get(ADMIN + "/policy").get_data(as_text=True)
-    assert rows_in_table(html, "latest-values")
-    body = table_body(html, "compliance-rate")
-    denominators = re.findall(r'<td class="num">(\d+)</td>\s*<td>', body)
-    assert denominators and set(denominators) == {"6"}
+    assert rows_in_table(html, "terminals")
+    ratios = [r["cells"][1] for r in table_rows(html, "settings")]
+    assert len(ratios) == 6
+    assert {r.split(" / ")[1] for r in ratios} == {"6 人"}
     assert _NOTE in html
 
 

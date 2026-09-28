@@ -1,7 +1,11 @@
 """`/policy` 画面の組み立て。"""
 
-from ccgov.constants import REFERENCE_KEY
-from ccgov.metrics import compliance
+from ccgov.constants import (
+    NON_COMPLIANT_USERS_HIGH,
+    NOT_INTRODUCED_ELEVATED,
+    REFERENCE_KEY,
+)
+from ccgov.metrics import compliance, rates, rollup, states, versions
 from ccgov.store import queries_policy
 from ccgov.vendor import policy
 
@@ -19,33 +23,86 @@ def non_compliant(conn, today: int, key_name: str, expected_value: str) -> list:
     return compliance.non_compliant(rows, expected_value)
 
 
-def _item(conn, today: int, key_name: str, expected_value: str) -> dict:
-    numerator, denominator, rate = compliance_rate(
-        conn, today, key_name, expected_value
-    )[0]
+def _item(conn, today: int, key: str, expected: str) -> dict:
+    numerator, denominator, rate = compliance_rate(conn, today, key, expected)[0]
     return {
-        "key_name": key_name,
+        "key": key,
         "numerator": numerator,
         "denominator": denominator,
         "rate": rate,
-        "non_compliant": non_compliant(conn, today, key_name, expected_value),
+        "off_terminals": len(non_compliant(conn, today, key, expected)),
+    }
+
+
+def _versions(kind: str, summary: dict) -> list:
+    """版の分布の行。`order` は新しい版ほど大きい。"""
+    parts = summary["parts"]
+    return [
+        {
+            "kind": kind,
+            "version": version,
+            "count": count,
+            "total": summary["total"],
+            "latest": version == summary["latest"],
+            "order": len(parts) - i,
+        }
+        for i, (version, count) in enumerate(parts)
+    ]
+
+
+def _counts(users: list, terminals: list, targets: set, items: list) -> dict:
+    ok = rollup.count_status(users, rollup.FINE)
+    stale = [t for t in terminals if t["stale"]]
+    return {
+        "ok": ok,
+        "ok_rate": rates.rate(ok, len(targets)),
+        "off": rollup.count_status(users, rollup.OFF),
+        "none": rollup.count_status(users, rollup.NONE),
+        "off_terminals": rollup.count_status(terminals, rollup.OFF),
+        "stale_terminals": len(stale),
+        "stale_users": len({t["email"] for t in stale}),
+        "terminals": len(terminals),
+        "items": len(items),
     }
 
 
 def build(conn, today: int) -> dict:
-    rk = REFERENCE_KEY
+    targets = compliance.targets(policy.SET)
+    expected = dict(targets)
+    latest = {k: queries_policy.latest_values(conn, today, k) for k in expected}
+    users_in_scope = queries_policy.denominator_users(conn, today)
+    items = [_item(conn, today, k, v) for k, v in targets]
+    stale = {(u, h) for u, h, _ in queries_policy.stale_terminals(conn, today)}
+    terminals = rollup.terminals(latest, expected, stale, today)
+    reference = latest.get(REFERENCE_KEY) or queries_policy.latest_values(
+        conn, today, REFERENCE_KEY
+    )
+    values = {(u, h): prev for u, h, prev, _, _ in reference}
+    for t in terminals:
+        t["value"] = values.get((t["email"], t["host"]))
+    not_introduced = {r[0] for r in queries_policy.not_introduced(conn, today)}
+    users = rollup.users(terminals, list(expected), users_in_scope, not_introduced)
+    counts = _counts(users, terminals, users_in_scope, items)
+    plugin = versions.summary(
+        queries_policy.plugin_version_distribution(conn, today, REFERENCE_KEY)
+    )
+    core = versions.summary(
+        queries_policy.claude_code_version_distribution(conn, today)
+    )
+    rated = [it for it in items if it["rate"] is not None]
     return {
-        "items": [
-            _item(conn, today, key_name, expected_value)
-            for key_name, expected_value in compliance.targets(policy.SET)
-        ],
-        "csv_imported": queries_policy.csv_imported(conn),
-        "reference_key": rk,
-        "latest_values": queries_policy.latest_values(conn, today, rk),
-        "not_introduced": queries_policy.not_introduced(conn, today),
-        "stale": queries_policy.stale_terminals(conn, today),
-        "plugin_versions": queries_policy.plugin_version_distribution(conn, today, rk),
-        "claude_code_versions": queries_policy.claude_code_version_distribution(
-            conn, today
-        ),
+        "denominator": len(users_in_scope),
+        "basis": "csv" if queries_policy.csv_imported(conn) else "policy",
+        "items": items,
+        "lowest": min(rated, key=lambda it: it["rate"])["key"] if rated else None,
+        "users": users,
+        "terminals": terminals,
+        "counts": counts,
+        "states": {
+            "off": states.above(counts["off"], NON_COMPLIANT_USERS_HIGH, states.NG),
+            "none": states.above(counts["none"], NOT_INTRODUCED_ELEVATED, states.WARN),
+        },
+        "plugin": plugin,
+        "core": core,
+        "versions": _versions("plugin", plugin) + _versions("core", core),
     }

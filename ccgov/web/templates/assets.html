@@ -1,7 +1,6 @@
 {% extends "base.html" %}
 {% import "_macros.html" as m %}
-{% block title %}assets{% endblock %}
-{% block heading %}assets 配布物の利用状況{% endblock %}
+{% block styles %}<link rel="stylesheet" href="{{ url_for('admin.static', filename='app.css') }}">{% endblock %}
 {% block content %}
 
 <h2>スキル別</h2>

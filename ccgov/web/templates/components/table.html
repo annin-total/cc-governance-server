@@ -1,0 +1,35 @@
+{# 絞り込み（文字入力・区分）と並べ替えつきの表。JS が無くても全行が見える（絞り込みの操作は JS が表示する）。 #}
+{% from "components/cells.html" import cell %}
+
+{% macro filters(t) -%}
+<div class="filters" data-filter hidden>
+  {%- if t.search %}
+  <label class="search"><span class="sr">{{ L.SEARCH }}</span><input type="search" placeholder="{{ t.search }}" data-search></label>
+  {%- endif %}
+  {%- if t.chips %}
+  <div class="chipbar" role="group" aria-label="{{ L.FILTER_GROUP }}">
+    {%- for c in t.chips %}<button type="button" data-chip="{{ c.id }}" aria-pressed="{{ 'true' if loop.first else 'false' }}">{% if c.tone %}<i class="dot {{ c.tone }}"></i>{% endif %}{{ c.label }}<b>{{ c.count|num }}</b></button>{% endfor -%}
+  </div>
+  {%- endif %}
+  <span class="count"><b data-shown>{{ t.rows|length|num }}</b> / {{ t.rows|length|num }} {{ t.unit }}</span>
+</div>
+{%- endmacro %}
+
+{% macro table(t) -%}
+{{ filters(t) }}
+<div class="tscroll">
+<table data-testid="{{ t.id }}">
+<thead><tr>
+{%- for c in t.cols %}<th scope="col" class="c-{{ c.kind }}{{ ' num' if c.num }}"{% if c.aria %} aria-sort="{{ c.aria }}"{% endif %}>
+{%- if c.sort %}<button type="button" data-sort="{{ loop.index0 }}">{{ c.label }}<i class="arrow"></i></button>{% else %}{{ c.label }}{% endif %}
+{%- if c.sub %}<span class="th-sub">{{ c.sub }}</span>{% endif %}</th>{% endfor -%}
+</tr></thead>
+<tbody>
+{%- for r in t.rows %}
+<tr data-tags="{{ r.tags }}" data-q="{{ r.q }}">{% for c in r.cells %}<td class="c-{{ c.col.kind }}{{ ' num' if c.col.num }}" data-v="{{ c.sort }}">{{ cell(c) }}</td>{% endfor %}</tr>
+{%- endfor %}
+</tbody>
+</table>
+<p class="empty" data-empty{% if t.rows %} hidden{% endif %}>{{ L.EMPTY }}</p>
+</div>
+{%- endmacro %}

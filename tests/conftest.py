@@ -9,6 +9,7 @@ import sys
 import tempfile
 import uuid
 from contextlib import contextmanager
+from html import unescape
 from pathlib import Path
 from typing import Optional
 from urllib.parse import urlparse
@@ -68,27 +69,48 @@ def basic_auth(password: str, username: str = "any") -> dict:
 
 
 def table_body(html: str, testid: str, key: Optional[str] = None) -> str:
-    """`data-testid`（と任意で `data-key`）が一致する `<table>` の中身（見出し行含む）を返す。"""
-    if key is None:
-        pattern = r'<table data-testid="' + re.escape(testid) + r'">(.*?)</table>'
-        label = f"data-testid={testid}"
-    else:
-        pattern = (
-            r'<table data-testid="'
-            + re.escape(testid)
-            + r'" data-key="'
-            + re.escape(key)
-            + r'">(.*?)</table>'
-        )
-        label = f"data-testid={testid} data-key={key}"
-    match = re.search(pattern, html, re.DOTALL)
-    assert match, f"table {label} が見つからない"
-    return match.group(1)
+    """`data-testid`（と任意で `data-key`）が一致する `<table>` の中身（見出し行含む）を返す。属性の順と他の属性は問わない。"""
+    wanted = [f'data-testid="{testid}"'] + (
+        [] if key is None else [f'data-key="{key}"']
+    )
+    for attrs, body in re.findall(r"<table\b([^>]*)>(.*?)</table>", html, re.DOTALL):
+        if all(re.search(r"(^|\s)" + re.escape(w) + r"(\s|$)", attrs) for w in wanted):
+            return body
+    raise AssertionError(f"table {' '.join(wanted)} が見つからない")
 
 
 def rows_in_table(html: str, testid: str, key: Optional[str] = None) -> list:
-    """`table_body` の `<tr>` を見出し行を除いて返す。"""
-    return re.findall(r"<tr>", table_body(html, testid, key))[1:]
+    """`table_body` の `<tr ...>`（属性つきを含む）を、最初の見出し行を除いて返す。"""
+    return re.findall(r"<tr\b[^>]*>", table_body(html, testid, key))[1:]
+
+
+def table_rows(html: str, testid: str) -> list:
+    """データ行ごとの `{"tags": 区分の id の並び, "cells": タグを除いたセルの文字}`。"""
+    result = []
+    for attrs, row in re.findall(
+        r"<tr\b([^>]*)>(.*?)</tr>", table_body(html, testid), re.DOTALL
+    )[1:]:
+        tags = re.search(r'data-tags="([^"]*)"', attrs)
+        cells = [
+            " ".join(unescape(re.sub(r"<[^>]+>", "", td)).split())
+            for td in re.findall(r"<td\b[^>]*>(.*?)</td>", row, re.DOTALL)
+        ]
+        result.append({"tags": tags.group(1).split() if tags else [], "cells": cells})
+    return result
+
+
+def card(html: str, label: str) -> str:
+    """見出しが `label` の指標カードの断片を返す。"""
+    for block in re.findall(r'<a class="card[^"]*".*?</a>', html, re.DOTALL):
+        if f"<span>{label}</span>" in block:
+            return block
+    raise AssertionError(f"card label={label} が見つからない")
+
+
+def card_value(html: str, label: str) -> str:
+    match = re.search(r'<span class="k-value">(.*?)<span class="u">', card(html, label))
+    assert match, f"card label={label} に値が無い"
+    return match.group(1)
 
 
 def admin_client(flask_app):
