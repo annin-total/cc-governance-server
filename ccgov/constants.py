@@ -9,6 +9,10 @@ EVENT_STUDY_SPAN = 14
 # コンテキストトークン数の分布のビン幅
 CONTEXT_BIN = 20000
 
+# 概況の NULL 率（%）の判定。この値を超えたら該当する
+NULL_RATE_HIGH = 50
+NULL_RATE_ELEVATED = 20
+
 # 効果測定の実験（policy.py とは独立に固定）。値は prev_value の表記（文字列）で書く。
 # plugin_version の分布も REFERENCE_KEY の行で数えるため、キーを替えると分布も変わる
 REFERENCE_KEY = "env.CLAUDE_AUTOCOMPACT_PCT_OVERRIDE"

@@ -25,8 +25,15 @@ def reconciliation_rate(conn, today: int) -> list:
 def build(conn, today: int) -> dict:
     """`/` 画面の集計結果を返す（取込結果を除く）。"""
     numerator, denominator, rate = reconciliation_rate(conn, today)[0]
+    counts = health_counts(conn, today)
+    recent, prev = counts["recent"], counts["prev"]
     return {
-        "health": health_counts(conn, today),
+        "health": counts,
+        "events_delta": rates.delta(recent["events"], prev["events"]),
+        "terminals_delta": rates.delta(recent["terminals"], prev["terminals"]),
+        "null_rate_status": {
+            col: health.null_rate_status(r) for col, r in recent["null_rates"].items()
+        },
         "error_summary": queries_errors.error_summary(conn, today),
         "reconciliation_numerator": numerator,
         "reconciliation_denominator": denominator,

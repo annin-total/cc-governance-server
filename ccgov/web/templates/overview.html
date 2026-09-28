@@ -7,8 +7,8 @@
 <h2>健全性</h2>
 {{ m.chips(["直近7日 · 前7日と比較", "突合率: CSV の最終日までの7日 · 比較なし"]) }}
 <div class="tiles">
-  {{ m.tile(health.recent.events|num, "イベント", delta=(health.recent.events - health.prev.events)) }}
-  {{ m.tile(health.recent.terminals|num, "送信した利用者", delta=(health.recent.terminals - health.prev.terminals)) }}
+  {{ m.tile(health.recent.events|num, "イベント", delta=events_delta) }}
+  {{ m.tile(health.recent.terminals|num, "送信した利用者", delta=terminals_delta) }}
   {{ m.tile(reconciliation_rate|pct, "突合率",
             note=(reconciliation_numerator|num) ~ " / " ~ (reconciliation_denominator|num) ~ " 人") }}
 </div>
@@ -34,9 +34,10 @@
   <td>{{ column }}</td>
   <td>
     {{ m.meter(recent_rate) }} {{ recent_rate|pct }}
-    {%- if recent_rate is none %}
-    {%- elif recent_rate > 50 %} {{ m.pill("要対応", "ng") }}
-    {%- elif recent_rate > 20 %} {{ m.pill("注意", "warn") }}
+    {%- set status = null_rate_status[column] %}
+    {%- if status is none %}
+    {%- elif status == "high" %} {{ m.pill("要対応", "ng") }}
+    {%- elif status == "elevated" %} {{ m.pill("注意", "warn") }}
     {%- else %} {{ m.pill("良好", "ok") }}
     {%- endif %}
   </td>

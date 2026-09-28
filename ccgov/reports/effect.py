@@ -7,7 +7,7 @@ from ccgov.constants import (
     REFERENCE_KEY,
     REFERENCE_VALUE,
 )
-from ccgov.metrics import context, effect
+from ccgov.metrics import context, effect, rates
 from ccgov.store import queries_policy
 
 
@@ -30,13 +30,15 @@ def context_distribution(conn, hook_event: str, start_dates: dict) -> dict:
 def build(conn) -> dict:
     rk, rv = REFERENCE_KEY, REFERENCE_VALUE
     start_dates = queries_policy.compliance_start_dates(conn, rk, rv)
+    study = event_study(conn, rk, rv, EFFECT_PROVIDER)
+    cost_shares = rates.shares_of_max([cost for _, _, cost, _ in study])
     return {
         "reference_key": rk,
         "reference_value": rv,
         "provider": EFFECT_PROVIDER,
         "span": EVENT_STUDY_SPAN,
         "context_bin": CONTEXT_BIN,
-        "study": event_study(conn, rk, rv, EFFECT_PROVIDER),
+        "study": [(*row, share) for row, share in zip(study, cost_shares)],
         "context_pre_compact": context_distribution(conn, "PreCompact", start_dates),
         "context_stop": context_distribution(conn, "Stop", start_dates),
     }
