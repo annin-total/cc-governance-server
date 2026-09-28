@@ -21,7 +21,6 @@ def test_missing_hook_field_column_raises_with_table_and_column(db_dsn, monkeypa
     assert "mcp_server" in message
 
 
-@pytest.mark.sqlite_only
 def test_missing_hook_field_column_does_not_alter_table(db_dsn, monkeypatch):
     """列不足で例外になっても ALTER TABLE は発行されず、列数は 20 のままである。"""
     db.init()
@@ -34,8 +33,10 @@ def test_missing_hook_field_column_does_not_alter_table(db_dsn, monkeypatch):
     conn = db.connect()
     try:
         cur = conn.cursor()
-        cur.execute("PRAGMA table_info(events)")
-        assert len(cur.fetchall()) == 20
+        cur.execute("SELECT * FROM events WHERE 1 = 0")
+        columns = [d[0] for d in cur.description]
+        assert len(columns) == 20
+        assert "mcp_server" not in columns
     finally:
         conn.close()
 
