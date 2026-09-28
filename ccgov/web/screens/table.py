@@ -3,14 +3,16 @@
 from typing import Any, Optional
 
 from ccgov import constants
-from ccgov.metrics import series
+from ccgov.metrics import context, series
 from ccgov.web import charts, filters, text
 from ccgov.web import labels as L
 from ccgov.web.screens import Col, Tab
+from ccgov.web.screens import words as W
 
 NUMERIC = {"num", "usd", "usd_strong", "pct", "pct_strong", "measure", "measure_sub"}
-NUMERIC |= {"diff", "last_day", "ratio", "count_of", "dash_num"}
+NUMERIC |= {"diff", "last_day", "ratio", "count_of", "dash_num", "num_sub"}
 TREND_CHART, COST_CHART, COST_TICK_EVERY = (540, 132), (1100, 180), 7
+HIST_CHART = (1100, 200, charts.STACK_PAD_LEFT, charts.STACK_PAD_BOTTOM)
 
 
 def _sort_key(value: Any) -> tuple:
@@ -21,7 +23,7 @@ def _sort_key(value: Any) -> tuple:
 
 def tab(tab: Tab, ctx: dict) -> dict:
     """タブ 1 つ分の表示用の値（見出し・区分・列・行・グラフ）。"""
-    words = L.TAB[tab.id]
+    words = W.TAB[tab.id]
     source = list(text.lookup(ctx, tab.rows))
     rows = list(source)
     if tab.sort:
@@ -57,7 +59,7 @@ def _columns(col: Col, tab: Tab, rows: list, ctx: dict) -> list:
         "key": col.key,
         "item": None,
         "kind": col.kind,
-        "label": "" if col.each else L.COL[col.label or col.key],
+        "label": "" if col.each else W.COL[col.label or col.key],
         "sub": "",
         "num": col.kind in NUMERIC,
         "sort": None if col.sort is None else (col.sort or col.key),
@@ -78,7 +80,7 @@ def _columns(col: Col, tab: Tab, rows: list, ctx: dict) -> list:
         ident = item["key"] if isinstance(item, dict) else item
         found = (col.terms or {}).get(ident, ident)
         label = found if isinstance(found, str) else found[-1]
-        sub = text.fill(L.COL_EACH_SUB, item) if isinstance(item, dict) else ""
+        sub = text.fill(W.COL_EACH_SUB, item) if isinstance(item, dict) else ""
         result.append({**view, "item": ident, "label": label, "sub": sub})
     return result
 
@@ -160,5 +162,11 @@ def _chart(tab: Tab, words: dict, rows: list, ctx: dict) -> Optional[dict]:
             "kind": "cost",
             "geo": geo,
             "series": [text.term(L.PROVIDER, p) for p in providers],
+        }
+    if tab.chart == "hist" and rows:
+        return {
+            "kind": "hist",
+            "geo": charts.hist(rows, context.SIDES, *HIST_CHART),
+            "series": list(L.SIDE.values()),
         }
     return None

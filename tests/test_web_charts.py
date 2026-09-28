@@ -41,3 +41,19 @@ def test_stacked_segments_follow_series_order():
     assert [s["series"] for s in second["segs"]] == [1]
     assert first["segs"][1]["y"] < first["segs"][0]["y"]
     assert (first["tick"], second["tick"]) == (True, False)
+
+
+def test_hist_puts_sides_side_by_side_from_zero():
+    """区間ごとに前後の棒を並べ、高さは割合に比例する（縦軸は 0 から）。記録の無い側（None）は高さ 0。"""
+    rows = [
+        {"bin": 0, "before_share": 10.0, "after_share": 20.0},
+        {"bin": 20000, "before_share": None, "after_share": 5.0},
+    ]
+    g = charts.hist(rows, ("before", "after"), 200, 108, 0, 0)
+    (b0, a0), (b1, _) = [bar["segs"] for bar in g["bars"]]
+    assert a0["h"] == 2 * b0["h"] > 0
+    assert a0["y"] + a0["h"] == g["base"] == 108
+    assert b1["h"] == 0
+    assert a0["x"] > b0["x"]
+    assert [t["v"] for t in g["ticks"]] == [0, 5, 10, 15, 20]
+    assert [bar["key"] for bar in g["bars"]] == [0, 20000]

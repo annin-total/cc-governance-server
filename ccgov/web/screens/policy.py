@@ -1,4 +1,4 @@
-"""設定の適用状況の定義。カードを足すなら `CARDS` に、タブを足すなら `TABS` に 1 要素足す（文言は `labels.py`）。"""
+"""設定の適用状況の定義。カードを足すなら `CARDS` に、タブを足すなら `TABS` に 1 要素足す（文言は `words.py`）。"""
 
 from ccgov.web import labels as L
 from ccgov.web.screens import Card, Chip, Col, Screen, Tab, Viz

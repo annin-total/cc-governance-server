@@ -11,6 +11,8 @@ from ccgov.reports import assets, effect, overview, policy
 from ccgov.store import db
 from ccgov.vendor import contract
 from ccgov.web import labels
+from ccgov.web.screens import assets as assets_screen
+from ccgov.web.screens import effect as effect_screen
 from ccgov.web.screens import overview as overview_screen
 from ccgov.web.screens import policy as policy_screen
 from ccgov.web.screens import view
@@ -86,9 +88,11 @@ def policy_view() -> str:
 @admin.route("/effect")
 def effect_view() -> str:
     """相対日は準拠開始日が基準のため、基準日（`_today()`）を使わない。"""
-    return render_template("effect.html", **_build(effect.build))
+    data = _build(effect.build)
+    return render_template("effect.html", view=view.build(effect_screen.SCREEN, data))
 
 
 @admin.route("/assets")
 def assets_view() -> str:
-    return render_template("assets.html", **_build(assets.build, _today()))
+    data = _build(assets.build, _today())
+    return render_template("assets.html", view=view.build(assets_screen.SCREEN, data))

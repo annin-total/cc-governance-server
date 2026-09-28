@@ -38,6 +38,9 @@
 {%- elif k == "dash_num" -%}{% if v %}{{ v|num }}{% else %}{{ sub("—") }}{% endif %}
 {%- elif v is none -%}{{ sub(L.UNSET if k == "value" else "—") }}
 {%- elif k == "num" -%}{{ v|num }}{% if col.unit %} {{ col.unit }}{% endif %}
+{%- elif k == "bin" -%}{{ v|bin }}
+{%- elif k == "rel" -%}{{ v|rel }}
+{%- elif k == "num_sub" -%}{{ sub(v|num) }}
 {%- elif k == "date" -%}{{ v|day }}{{ sub("（" ~ v|weekday ~ "）") }}
 {%- elif k == "tag" -%}{{ sub(term(col.terms, v)) }}
 {%- elif k == "term" -%}{%- set name, desc = term_desc(col.terms[row[col.by]] if col.by else col.terms, v) -%}{{ name }}{% if desc %} {{ sub(desc) }}{% endif %}

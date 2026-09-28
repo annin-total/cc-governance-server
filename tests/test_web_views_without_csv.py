@@ -49,12 +49,12 @@ def test_policy_note_is_absent_with_csv(today_client):
 def test_effect_fills_context_distribution(no_csv_client):
     """コンテキスト分布は `events` と `policy_state` だけで埋まる。イベントスタディは空。"""
     html = no_csv_client.get(ADMIN + "/effect").get_data(as_text=True)
-    assert rows_in_table(html, "context-precompact-after")
-    assert rows_in_table(html, "context-stop-after")
-    assert rows_in_table(html, "event-study") == []
+    assert rows_in_table(html, "precompact")
+    assert rows_in_table(html, "stop")
+    assert rows_in_table(html, "study") == []
 
 
 def test_assets_fills_usage_tables(no_csv_client):
     html = no_csv_client.get(ADMIN + "/assets").get_data(as_text=True)
-    assert rows_in_table(html, "skill-usage")
-    assert rows_in_table(html, "command-usage")
+    assert rows_in_table(html, "skills")
+    assert rows_in_table(html, "commands")

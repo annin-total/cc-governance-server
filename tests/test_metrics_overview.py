@@ -27,15 +27,6 @@ def test_delta_subtracts_previous_from_recent():
     assert rates.delta(5, 3) == 2
 
 
-def test_shares_of_max():
-    assert rates.shares_of_max([2.0, 4.0, 0.0]) == [50.0, 100.0, 0.0]
-
-
-def test_shares_of_max_is_zero_when_max_is_zero():
-    assert rates.shares_of_max([0.0, 0.0]) == [0, 0]
-    assert rates.shares_of_max([]) == []
-
-
 def test_null_rates_per_column():
     counts = {"tool_name": (4, 1), "skill_name": (0, 0)}
     assert health.null_rates(counts) == {"tool_name": 25.0, "skill_name": None}

@@ -70,13 +70,18 @@ def test_import_results_is_referenced_by_overview(today_app):
 
 
 @pytest.mark.parametrize(
-    ("report", "screen"),
-    [("overview", "overview"), ("policy", "policy")],
+    ("report", "args"),
+    [
+        ("overview", (TODAY,)),
+        ("policy", (TODAY,)),
+        ("effect", ()),
+        ("assets", (TODAY,)),
+    ],
 )
-def test_every_report_value_is_used_by_screen_definition(known_db, report, screen):
+def test_every_report_value_is_used_by_screen_definition(known_db, report, args):
     """定義で組み立てる画面は、集計結果の名前を 1 つ残らずカード・タブ・群の見出しが参照していること。"""
-    data = importlib.import_module(f"ccgov.reports.{report}").build(known_db, TODAY)
-    definition = importlib.import_module(f"ccgov.web.screens.{screen}").SCREEN
+    data = importlib.import_module(f"ccgov.reports.{report}").build(known_db, *args)
+    definition = importlib.import_module(f"ccgov.web.screens.{report}").SCREEN
     used = view.sources(definition)
     assert set(data) - used == set(), "集計したが画面の定義が参照していない"
     assert used - set(data) == set(), "定義が参照するが集計結果に無い"

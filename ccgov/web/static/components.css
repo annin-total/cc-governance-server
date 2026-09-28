@@ -54,7 +54,7 @@ svg text { font: var(--fs-xs) var(--sans); fill: var(--muted); font-variant-nume
 .legend i { display: inline-block; width: var(--hbar-h); height: var(--hbar-h); border-radius: var(--r-xs); margin-right: var(--sp-xs); }
 .warn-0 { background: var(--warn); } .warn-1 { background: var(--warn-2); } .warn-2 { background: var(--warn-3); }
 .accent-0 { background: var(--accent); } .accent-1 { background: var(--accent-2); } .accent-2 { background: var(--ghost); }
-.legend .series-0 { background: var(--accent); } .legend .series-1 { background: var(--accent-2); } .legend .series-2 { background: var(--ghost); }
+.legend .series-0, .legend .bar-hi { background: var(--accent); } .legend .series-1 { background: var(--accent-2); } .legend .series-2, .legend .bar-old { background: var(--ghost); }
 .pair { display: grid; grid-template-columns: 5.5em 1fr; align-items: center; gap: var(--sp-s); font-size: var(--fs-xs); color: var(--muted); line-height: 1.5; }
 .rates { display: grid; gap: var(--sp-3xs); }
 .rate { display: grid; grid-template-columns: 1fr 38% 3.6em; align-items: center; gap: var(--sp-m); font-size: var(--fs-sm); color: var(--ink-2); line-height: 1.55; }

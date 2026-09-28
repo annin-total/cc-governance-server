@@ -53,6 +53,8 @@ FORMATS = {
     ),
     "field": lambda v: term(labels.HEALTH_ITEM, v),
     "setting": lambda v: term(labels.SETTING, v),
+    "provider": lambda v: term(labels.PROVIDER, v),
+    "bin": filters.bin_range,
     "basis": labels.BASIS.get,
     "basis_note": labels.BASIS_NOTE.get,
 }
