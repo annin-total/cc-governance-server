@@ -6,7 +6,7 @@ from conftest import ADMIN, admin_client, rows_in_table
 from known_data import K, insert_compliant_policy, insert_precompact, seed_effect_data
 
 from ccgov.constants import REFERENCE_KEY, REFERENCE_VALUE
-from ccgov.store import queries_policy
+from ccgov.reports import effect
 from ccgov.vendor import contract, policy
 
 
@@ -24,7 +24,7 @@ def test_effect_page_row_count_matches_query(db_conn):
 
     rendered_rows = rows_in_table(html, "event-study")
 
-    expected = queries_policy.event_study(db_conn, K, "60", "aws-bedrock")
+    expected = effect.event_study(db_conn, K, "60", "aws-bedrock")
     assert len(rendered_rows) == len(expected)
 
 
@@ -55,7 +55,7 @@ def test_effect_page_is_fixed_to_reference_experiment(db_conn, monkeypatch):
     html = response.get_data(as_text=True)
     assert f"比較値: {REFERENCE_VALUE}" in html
     assert f"施策項目: {REFERENCE_KEY}" in html
-    expected = queries_policy.event_study(db_conn, K, "60", "aws-bedrock")
+    expected = effect.event_study(db_conn, K, "60", "aws-bedrock")
     assert len(rows_in_table(html, "event-study")) == len(expected) > 0
 
 

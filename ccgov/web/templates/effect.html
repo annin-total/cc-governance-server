@@ -19,18 +19,17 @@
   前後差を施策の効果と読まないでください。施策の作用は下のコンテキスト分布で直接見てください。
 </div>
 
-{% set max_cost = study|map(attribute=2)|max if study else 0 %}
 <div class="tbl">
 <table data-testid="event-study">
 <caption>相対日ごとの 1 人あたりコスト・処理トークン</caption>
 <tr><th scope="col">相対日</th><th scope="col">分母人数</th><th scope="col">1人あたりコスト</th><th scope="col">1人あたり処理トークン（入力+キャッシュ読み書き）</th><th scope="col"></th></tr>
-{% for relative_day, denominator, cost, tokens in study %}
+{% for relative_day, denominator, cost, tokens, cost_share in study %}
 <tr>
   <td>{{ relative_day|rel }}</td>
   <td class="num">{{ denominator|num }} <span class="muted">人</span></td>
   <td class="num">{{ cost|usd }}</td>
   <td class="num">{{ tokens|num }}</td>
-  <td>{{ m.meter((cost / max_cost * 100) if max_cost else 0) }}</td>
+  <td>{{ m.meter(cost_share) }}</td>
 </tr>
 {% endfor %}
 </table>

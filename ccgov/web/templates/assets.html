@@ -14,9 +14,7 @@
     <th scope="col">呼出</th>
     <th scope="col">利用者</th>
   </tr>
-  {% for skill_name, recent_calls, recent_users, prev_calls, prev_users in skills %}
-  {% set calls_diff = recent_calls - prev_calls %}
-  {% set users_diff = recent_users - prev_users %}
+  {% for skill_name, recent_calls, recent_users, prev_calls, prev_users, calls_diff, users_diff in skills %}
   <tr>
     <td>{{ skill_name }}</td>
     <td class="num">{{ recent_calls|num }}
@@ -41,9 +39,7 @@
     <th scope="col">呼出</th>
     <th scope="col">利用者</th>
   </tr>
-  {% for command_name, command_source, recent_calls, recent_users, prev_calls, prev_users in commands %}
-  {% set calls_diff = recent_calls - prev_calls %}
-  {% set users_diff = recent_users - prev_users %}
+  {% for command_name, command_source, recent_calls, recent_users, prev_calls, prev_users, calls_diff, users_diff in commands %}
   <tr>
     <td>{{ command_name }}</td>
     <td>{{ command_source if command_source is not none else "—" }}</td>
