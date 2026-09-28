@@ -1,6 +1,7 @@
 """`db.init()` の DDL 適用とインデックス作成（冪等性を含む）を確かめる。"""
 
 import pytest
+from conftest import MISSING_TABLE_ERRORS
 
 from ccgov.store import db
 
@@ -32,6 +33,15 @@ def _table_names(conn) -> set:
     cur = conn.cursor()
     cur.execute("SELECT name FROM sqlite_master WHERE type='table'")
     return {row[0] for row in cur.fetchall()}
+
+
+def _has_table(conn, table: str) -> bool:
+    """表が在るか。DB に依らない形で、行を返さない SELECT が通るかで見る。"""
+    try:
+        conn.cursor().execute(f"SELECT * FROM {table} WHERE 1 = 0")
+    except MISSING_TABLE_ERRORS:
+        return False
+    return True
 
 
 def _indexes_with_columns(conn) -> set:
@@ -68,7 +78,6 @@ def test_init_creates_four_tables(db_conn):
     assert _table_names(db_conn) == {"events", "policy_state", "cost_daily", "errors"}
 
 
-@pytest.mark.sqlite_only
 def test_init_adds_errors_table_to_existing_db(db_dsn):
     """errors の無い既存 DB でも、init() で errors ができ、既存の行は残る。"""
     db.init()
@@ -78,7 +87,7 @@ def test_init_adds_errors_table_to_existing_db(db_dsn):
         cur.execute("INSERT INTO cost_daily (day, cost) VALUES (1, 1.0)")
         cur.execute("DROP TABLE errors")
         conn.commit()
-        assert "errors" not in _table_names(conn)
+        assert not _has_table(conn, "errors")
     finally:
         conn.close()
 
@@ -86,7 +95,7 @@ def test_init_adds_errors_table_to_existing_db(db_dsn):
 
     conn = db.connect()
     try:
-        assert "errors" in _table_names(conn)
+        assert _has_table(conn, "errors")
         cur = conn.cursor()
         cur.execute("SELECT COUNT(*) FROM cost_daily")
         assert cur.fetchone()[0] == 1

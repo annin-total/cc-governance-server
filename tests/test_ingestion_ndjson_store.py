@@ -1,9 +1,7 @@
 """ndjson.ingest() の kind 振り分けと executemany による保存を確かめる。"""
 
-import sqlite3
-
-import pymysql
 import pytest
+from conftest import MISSING_TABLE_ERRORS
 
 from ccgov.ingestion.ndjson import ingest
 
@@ -100,8 +98,7 @@ def test_write_failure_rolls_back_and_raises(db_conn):
     db_conn.commit()
 
     raw = b"\n".join([_event_line("e1"), _event_line("e2"), _policy_line("p1")])
-    # 表が無いときの例外は、SQLite では OperationalError、MySQL では ProgrammingError になる
-    with pytest.raises((sqlite3.OperationalError, pymysql.err.ProgrammingError)):
+    with pytest.raises(MISSING_TABLE_ERRORS):
         ingest(raw, db_conn)
 
     assert _count(db_conn, "SELECT COUNT(*) FROM policy_state") == 0

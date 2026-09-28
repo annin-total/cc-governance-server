@@ -4,6 +4,7 @@ import base64
 import importlib
 import os
 import re
+import sqlite3
 import sys
 import tempfile
 import uuid
@@ -12,6 +13,7 @@ from pathlib import Path
 from typing import Optional
 from urllib.parse import urlparse
 
+import pymysql
 import pytest
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -22,6 +24,9 @@ os.environ["ADMIN_PATH"] = "adm"
 os.environ["ADMIN_PASSWORD"] = "pw"
 os.environ["INGEST_TOKEN"] = "tok"
 ADMIN = "/adm"
+
+# 表が無いときの例外は、SQLite では OperationalError、MySQL では ProgrammingError になる
+MISSING_TABLE_ERRORS = (sqlite3.OperationalError, pymysql.err.ProgrammingError)
 
 # MySQL サーバへの DSN（データベース名なし）。在ればテストを MySQL で流す
 MYSQL_DSN_ENV = "CCGOV_TEST_MYSQL_DSN"
