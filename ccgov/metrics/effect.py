@@ -34,3 +34,29 @@ def event_study(
         n = len(population)
         rows.append((relative_day, n, total_cost / n, round(total_tokens / n)))
     return rows
+
+
+def sides(study: list) -> dict:
+    """`event_study` の行を相対日の前（負）と後（正）に分け、のべ人日で重み付けした 1 人 1 日あたりの値にする。
+
+    `people_min`・`people_max` は相対日ごとの分母人数の最小と最大。
+    """
+    result: dict = {
+        "people_min": min((n for _, n, _, _ in study), default=None),
+        "people_max": max((n for _, n, _, _ in study), default=None),
+    }
+    for side, rows in (
+        ("before", [r for r in study if r[0] < 0]),
+        ("after", [r for r in study if r[0] > 0]),
+    ):
+        person_days = sum(n for _, n, _, _ in rows)
+        result[side] = {
+            "person_days": person_days,
+            "cost": sum(n * c for _, n, c, _ in rows) / person_days
+            if person_days
+            else None,
+            "tokens": round(sum(n * t for _, n, _, t in rows) / person_days)
+            if person_days
+            else None,
+        }
+    return result
