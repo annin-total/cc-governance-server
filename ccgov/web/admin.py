@@ -13,6 +13,7 @@ from ccgov.constants import (
     REFERENCE_VALUE,
 )
 from ccgov.ingestion import csv_import
+from ccgov.reports import assets, overview
 from ccgov.store import db, queries_errors, queries_events, queries_policy
 from ccgov.vendor import contract, policy
 
@@ -25,9 +26,9 @@ def _overview_context() -> dict:
     today = _today()
     conn = db.connect()
     try:
-        reconciliation = queries_events.reconciliation_rate(conn, today)[0]
+        reconciliation = overview.reconciliation_rate(conn, today)[0]
         return {
-            "health": queries_events.health_counts(conn, today),
+            "health": overview.health_counts(conn, today),
             "error_summary": queries_errors.error_summary(conn, today),
             "reconciliation_numerator": reconciliation[0],
             "reconciliation_denominator": reconciliation[1],
@@ -174,7 +175,7 @@ def assets_view() -> str:
     try:
         skills = queries_events.skill_usage(conn, today)
         commands = queries_events.command_usage(conn, today)
-        numerator, denominator, rate = queries_events.subagent_ratio(conn, today)[0]
+        numerator, denominator, rate = assets.subagent_ratio(conn, today)[0]
     finally:
         conn.close()
     return render_template(

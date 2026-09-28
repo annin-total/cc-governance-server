@@ -15,11 +15,6 @@ _HEALTH_NULL_SCOPES = {
 _DISTRIBUTION_COLUMNS = ("permission_mode", "effort_level", "source")
 
 
-def _rate(numerator: int, denominator: int) -> Optional[float]:
-    """百分率を小数 1 桁で返す。分母が 0 なら None（0.0% と出すと良好に見える）。"""
-    return round(numerator / denominator * 100, 1) if denominator else None
-
-
 def _usage_with_trend(
     conn, today: int, filter_column: str, group_columns: tuple
 ) -> list:
@@ -72,8 +67,8 @@ def command_usage(conn, today: int) -> list:
     )
 
 
-def subagent_ratio(conn, today: int) -> list:
-    """直近のイベントのうち `agent_id` が非 NULL の割合を `[(分子, 分母, 率)]` で返す。
+def subagent_counts(conn, today: int) -> tuple:
+    """直近のイベントのうち `agent_id` が非 NULL の件数と、全件数を `(分子, 分母)` で返す。
 
     `agent_id` はサブエージェント内のツール呼出にだけ付く。
     """
@@ -88,7 +83,7 @@ def subagent_ratio(conn, today: int) -> list:
         (recent_start, recent_end),
     )
     denominator, numerator = cur.fetchone()
-    return [(numerator, denominator, _rate(numerator, denominator))]
+    return numerator, denominator
 
 
 def daily_cost(conn) -> list:
@@ -136,7 +131,7 @@ def distribution(conn, today: int, column: str) -> list:
 
 
 def _health_window_stats(conn, start: int, end: int) -> dict:
-    """1 つの集計期間のイベント件数・送信した利用者数・列ごとの NULL 率を返す。"""
+    """1 つの集計期間のイベント件数・送信した利用者数・列ごとの (分母, NULL) の件数を返す。"""
     scope_sql = ", ".join(
         f"COUNT(DISTINCT CASE WHEN {scope} THEN event_id END),"
         f" COUNT(DISTINCT CASE WHEN {scope} AND {col} IS NULL THEN event_id END)"
@@ -151,15 +146,15 @@ def _health_window_stats(conn, start: int, end: int) -> dict:
         (start, end),
     )
     events, terminals, *counts = cur.fetchone()
-    null_rates = {
-        col: _rate(counts[2 * i + 1], counts[2 * i])
+    null_counts = {
+        col: (counts[2 * i], counts[2 * i + 1])
         for i, col in enumerate(_HEALTH_NULL_SCOPES)
     }
-    return {"events": events, "terminals": terminals, "null_rates": null_rates}
+    return {"events": events, "terminals": terminals, "null_counts": null_counts}
 
 
-def health_counts(conn, today: int) -> dict:
-    """直近／前 7 日のイベント件数・送信した利用者数・NULL 率を返す。"""
+def health_window_counts(conn, today: int) -> dict:
+    """直近／前 7 日の `_health_window_stats` を返す。"""
     recent_start, recent_end = recent_window(today)
     prev_start, prev_end = previous_window(today)
     return {
@@ -179,11 +174,11 @@ def cost_window_end(conn, today: int) -> Optional[int]:
     return None if last_day is None else min(today, last_day)
 
 
-def reconciliation_rate(conn, today: int) -> list:
-    """`cost_window_end` で終わる直近 `RECENT_DAYS` 日に `events` を送った利用者のうち、同じ期間の `cost_daily` にも現れる割合。"""
+def reconciliation_counts(conn, today: int) -> tuple:
+    """`cost_window_end` で終わる直近 `RECENT_DAYS` 日に `events` を送った利用者（分母）と、うち同じ期間の `cost_daily` にも現れる利用者（分子）の数。"""
     end = cost_window_end(conn, today)
     if end is None:
-        return [(0, 0, None)]
+        return 0, 0
     recent_start, recent_end = recent_window(end)
     cur = conn.cursor()
     cur.execute(
@@ -199,4 +194,4 @@ def reconciliation_rate(conn, today: int) -> list:
         (recent_start, recent_end, recent_start, recent_end, recent_start, recent_end),
     )
     denominator, numerator = cur.fetchone()
-    return [(numerator, denominator, _rate(numerator, denominator))]
+    return numerator, denominator
