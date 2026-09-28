@@ -2,6 +2,7 @@
 
 import sqlite3
 
+import pymysql
 import pytest
 
 from ccgov.ingestion.ndjson import ingest
@@ -99,7 +100,8 @@ def test_write_failure_rolls_back_and_raises(db_conn):
     db_conn.commit()
 
     raw = b"\n".join([_event_line("e1"), _event_line("e2"), _policy_line("p1")])
-    with pytest.raises(sqlite3.OperationalError):
+    # 表が無いときの例外は、SQLite では OperationalError、MySQL では ProgrammingError になる
+    with pytest.raises((sqlite3.OperationalError, pymysql.err.ProgrammingError)):
         ingest(raw, db_conn)
 
     assert _count(db_conn, "SELECT COUNT(*) FROM policy_state") == 0
@@ -113,7 +115,7 @@ def test_error_rows_are_stored_in_errors_table(db_conn):
     assert _count(db_conn, "SELECT COUNT(*) FROM events") == 1
     cur = db_conn.cursor()
     cur.execute("SELECT * FROM errors")
-    assert cur.fetchall() == [
+    assert list(cur.fetchall()) == [
         (
             "x1",
             1758400000,

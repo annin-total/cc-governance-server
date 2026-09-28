@@ -72,7 +72,7 @@ def test_bad_token_is_rejected_with_401(ingest_client, headers):
     assert _count("events") == 0
 
 
-def test_non_ascii_token_matching_value_is_accepted(sqlite_db_dsn):
+def test_non_ascii_token_matching_value_is_accepted(db_dsn):
     """非 ASCII の `INGEST_TOKEN` に、同じ値を実サーバと同じく WSGI 符号化したヘッダを送ると 200。
 
     `test_client()` の `headers=` は UTF-8 を latin-1 で復号する WSGI の符号化を経ないため、environ を直接組む。
@@ -98,7 +98,7 @@ def test_non_ascii_token_matching_value_is_accepted(sqlite_db_dsn):
 
 
 @pytest.mark.parametrize("value", [None, ""])
-def test_server_token_unset_fails_at_startup(sqlite_db_dsn, monkeypatch, value):
+def test_server_token_unset_fails_at_startup(db_dsn, monkeypatch, value):
     """サーバの `INGEST_TOKEN` が未設定・空なら、`app` の import の時点で止まる。"""
     import app as app_module
 
@@ -118,7 +118,7 @@ def test_write_failure_returns_5xx(ingest_client):
 
     conn = db.connect()
     try:
-        conn.execute("DROP TABLE events")
+        conn.cursor().execute("DROP TABLE events")
         conn.commit()
     finally:
         conn.close()
@@ -140,6 +140,7 @@ def test_write_failure_returns_5xx(ingest_client):
     assert _count("policy_state") == 0
 
 
+@pytest.mark.sqlite_only
 def test_ingest_waits_for_lock_held_longer_than_sqlite_default(ingest_client):
     """別の接続が書き込みロックを sqlite3 の既定の待ち（5 秒）より長く握っても、解放を待って 200 を返す。"""
     from ccgov.store import db
@@ -159,7 +160,8 @@ def test_ingest_waits_for_lock_held_longer_than_sqlite_default(ingest_client):
     assert _count("events") == 1
 
 
-def test_sqlite_busy_timeout_is_explicit(sqlite_db_dsn):
+@pytest.mark.sqlite_only
+def test_sqlite_busy_timeout_is_explicit(db_dsn):
     """接続の busy timeout は `db.SQLITE_BUSY_TIMEOUT_SEC` になる。"""
     from ccgov.store import db
 

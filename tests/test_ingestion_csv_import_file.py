@@ -4,6 +4,7 @@ import pytest
 from conftest import FIXTURES, count_and_sum, sum_for_day
 
 from ccgov.ingestion import csv_import
+from ccgov.store import db
 
 _DAY_20635 = 20635  # 2026-07-01
 
@@ -46,7 +47,7 @@ def test_idempotent_overlapping_files_forward_order(db_conn):
 
     cur = db_conn.cursor()
     cur.execute(
-        "SELECT DISTINCT source_file FROM cost_daily WHERE day = ?",
+        db.q("SELECT DISTINCT source_file FROM cost_daily WHERE day = ?"),
         (_DAY_20635,),
     )
     assert [row[0] for row in cur.fetchall()] == ["weekly.csv"]
@@ -57,10 +58,12 @@ def test_idempotent_partial_failure_leaves_no_partial_rows(db_conn, monkeypatch)
     csv_import.import_file(str(FIXTURES / "daily_a.csv"), db_conn)
     assert count_and_sum(db_conn) == (3, 6.0)
 
+    original_q = db.q
+
     def _boom_before_insert(sql: str) -> str:
         if sql.startswith("INSERT"):
             raise RuntimeError("boom")
-        return sql
+        return original_q(sql)
 
     monkeypatch.setattr(csv_import.db, "q", _boom_before_insert)
     with pytest.raises(RuntimeError):
