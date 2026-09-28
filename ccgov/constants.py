@@ -1,6 +1,6 @@
 """複数のモジュールにまたがる仕様値。"""
 
-# 集計の窓（日数）
+# 集計期間（日数）
 RECENT_DAYS = 7
 POLICY_DAYS = 30
 STALE_DAYS = 14
@@ -9,8 +9,8 @@ EVENT_STUDY_SPAN = 14
 # コンテキストトークン数の分布のビン幅
 CONTEXT_BIN = 20000
 
-# 効果測定の基準にする施策項目と provider。plugin_version の分布もこの項目で数える。
+# 効果測定の実験（policy.py とは独立に固定）。値は prev_value の表記（文字列）で書く。
+# plugin_version の分布も REFERENCE_KEY の行で数えるため、キーを替えると分布も変わる
 REFERENCE_KEY = "env.CLAUDE_AUTOCOMPACT_PCT_OVERRIDE"
-# 効果測定の比較値。policy.py とは独立に固定する。policy_state.prev_value の表記で書く
 REFERENCE_VALUE = "60"
 EFFECT_PROVIDER = "aws-bedrock"

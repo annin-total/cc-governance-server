@@ -39,7 +39,7 @@ def test_connect_raises_for_malformed_sqlite_dsn(monkeypatch):
         db.connect()
 
 
-def test_connect_sqlite_select_1(sqlite_db_dsn):
+def test_connect_sqlite_select_1(db_dsn):
     """一時 SQLite への connect() で SELECT 1 が 1 を返す。"""
     conn = db.connect()
     try:
@@ -50,7 +50,8 @@ def test_connect_sqlite_select_1(sqlite_db_dsn):
         conn.close()
 
 
-def test_q_sqlite_passthrough(sqlite_db_dsn):
+@pytest.mark.sqlite_only
+def test_q_sqlite_passthrough(db_dsn):
     """sqlite 接続時は q() が入力と同一の文字列を返す。"""
     sql = "SELECT * FROM events WHERE day=? AND user_email=?"
     assert db.q(sql) == sql

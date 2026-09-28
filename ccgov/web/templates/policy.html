@@ -31,7 +31,12 @@
 {% endif %}
 
 <h2>準拠率（施策項目別）</h2>
-{{ m.chips(["直近30日", "分母: 直近30日に cost_daily にコストが立つ利用者"]) }}
+{% if csv_imported %}
+{{ m.chips(["直近30日", "分母: CSV の最終日までの30日に cost_daily にコストの記録がある利用者"]) }}
+{% else %}
+{{ m.chips(["直近30日", "分母: 今日までの30日に policy_state に行がある利用者"]) }}
+<p class="note">CSV を取り込んでいないため、分母は policy イベントが届いた利用者です。未導入者は含まない（CSV があれば含める）。</p>
+{% endif %}
 <p class="note">1 台でも未準拠なら、その利用者は未準拠として数える。台数と人数が一致しないのはこのため。</p>
 <div class="tbl">
 <table data-testid="compliance-rate">
@@ -69,7 +74,7 @@
 {% endfor %}
 
 <h2>未導入者の一覧</h2>
-{{ m.chips(["直近30日", "分母: 直近30日に cost_daily にコストが立つが、同期間の policy_state に1行も無い利用者"]) }}
+{{ m.chips(["直近30日", "対象: CSV の最終日までの30日に cost_daily にコストの記録があるが、今日までの30日の policy_state に1行も無い利用者"]) }}
 {% if not_introduced %}
 <div class="tbl">
 <table data-testid="not-introduced">
@@ -84,12 +89,12 @@
 {{ m.empty("この期間に該当なし") }}
 {% endif %}
 
-<h2>イベントが途絶えた端末</h2>
-{{ m.chips(["直近30日", "対象: 窓内の最終観測日が14日以上前の端末"]) }}
+<h2>policy イベントが途絶えた端末</h2>
+{{ m.chips(["直近30日", "対象: 直近30日内の最終観測日が14日以上前の端末"]) }}
 {% if stale %}
 <div class="tbl">
 <table data-testid="stale">
-  <caption>イベントが途絶えた端末</caption>
+  <caption>policy イベントが途絶えた端末</caption>
   <tr><th scope="col">user_email</th><th scope="col">host</th><th scope="col">最終観測日</th><th scope="col">状態</th></tr>
   {% for user_email, host, last_day in stale %}
   <tr><td>{{ user_email }}</td><td>{{ host }}</td><td class="date">{{ last_day|day }}</td><td>{{ m.pill("途絶", "warn") }}</td></tr>
@@ -108,6 +113,22 @@
   <caption>plugin_version の分布</caption>
   <tr><th scope="col">version</th><th scope="col">件数</th></tr>
   {% for version, count in plugin_versions %}
+  <tr><td>{{ version }}</td><td class="num">{{ count }}</td></tr>
+  {% endfor %}
+</table>
+</div>
+{% else %}
+{{ m.empty("この期間に該当なし") }}
+{% endif %}
+
+<h2>Claude Code の版の分布</h2>
+{{ m.chips(["直近30日", "対象: 版を記録した events がある端末"]) }}
+{% if claude_code_versions %}
+<div class="tbl">
+<table data-testid="claude-code-versions">
+  <caption>Claude Code の版の分布</caption>
+  <tr><th scope="col">version</th><th scope="col">件数</th></tr>
+  {% for version, count in claude_code_versions %}
   <tr><td>{{ version }}</td><td class="num">{{ count }}</td></tr>
   {% endfor %}
 </table>

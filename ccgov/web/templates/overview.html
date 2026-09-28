@@ -5,12 +5,21 @@
 {% block content %}
 
 <h2>健全性</h2>
-{{ m.chips(["直近7日 · 前7日と比較"]) }}
+{{ m.chips(["直近7日 · 前7日と比較", "突合率: CSV の最終日までの7日 · 比較なし"]) }}
 <div class="tiles">
   {{ m.tile(health.recent.events|num, "イベント", delta=(health.recent.events - health.prev.events)) }}
-  {{ m.tile(health.recent.terminals|num, "送信者", delta=(health.recent.terminals - health.prev.terminals)) }}
+  {{ m.tile(health.recent.terminals|num, "送信した利用者", delta=(health.recent.terminals - health.prev.terminals)) }}
   {{ m.tile(reconciliation_rate|pct, "突合率",
             note=(reconciliation_numerator|num) ~ " / " ~ (reconciliation_denominator|num) ~ " 人") }}
+</div>
+<div class="tbl">
+<table data-testid="error-summary">
+<caption>hook の失敗（直近7日 · 端末: user_email と host の組）</caption>
+<tr><th scope="col">stage</th><th scope="col">error_type</th><th scope="col">件数</th><th scope="col">端末数</th><th scope="col">最新の版</th></tr>
+{% for stage, error_type, count, terminals, version in error_summary %}
+<tr><td>{{ stage }}</td><td>{{ error_type }}</td><td class="num">{{ count|num }}</td><td class="num">{{ terminals|num }}</td><td>{{ version }}</td></tr>
+{% endfor %}
+</table>
 </div>
 
 <h2>NULL率</h2>
@@ -19,8 +28,7 @@
 <table data-testid="null-rates">
 <caption>列別の NULL 率（直近7日 / 前7日）</caption>
 <tr><th scope="col">列</th><th scope="col">直近7日</th><th scope="col">前7日</th></tr>
-{% for column in ["tool_name", "skill_name", "context_tokens", "command_source"] %}
-{% set recent_rate = health.recent.null_rates[column] %}
+{% for column, recent_rate in health.recent.null_rates.items() %}
 {% set prev_rate = health.prev.null_rates[column] %}
 <tr>
   <td>{{ column }}</td>
@@ -66,7 +74,7 @@
 </form>
 
 <h2>日次コスト推移</h2>
-{{ m.chips(["全期間 · 窓なし"]) }}
+{{ m.chips(["全期間"]) }}
 <div class="tbl">
 <table data-testid="daily-cost">
 <caption>day × provider の合計コスト（全期間）</caption>

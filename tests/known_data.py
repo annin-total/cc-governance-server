@@ -1,4 +1,4 @@
-"""集計検証の既知データと、重複行を注入するヘルパ。基準日は 20005（epoch 日）。"""
+"""集計検証の既知データと、重複行を注入するヘルパ。"""
 
 from ccgov.store import db
 from ccgov.vendor import contract
@@ -74,7 +74,7 @@ _POLICY_ROWS = (
 # fmt: on
 
 _COST_FIELDS = ("day", "user_email", "provider", "cost", "input_tokens")
-# u20 は窓（day >= 19976）より前にしかコストが無い離脱者。準拠率の分母が `day` で絞られていることを確かめる。
+# u20 は集計期間（day >= 19976）より前にしかコストが無い離脱者。準拠率の分母が `day` で絞られていることを確かめる。
 _COST_ROWS = (
     (20000, "u1", "aws-bedrock", 1.0, 1000),
     (20001, "u2", "aws-bedrock", 2.0, 2000),
@@ -94,12 +94,10 @@ def _events_columns() -> tuple:
 
 
 def _policy_columns() -> tuple:
-    """`policy_state` の列名を契約の定義順で返す。"""
     return tuple(name for name, _ in contract.POLICY_COLUMNS)
 
 
 def _cost_columns() -> tuple:
-    """`cost_daily` の列名を契約の定義順で返す。"""
     return tuple(db_name for _, db_name, _ in contract.CSV_COLUMNS)
 
 
@@ -115,17 +113,14 @@ def _insert(conn, table: str, columns: tuple, rows) -> None:
 
 
 def insert_event(conn, **overrides) -> None:
-    """`events` に 1 行投入する。未指定の列は NULL。"""
     _insert(conn, "events", _events_columns(), [overrides])
 
 
 def insert_policy_state(conn, **overrides) -> None:
-    """`policy_state` に 1 行投入する。未指定の列は NULL。"""
     _insert(conn, "policy_state", _policy_columns(), [overrides])
 
 
 def insert_cost_daily(conn, **overrides) -> None:
-    """`cost_daily` に 1 行投入する。未指定の列は NULL。"""
     _insert(conn, "cost_daily", _cost_columns(), [overrides])
 
 
@@ -164,6 +159,33 @@ def insert_precompact(conn, event_id: str, day: int, context_tokens: int) -> Non
     )
 
 
+def seed_claude_code_versions(conn) -> None:
+    """版つきの `events` を投入する。端末ごとの最新は 2.1.283 が 2 台、2.1.281 が 1 台になる。
+
+    uv1 は最新行が版なし（PostToolUse）、uv2 は `day` と `ts` の順が逆、uv3 は集計期間の外にだけ版がある。
+    """
+    rows = (
+        ("v1", "uv1", "hv1", 1000, 20000, "Stop", "2.1.281"),
+        ("v2", "uv1", "hv1", 2000, 20001, "PreCompact", "2.1.283"),
+        ("v3", "uv1", "hv1", 3000, 20002, "PostToolUse", None),
+        ("v4", "uv2", "hv2", 5000, 20000, "Stop", "2.1.283"),
+        ("v5", "uv2", "hv2", 1000, 20003, "Stop", "2.1.281"),
+        ("v6", "uv2", "hv2b", 1500, 20001, "Stop", "2.1.281"),
+        ("v7", "uv3", "hv3", 900, 19970, "Stop", "2.1.200"),
+    )
+    for event_id, user_email, host, ts, day, hook_event, version in rows:
+        insert_event(
+            conn,
+            event_id=event_id,
+            ts=ts,
+            day=day,
+            user_email=user_email,
+            host=host,
+            hook_event=hook_event,
+            claude_code_version=version,
+        )
+
+
 def _duplicate_table(conn, table: str, columns: tuple) -> None:
     """`table` の全行を `event_id` を含めて同一のまま複製する（送信のリトライで起きる重複の再現）。"""
     cur = conn.cursor()
@@ -176,22 +198,19 @@ def _duplicate_table(conn, table: str, columns: tuple) -> None:
 
 
 def duplicate_events(conn) -> None:
-    """`events` の全行を複製する。"""
     _duplicate_table(conn, "events", _events_columns())
 
 
 def duplicate_policy_state(conn) -> None:
-    """`policy_state` の全行を複製する。"""
     _duplicate_table(conn, "policy_state", _policy_columns())
 
 
 def duplicate_cost_daily(conn) -> None:
-    """`cost_daily` の全行を複製する。"""
     _duplicate_table(conn, "cost_daily", _cost_columns())
 
 
 def duplicate_all(conn) -> None:
-    """3 テーブルすべての全行を複製する。"""
+    """`events`・`policy_state`・`cost_daily` の全行を複製する。"""
     duplicate_events(conn)
     duplicate_policy_state(conn)
     duplicate_cost_daily(conn)

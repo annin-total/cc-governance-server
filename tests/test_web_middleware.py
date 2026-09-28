@@ -1,4 +1,4 @@
-"""`BASE_PATH` を剥がす WSGI ラッパの回帰テスト。設定は import 時に読まれるため reload する。"""
+"""`BASE_PATH` を除く WSGI ラッパの回帰テスト。設定は import 時に読まれるため reload する。"""
 
 import importlib
 import re
@@ -8,7 +8,7 @@ from conftest import ADMIN, admin_client, env_var
 
 
 @pytest.fixture
-def app_with_base_path(sqlite_db_dsn):
+def app_with_base_path(db_dsn):
     """`BASE_PATH` を指定した値にしてから `app` モジュールを再読み込みし、Flask アプリを返す。"""
 
     def _build(base_path: str):
@@ -30,7 +30,7 @@ def app_with_base_path(sqlite_db_dsn):
             200,
         ),  # 末尾スラッシュなしでリダイレクトしない
         ("/gov/cc", "/gov/cc/adm/", 200),
-        ("/gov/cc", "/adm/", 200),  # 前段が既に剥がして渡す経路
+        ("/gov/cc", "/adm/", 200),  # 前段のリバースプロキシが既に除いて渡す経路
         ("/gov/cc", "/gov/cc", 404),  # 管理画面は ADMIN_PATH の下にしか無い
         ("/gov/cc", "/other", 404),
         (
@@ -71,7 +71,7 @@ def test_stylesheet_is_served_under_base_path(app_with_base_path, base_path):
     assert client.get(href).status_code == 200, f"{href} が 200 で返らない"
 
 
-def test_form_action_follows_base_path(sqlite_db_dsn):
+def test_form_action_follows_base_path(db_dsn):
     """`BASE_PATH` を与えた状態で概況画面を描画すると、フォームの action が BASE_PATH を含む。"""
     import app as app_module
 

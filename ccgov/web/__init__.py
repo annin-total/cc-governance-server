@@ -9,7 +9,7 @@ from ccgov.web.middleware import strip_base_path
 
 
 def create_app(config: Config) -> Flask:
-    """設定からアプリを組み立てる。呼ぶたびに独立したアプリを返す。"""
+    """設定からアプリを組み立てる。"""
     db.init()
     app = Flask(__name__, static_folder=None)
     app.config.update(

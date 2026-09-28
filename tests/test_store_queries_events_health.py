@@ -96,7 +96,7 @@ def test_scoped_null_rates_unchanged_after_duplicate_injection(db_conn):
 
 
 def test_rates_are_none_when_denominator_is_zero(db_conn):
-    """イベントが 1 件も無い窓では、率はすべて None。"""
+    """イベントが 1 件も無い集計期間では、率はすべて None。"""
     health = queries_events.health_counts(db_conn, TODAY)
     assert set(health["recent"]["null_rates"].values()) == {None}
     assert queries_events.reconciliation_rate(db_conn, TODAY) == [(0, 0, None)]
@@ -104,7 +104,7 @@ def test_rates_are_none_when_denominator_is_zero(db_conn):
 
 
 def test_reconciliation_rate(known_db):
-    """突合率は 75.0%（直近 7 日に events を送った 4 人のうち u1 u2 u3 が cost_daily に居る）。"""
+    """突合率は 75.0%（直近 7 日に events を送った 4 人のうち u1 u2 u3 が cost_daily に現れる）。"""
     [(numerator, denominator, rate)] = queries_events.reconciliation_rate(
         known_db, TODAY
     )
@@ -114,7 +114,7 @@ def test_reconciliation_rate(known_db):
 
 
 def test_reconciliation_rate_window_ends_at_last_csv_day(known_db):
-    """基準日が CSV の最終日より後でも、窓は最終日で終わる。"""
+    """基準日が CSV の最終日より後でも、集計期間は最終日で終わる。"""
     assert queries_events.reconciliation_rate(known_db, TODAY + 10) == [(3, 4, 75.0)]
 
 
@@ -135,7 +135,7 @@ def test_reconciliation_rate_unchanged_after_duplicate_injection(known_db):
 
 
 def test_all_health_numbers_survive_full_duplication_at_once(known_db):
-    """健全性の 1 行のすべての数字が、3 テーブル全行の複製後も変化しない。"""
+    """健全性の数字がすべて、`events`・`policy_state`・`cost_daily` の全行の複製後も変化しない。"""
 
     def compute():
         return {

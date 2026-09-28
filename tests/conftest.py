@@ -4,12 +4,16 @@ import base64
 import importlib
 import os
 import re
+import sqlite3
 import sys
 import tempfile
+import uuid
 from contextlib import contextmanager
 from pathlib import Path
 from typing import Optional
+from urllib.parse import urlparse
 
+import pymysql
 import pytest
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -20,6 +24,12 @@ os.environ["ADMIN_PATH"] = "adm"
 os.environ["ADMIN_PASSWORD"] = "pw"
 os.environ["INGEST_TOKEN"] = "tok"
 ADMIN = "/adm"
+
+# 表が無いときの例外は、SQLite では OperationalError、MySQL では ProgrammingError になる
+MISSING_TABLE_ERRORS = (sqlite3.OperationalError, pymysql.err.ProgrammingError)
+
+# MySQL サーバへの DSN（データベース名なし）。在ればテストを MySQL で流す
+MYSQL_DSN_ENV = "CCGOV_TEST_MYSQL_DSN"
 
 FIXTURES = Path(__file__).parent / "fixtures"
 CSV_HEADER = (
@@ -44,8 +54,10 @@ def count_and_sum(conn):
 
 def sum_for_day(conn, day: int):
     """`cost_daily` の指定した `day` の SUM(cost) を返す。"""
+    from ccgov.store import db
+
     cur = conn.cursor()
-    cur.execute("SELECT SUM(cost) FROM cost_daily WHERE day = ?", (day,))
+    cur.execute(db.q("SELECT SUM(cost) FROM cost_daily WHERE day = ?"), (day,))
     return cur.fetchone()[0]
 
 
@@ -103,19 +115,70 @@ def env_var(name: str, value: str):
             os.environ[name] = original
 
 
-@pytest.fixture
-def sqlite_db_dsn():
-    """DB_DSN を一時 SQLite ファイルに向け、テスト終了後に元へ戻す。"""
+def pytest_collection_modifyitems(config, items) -> None:
+    """MySQL で流すときは `sqlite_only` のテストを skip する。"""
+    if not os.environ.get(MYSQL_DSN_ENV):
+        return
+    skip = pytest.mark.skip(
+        reason=f"sqlite_only: SQLite 固有の挙動を確かめる検査のため {MYSQL_DSN_ENV} 指定時は流さない"
+    )
+    for item in items:
+        if "sqlite_only" in item.keywords:
+            item.add_marker(skip)
+
+
+def _mysql_server_kwargs(server_dsn: str) -> dict:
+    """`mysql://user:pass@host[:port]` を PyMySQL の接続引数へ分解する。"""
+    parsed = urlparse(server_dsn)
+    return {
+        "host": parsed.hostname,
+        "port": parsed.port or 3306,
+        "user": parsed.username,
+        "password": parsed.password,
+    }
+
+
+@contextmanager
+def _mysql_database(server_dsn: str):
+    """テストごとに一意な名前のデータベースを作って DSN を返し、抜けるときに DROP する。"""
+    import pymysql
+
+    name = "ccgov_test_" + uuid.uuid4().hex
+    conn = pymysql.connect(autocommit=True, **_mysql_server_kwargs(server_dsn))
+    try:
+        with conn.cursor() as cur:
+            cur.execute(f"CREATE DATABASE {name} CHARACTER SET utf8mb4")
+        try:
+            yield server_dsn.rstrip("/") + "/" + name
+        finally:
+            with conn.cursor() as cur:
+                cur.execute(f"DROP DATABASE {name}")
+    finally:
+        conn.close()
+
+
+@contextmanager
+def _sqlite_database():
+    """一時ディレクトリに SQLite ファイルの DSN を作る。"""
     with tempfile.TemporaryDirectory() as tmp_dir:
-        db_path = Path(tmp_dir) / "test.db"
-        dsn = f"sqlite:///{db_path}"
-        with env_var("DB_DSN", dsn):
-            yield dsn
+        yield f"sqlite:///{Path(tmp_dir) / 'test.db'}"
 
 
 @pytest.fixture
-def ingest_client(sqlite_db_dsn):
-    """`DB_DSN` を一時 SQLite に向け、`INGEST_TOKEN=tok` で `app` を読み込んだテストクライアントを返す。"""
+def db_dsn():
+    """DB_DSN をテスト専用の DB に向け、テスト終了後に元へ戻す。
+
+    `CCGOV_TEST_MYSQL_DSN` があれば MySQL の使い捨てデータベース、無ければ一時 SQLite。
+    """
+    server_dsn = os.environ.get(MYSQL_DSN_ENV)
+    database = _mysql_database(server_dsn) if server_dsn else _sqlite_database()
+    with database as dsn, env_var("DB_DSN", dsn):
+        yield dsn
+
+
+@pytest.fixture
+def ingest_client(db_dsn):
+    """`DB_DSN` をテスト専用の DB に向け、`INGEST_TOKEN=tok` で `app` を読み込んだテストクライアントを返す。"""
     import app as app_module
 
     with env_var("INGEST_TOKEN", "tok"):
@@ -124,8 +187,8 @@ def ingest_client(sqlite_db_dsn):
 
 
 @pytest.fixture
-def db_conn(sqlite_db_dsn):
-    """契約の DDL で初期化した一時 SQLite の接続を返す。"""
+def db_conn(db_dsn):
+    """契約の DDL で初期化したテスト専用の DB の接続を返す。"""
     from ccgov.store import db
 
     db.init()
@@ -138,7 +201,7 @@ def db_conn(sqlite_db_dsn):
 
 @pytest.fixture
 def known_db(db_conn):
-    """DDL 適用済みの一時 SQLite に 3 つの既知データを投入した接続を返す。"""
+    """DDL 適用済みのテスト専用の DB に 3 つの既知データを投入した接続を返す。"""
     from known_data import seed_known_data
 
     seed_known_data(db_conn)

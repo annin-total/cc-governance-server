@@ -1,8 +1,7 @@
 """ndjson.ingest() の kind 振り分けと executemany による保存を確かめる。"""
 
-import sqlite3
-
 import pytest
+from conftest import MISSING_TABLE_ERRORS
 
 from ccgov.ingestion.ndjson import ingest
 
@@ -20,8 +19,17 @@ def _policy_line(event_id: str) -> bytes:
     ).encode()
 
 
+def _error_line(event_id: str) -> bytes:
+    """契約に無い列（message）を含む error 行を組み立てる。"""
+    return (
+        f'{{"kind":"error","event_id":"{event_id}","ts":1758400000,'
+        f'"user_email":"a@example.com","host":"h1","hook_event":"Stop",'
+        f'"plugin_version":"0.2.0","stage":"hook_entry","error_type":"KeyError",'
+        f'"message":"secret"}}'
+    ).encode()
+
+
 def _count(conn, sql: str) -> int:
-    """1 件の COUNT(...) 結果を取り出す。"""
     cur = conn.cursor()
     cur.execute(sql)
     return cur.fetchone()[0]
@@ -90,7 +98,30 @@ def test_write_failure_rolls_back_and_raises(db_conn):
     db_conn.commit()
 
     raw = b"\n".join([_event_line("e1"), _event_line("e2"), _policy_line("p1")])
-    with pytest.raises(sqlite3.OperationalError):
+    with pytest.raises(MISSING_TABLE_ERRORS):
         ingest(raw, db_conn)
 
     assert _count(db_conn, "SELECT COUNT(*) FROM policy_state") == 0
+
+
+def test_error_rows_are_stored_in_errors_table(db_conn):
+    """error 行は errors に契約の列だけで保存され、day は ts から計算される。"""
+    raw = b"\n".join([_event_line("e1"), _error_line("x1")])
+    result = ingest(raw, db_conn)
+    assert result == {"stored": 2, "dropped": 0}
+    assert _count(db_conn, "SELECT COUNT(*) FROM events") == 1
+    cur = db_conn.cursor()
+    cur.execute("SELECT * FROM errors")
+    assert list(cur.fetchall()) == [
+        (
+            "x1",
+            1758400000,
+            20352,
+            "a@example.com",
+            "h1",
+            "Stop",
+            "0.2.0",
+            "hook_entry",
+            "KeyError",
+        )
+    ]

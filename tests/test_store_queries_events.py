@@ -23,7 +23,6 @@ def test_skill_usage_returns_two_rows_ordered_by_recent_calls(known_db):
 
 
 def test_skill_usage_values(known_db):
-    """pdf: 直近呼出 3・利用者 2・前呼出 1・前利用者 1。xlsx: 直近呼出 1・利用者 1・前呼出 1・前利用者 1。"""
     rows = {r[0]: r[1:] for r in queries_events.skill_usage(known_db, TODAY)}
     assert rows["pdf"] == (3, 2, 1, 1)
     assert rows["xlsx"] == (1, 1, 1, 1)
@@ -57,7 +56,6 @@ def test_command_usage_returns_two_rows(known_db):
 
 
 def test_command_usage_values(known_db):
-    """それぞれ直近呼出 1・利用者 1。"""
     rows = {(r[0], r[1]): r[2:4] for r in queries_events.command_usage(known_db, TODAY)}
     assert rows[("review", "project")] == (1, 1)
     assert rows[("review", "user")] == (1, 1)
@@ -137,10 +135,10 @@ def test_subagent_ratio_count_star_would_differ(known_db):
 def test_daily_cost_by_provider(known_db):
     """`cost_daily` を day x provider で束ねる。7 行、aws-bedrock と openai が別行。
 
-    `day` で絞らないため、窓より前の u20（day=19970）の行も現れる。
+    `day` で絞らないため、集計期間より前の u20（day=19970）の行も現れる。
     """
     rows = queries_events.daily_cost(known_db)
-    assert rows == [
+    assert list(rows) == [
         (19970, "aws-bedrock", 1.0),
         (20000, "aws-bedrock", 1.0),
         (20001, "aws-bedrock", 2.0),
@@ -185,7 +183,7 @@ def test_user_session_trend(known_db):
     assert rows[20002] == (2, 2)
     assert rows[20003] == (1, 1)
     assert rows[20004] == (2, 2)
-    assert 19988 not in rows  # 窓（day >= 19992）より前
+    assert 19988 not in rows  # 集計期間（day >= 19992）より前
 
 
 def test_user_session_trend_unchanged_after_duplicate_injection(known_db):
@@ -198,7 +196,6 @@ def test_user_session_trend_unchanged_after_duplicate_injection(known_db):
 
 
 def test_distribution_permission_mode(known_db):
-    """直近 7 日の `permission_mode` 分布は default 11・plan 1・acceptEdits 1。"""
     rows = dict(queries_events.distribution(known_db, TODAY, "permission_mode"))
     assert rows == {"default": 11, "plan": 1, "acceptEdits": 1}
 

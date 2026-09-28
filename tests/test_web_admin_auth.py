@@ -10,7 +10,7 @@ _ADMIN_PAGES = ["/", "/policy", "/effect", "/assets"]
 
 
 @pytest.fixture
-def app_module(sqlite_db_dsn, monkeypatch):
+def app_module(db_dsn, monkeypatch):
     """`INGEST_TOKEN=tok` で読み込み直した `app` モジュールを返す。"""
     import app as module
 
@@ -107,7 +107,7 @@ def test_ingest_is_unaffected(client):
         ("ADMIN_PASSWORD", ""),
     ],
 )
-def test_startup_fails_without_valid_settings(sqlite_db_dsn, monkeypatch, name, value):
+def test_startup_fails_without_valid_settings(db_dsn, monkeypatch, name, value):
     """`ADMIN_PATH` か `ADMIN_PASSWORD` が未設定・不正なら、import の時点で止まる。"""
     import app as module
 

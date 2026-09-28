@@ -9,7 +9,7 @@ from ccgov.store import db
 
 
 @pytest.fixture
-def import_client(sqlite_db_dsn, tmp_path):
+def import_client(db_dsn, tmp_path):
     """`CSV_DIR` を fixture 2 本を置いた一時ディレクトリに向け、`app` を読み込んだテストクライアントを返す。"""
     copy_fixture(tmp_path, "daily_a.csv")
     copy_fixture(tmp_path, "daily_b.csv")
@@ -44,14 +44,11 @@ def test_post_import_twice_gives_same_result(import_client):
 
 
 def test_get_import_is_method_not_allowed(import_client):
-    """`GET /import` は 405。"""
     response = import_client.get(ADMIN + "/import")
     assert response.status_code == 405
 
 
-def test_post_import_without_csv_dir_imports_nothing(
-    sqlite_db_dsn, tmp_path, monkeypatch
-):
+def test_post_import_without_csv_dir_imports_nothing(db_dsn, tmp_path, monkeypatch):
     """`CSV_DIR` が未設定なら、起動ディレクトリの CSV を読まず、未設定であることを画面に出す。"""
     import app as app_module
 
@@ -70,7 +67,7 @@ def test_post_import_without_csv_dir_imports_nothing(
         conn.close()
 
 
-def test_overview_shows_error_for_failed_file(sqlite_db_dsn, tmp_path):
+def test_overview_shows_error_for_failed_file(db_dsn, tmp_path):
     """失敗したファイルの `error` が画面（テンプレート）に表示される。"""
     copy_fixture(tmp_path, "daily_a.csv", "a_good.csv")
     (tmp_path / "z_unrelated.csv").write_bytes(

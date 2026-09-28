@@ -152,6 +152,7 @@ th, td {
   padding: var(--sp-2) var(--sp-3);
   text-align: left;
   max-width: 320px;
+  overflow-wrap: anywhere;
 }
 
 th {

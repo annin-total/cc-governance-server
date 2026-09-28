@@ -6,6 +6,7 @@ from urllib.parse import urlparse
 from ccgov.config import db_dsn
 from ccgov.vendor.contract import (
     CSV_COLUMNS,
+    ERROR_COLUMNS,
     EXTRA_COLUMNS,
     HOOK_FIELDS,
     POLICY_COLUMNS,
@@ -15,6 +16,9 @@ from ccgov.vendor.contract import (
 _SQLITE_PATH_PREFIX = "sqlite:///"
 
 _TABLES = ("events", "policy_state", "cost_daily")
+
+# ロックの解放を待つ上限。端末の送信タイムアウト（`plugin/config.json` の `timeout_sec`）より短く保つ
+SQLITE_BUSY_TIMEOUT_SEC = 30
 
 _INDEXES = (
     ("events", ("day", "user_email", "event_id")),
@@ -62,9 +66,8 @@ def _mysql_kwargs() -> dict:
 
 
 def connect():
-    """方言に応じて `sqlite3` または `PyMySQL` の接続を返す。"""
     if _dialect() == "sqlite":
-        return sqlite3.connect(_sqlite_path())
+        return sqlite3.connect(_sqlite_path(), timeout=SQLITE_BUSY_TIMEOUT_SEC)
     import pymysql
 
     return pymysql.connect(**_mysql_kwargs())
@@ -82,7 +85,7 @@ def _index_name(table: str, columns: tuple) -> str:
 
 
 def _existing_index_names(cur, table: str) -> set:
-    """実テーブルに既にあるインデックス名の集合を取る（方言分岐はここ）。"""
+    """実テーブルに既にあるインデックス名の集合を取る。"""
     if _dialect() == "sqlite":
         cur.execute(f"PRAGMA index_list({table})")
         return {row[1] for row in cur.fetchall()}
@@ -91,7 +94,7 @@ def _existing_index_names(cur, table: str) -> set:
 
 
 def _create_missing_indexes(cur) -> None:
-    """無いインデックスだけを作る。`CREATE INDEX IF NOT EXISTS` は使わない。"""
+    """無いインデックスだけを作る（MySQL は `CREATE INDEX IF NOT EXISTS` を持たない）。"""
     existing_by_table = {table: _existing_index_names(cur, table) for table in _TABLES}
     for table, columns in _INDEXES:
         name = _index_name(table, columns)
@@ -102,7 +105,7 @@ def _create_missing_indexes(cur) -> None:
 
 
 def _existing_columns(cur, table: str) -> set:
-    """実テーブルの列名の集合を取る（方言分岐はここ）。"""
+    """実テーブルの列名の集合を取る。"""
     if _dialect() == "sqlite":
         cur.execute(f"PRAGMA table_info({table})")
         return {row[1] for row in cur.fetchall()}
@@ -117,6 +120,7 @@ def _required_columns() -> dict:
         | {name for name, _, _ in HOOK_FIELDS},
         "policy_state": {name for name, _ in POLICY_COLUMNS},
         "cost_daily": {db_name for _, db_name, _ in CSV_COLUMNS},
+        "errors": {name for name, _ in ERROR_COLUMNS},
     }
 
 
@@ -136,7 +140,6 @@ def _check_contract_columns(cur) -> None:
 
 
 def analyze(conn) -> None:
-    """統計情報を更新する。"""
     cur = conn.cursor()
     if _dialect() == "sqlite":
         cur.execute("PRAGMA analysis_limit=400")

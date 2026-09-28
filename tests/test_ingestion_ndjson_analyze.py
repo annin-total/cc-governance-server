@@ -15,6 +15,7 @@ def _fresh_ndjson():
     importlib.reload(ndjson)
 
 
+@pytest.mark.sqlite_only
 def test_first_ingest_populates_events_stats(db_conn):
     """プロセスで最初の受信の後、sqlite_stat1 に events の統計が入る。"""
     ndjson.ingest(_LINE, db_conn)

@@ -1,4 +1,4 @@
-"""`queries_policy.py` の集計クエリを既知データで検証する。基準日は 20005、窓は `day >= 19976`。"""
+"""`queries_policy.py` の集計クエリを既知データで検証する。基準日は 20005、集計期間は `day >= 19976`。"""
 
 from known_data import (
     TODAY,
@@ -6,10 +6,11 @@ from known_data import (
     K,
     assert_invariant_under_duplication,
     insert_compliant_policy,
+    seed_claude_code_versions,
 )
 
 from ccgov.constants import REFERENCE_KEY
-from ccgov.store import queries_policy
+from ccgov.store import db, queries_policy
 
 
 def test_latest_values_returns_one_row_per_terminal(known_db):
@@ -36,7 +37,7 @@ def test_latest_values_unchanged_after_duplicate_injection(known_db):
 
 
 def test_latest_values_excludes_terminal_only_before_window(known_db):
-    """u11（`day = 19970` の行だけ）は窓（`day >= 19976`）より前のため現れない。"""
+    """u11（`day = 19970` の行だけ）は集計期間（`day >= 19976`）より前のため現れない。"""
     rows = queries_policy.latest_values(known_db, TODAY, K)
     users = {r[0] for r in rows}
     assert "u11" not in users
@@ -46,11 +47,13 @@ def test_latest_values_without_day_filter_would_include_u11(known_db):
     """`day` の絞り込みを外すと u11 が加わり 8 行になる（この差が本来の実装で落ちる対照実験）。"""
     cur = known_db.cursor()
     cur.execute(
-        "SELECT user_email, host FROM ("
-        "  SELECT user_email, host,"
-        "         ROW_NUMBER() OVER (PARTITION BY user_email, host ORDER BY ts DESC) AS rn"
-        "    FROM policy_state WHERE key_name = ?"
-        ") t WHERE rn = 1",
+        db.q(
+            "SELECT user_email, host FROM ("
+            "  SELECT user_email, host,"
+            "         ROW_NUMBER() OVER (PARTITION BY user_email, host ORDER BY ts DESC) AS rn"
+            "    FROM policy_state WHERE key_name = ?"
+            ") t WHERE rn = 1"
+        ),
         (K,),
     )
     rows = cur.fetchall()
@@ -130,7 +133,6 @@ def test_compliance_rate_without_user_folding_would_differ(known_db):
 
 
 def test_non_compliant_k(known_db):
-    """項目 K の未準拠者一覧は 3 行。u2/h2/80/20001、u3/h3b/80/20003、u5/h5/80/20004。"""
     rows = sorted(queries_policy.non_compliant(known_db, TODAY, K, "60"))
     assert rows == [
         ("u2", "h2", "80", 20001),
@@ -146,7 +148,7 @@ def test_non_compliant_a_is_empty(known_db):
 
 
 def test_not_introduced(known_db):
-    """未導入者の一覧は 1 行（u4）。u7 / u10 / u11 は `cost_daily` に居ないため現れない。"""
+    """未導入者の一覧は 1 行（u4）。u7 / u10 / u11 は `cost_daily` に現れないため一覧にも出ない。"""
     rows = queries_policy.not_introduced(known_db, TODAY)
     assert [r[0] for r in rows] == ["u4"]
 
@@ -154,7 +156,7 @@ def test_not_introduced(known_db):
 def test_stale_terminals_uses_policy_state(known_db):
     """途絶えた端末は `policy_state` で判定する。1 行のみ u7 / h7 / 最終 19990。"""
     rows = queries_policy.stale_terminals(known_db, TODAY)
-    assert rows == [("u7", "h7", 19990)]
+    assert list(rows) == [("u7", "h7", 19990)]
 
 
 def test_stale_terminals_excludes_kill_switch_terminal(known_db):
@@ -174,7 +176,6 @@ def test_stale_terminals_excludes_kill_switch_terminal(known_db):
 
 
 def test_plugin_version_distribution(known_db):
-    """項目 K の版分布は 1.4.0: 5、1.3.0: 2。"""
     rows = dict(
         queries_policy.plugin_version_distribution(known_db, TODAY, REFERENCE_KEY)
     )
@@ -241,13 +242,31 @@ def test_all_numbers_survive_full_duplication_at_once(known_db):
 
 
 def test_compliance_rate_is_none_without_cost_users(db_conn):
-    """`cost_daily` に誰も居ないとき、準拠率は None。"""
+    """`cost_daily` も `policy_state` も空なら、準拠率は None。"""
     assert queries_policy.compliance_rate(db_conn, TODAY, K, "60") == [(0, 0, None)]
 
 
 def test_cost_window_ends_at_last_csv_day(known_db):
-    """CSV の取込が 30 日以上空いても、`cost_daily` 側の窓は最終日で終わる（`policy_state` 側は今日）。"""
+    """CSV の取込が 30 日以上空いても、`cost_daily` 側の集計期間は最終日で終わる（`policy_state` 側は今日）。"""
     later = TODAY + 40
     assert queries_policy.compliance_rate(known_db, later, K, "60") == [(0, 5, 0.0)]
     rows = queries_policy.not_introduced(known_db, later)
     assert [r[0] for r in rows] == ["u1", "u2", "u3", "u4", "u5"]
+
+
+def test_claude_code_version_distribution(known_db):
+    """端末ごとに版のある最新 1 行（`ts` の降順）を数える。版の無い行と集計期間の外は数えない。"""
+    seed_claude_code_versions(known_db)
+    rows = dict(queries_policy.claude_code_version_distribution(known_db, TODAY))
+    assert rows == {"2.1.283": 2, "2.1.281": 1}
+
+
+def test_claude_code_version_distribution_unchanged_after_duplicate_injection(
+    known_db,
+):
+    seed_claude_code_versions(known_db)
+
+    def compute():
+        return sorted(queries_policy.claude_code_version_distribution(known_db, TODAY))
+
+    assert_invariant_under_duplication(known_db, compute)

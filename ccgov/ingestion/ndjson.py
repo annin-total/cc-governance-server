@@ -1,4 +1,4 @@
-"""`/ingest` の受信処理。生のバイト列と DB 接続だけを扱う。"""
+"""`/ingest` の受信処理。"""
 
 import json
 from time import monotonic
@@ -6,6 +6,7 @@ from typing import Optional
 
 from ccgov.store import db
 from ccgov.vendor.contract import (
+    ERROR_COLUMNS,
     EXTRA_COLUMNS,
     HOOK_FIELDS,
     POLICY_COLUMNS,
@@ -13,7 +14,7 @@ from ccgov.vendor.contract import (
     to_day,
 )
 
-_KINDS = ("event", "policy")
+_KINDS = ("event", "policy", "error")
 
 # 受信のたびの ANALYZE は重いため、プロセス内で前回からこの秒数が経つまで呼ばない
 ANALYZE_INTERVAL_SECONDS = 3600
@@ -26,6 +27,7 @@ _EVENTS_COLUMNS = tuple(EXTRA_COLUMNS) + tuple(
 _TABLE_COLUMNS = {
     "event": ("events", _EVENTS_COLUMNS),
     "policy": ("policy_state", tuple(POLICY_COLUMNS)),
+    "error": ("errors", tuple(ERROR_COLUMNS)),
 }
 
 
@@ -45,7 +47,7 @@ def parse_line(line: bytes) -> Optional[tuple]:
     """1 行の NDJSON を契約由来の検査にかけ、通れば (kind, 値のタプル) を返す。"""
     try:
         obj = json.loads(line)
-    except ValueError:
+    except (ValueError, RecursionError):  # 深い入れ子は RecursionError になる
         return None
     if not isinstance(obj, dict):
         return None
@@ -80,7 +82,6 @@ def parse_lines(raw: bytes) -> tuple:
 
 
 def _insert(cur, table: str, columns: tuple, values: list) -> None:
-    """1 テーブル分を INSERT する。"""
     if not values:
         return
     names = ", ".join(name for name, _ in columns)
@@ -105,7 +106,7 @@ def _analyze_if_due(conn) -> None:
 def ingest(raw: bytes, conn) -> dict:
     """NDJSON を検査して kind ごとに振り分け、1 トランザクションで保存する。"""
     rows, dropped = parse_lines(raw)
-    by_kind: dict = {"event": [], "policy": []}
+    by_kind: dict = {"event": [], "policy": [], "error": []}
     for kind, values in rows:
         by_kind[kind].append(values)
 

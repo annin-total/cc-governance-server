@@ -1,14 +1,13 @@
 """`/policy` 画面のテストクライアント検証。基準日は `today_client` が固定する。"""
 
-from conftest import ADMIN, rows_in_table
-from known_data import TODAY
+from conftest import ADMIN, rows_in_table, table_body
+from known_data import TODAY, seed_claude_code_versions
 
 from ccgov.constants import REFERENCE_KEY
 from ccgov.store import db, queries_policy
 
 
 def test_policy_page_returns_200(today_client):
-    """`/policy` が 200 で応答する。"""
     response = today_client.get(ADMIN + "/policy")
     assert response.status_code == 200
 
@@ -41,11 +40,11 @@ def test_not_introduced_row_count(today_client):
     assert "u4" in html
 
 
-def test_compliance_rate_table_shows_both_items(today_client):
-    """準拠率の表に項目ごとに 1 行、計 2 行出る。"""
+def test_compliance_rate_table_shows_each_set_item(today_client):
+    """準拠率の表に SET のスカラ値の項目ごとに 1 行、計 6 行出る。"""
     html = today_client.get(ADMIN + "/policy").get_data(as_text=True)
     rows = rows_in_table(html, "compliance-rate")
-    assert len(rows) == 2
+    assert len(rows) == 6
     assert "20.0%" in html
     assert "80.0%" in html
 
@@ -59,10 +58,7 @@ def test_latest_values_row_count_matches_query(today_client, known_db):
 
 
 def test_null_prev_value_is_not_shown_as_none(known_db, today_client):
-    """`prev_value` が NULL の行が「None」ではなく「未設定」と表示される。初回適用時は全端末が当たる。
-
-    共有フィクスチャにはこの状態の行が無いので、このテストが自分で 1 行足す。
-    """
+    """`prev_value` が NULL の行が「None」ではなく「未設定」と表示される。初回適用時は全端末が当たる。"""
     cur = known_db.cursor()
     cur.execute(
         db.q(
@@ -94,7 +90,7 @@ def test_null_prev_value_is_not_shown_as_none(known_db, today_client):
 def test_add_once_prefixed_rows_do_not_enter_compliance_rate(known_db, today_client):
     """`add:` / `once:` 接頭辞の行があっても `/policy` は描画され、準拠率の項目数は変わらない。
 
-    `policy.SET` は現状すべてスカラ値なので、対象数は `len(policy.SET)` と一致する。
+    対象数を `len(policy.SET)` と比べるため、SET がスカラ値だけであることを前提にする。
     """
     cur = known_db.cursor()
     cur.execute(
@@ -147,10 +143,7 @@ def test_add_once_prefixed_rows_do_not_enter_compliance_rate(known_db, today_cli
 
 
 def test_set_dict_and_none_are_excluded_from_compliance_rate(today_client, monkeypatch):
-    """`policy.SET` の値が dict や None の項目は、準拠率の表に出ない。
-
-    このフィルタを外すと、項目数が 3 から dict・None を数えた 5 に増えて落ちる。
-    """
+    """`policy.SET` の値が dict や None の項目は、準拠率の表に出ない。"""
     from ccgov.web import admin
 
     monkeypatch.setattr(
@@ -170,3 +163,14 @@ def test_set_dict_and_none_are_excluded_from_compliance_rate(today_client, monke
     assert len(rows) == 3
     assert "some.dict.key" not in html
     assert "some.removed.key" not in html
+
+
+def test_claude_code_versions_table_matches_query(known_db, today_client):
+    """Claude Code の版の分布の表の行数と中身が、クエリの戻り値と一致する。"""
+    seed_claude_code_versions(known_db)
+    html = today_client.get(ADMIN + "/policy").get_data(as_text=True)
+    body = table_body(html, "claude-code-versions")
+    expected = queries_policy.claude_code_version_distribution(known_db, TODAY)
+    assert len(rows_in_table(html, "claude-code-versions")) == len(expected) == 2
+    assert "<td>2.1.283</td>" in body
+    assert "<td>2.1.281</td>" in body

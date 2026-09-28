@@ -65,11 +65,11 @@ for name in NAMES:
     if actual_hash != recorded_hash:
         print(
             f"ERROR: {name} が {hash_path.name} と一致しない"
-            "（複製が正本と同期していない、または改竄された）",
+            "（複製が直接編集されたか、複製とハッシュ記録の片方だけが更新された）",
             file=sys.stderr,
         )
         sys.exit(1)
 PY
 
 pip install -r requirements.txt
-waitress-serve --listen=0.0.0.0:5000 app:app
+exec waitress-serve --listen=0.0.0.0:5000 app:app

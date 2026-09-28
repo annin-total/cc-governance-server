@@ -5,13 +5,17 @@
 
 import importlib
 import json
+import sqlite3
+import threading
 
 import pytest
 from conftest import env_var
 
+# sqlite3.connect の既定の待ち（5 秒）を超える長さ
+_LOCK_HOLD_SEC = 6
+
 
 def _count(table: str) -> int:
-    """一時 DB のテーブルの行数を返す。"""
     from ccgov.store import db
 
     conn = db.connect()
@@ -35,12 +39,14 @@ def _event_line(event_id: str) -> str:
         ("\n".join([_event_line("e1"), "not-json"]), 1, 1),
         ("not-json\n{}", 0, 2),
         (b"", 0, 0),
+        ("\n".join([_event_line("e1"), "[" * 100000 + "]" * 100000]), 1, 1),
     ],
     ids=[
         "stored_two_dropped_zero",
         "stored_one_dropped_one",
         "stored_zero_dropped_two",
         "empty_body",
+        "deeply_nested_dropped",
     ],
 )
 def test_valid_token_returns_200_with_counts(ingest_client, body, stored, dropped):
@@ -66,7 +72,7 @@ def test_bad_token_is_rejected_with_401(ingest_client, headers):
     assert _count("events") == 0
 
 
-def test_non_ascii_token_matching_value_is_accepted(sqlite_db_dsn):
+def test_non_ascii_token_matching_value_is_accepted(db_dsn):
     """非 ASCII の `INGEST_TOKEN` に、同じ値を実サーバと同じく WSGI 符号化したヘッダを送ると 200。
 
     `test_client()` の `headers=` は UTF-8 を latin-1 で復号する WSGI の符号化を経ないため、environ を直接組む。
@@ -92,7 +98,7 @@ def test_non_ascii_token_matching_value_is_accepted(sqlite_db_dsn):
 
 
 @pytest.mark.parametrize("value", [None, ""])
-def test_server_token_unset_fails_at_startup(sqlite_db_dsn, monkeypatch, value):
+def test_server_token_unset_fails_at_startup(db_dsn, monkeypatch, value):
     """サーバの `INGEST_TOKEN` が未設定・空なら、`app` の import の時点で止まる。"""
     import app as app_module
 
@@ -112,7 +118,7 @@ def test_write_failure_returns_5xx(ingest_client):
 
     conn = db.connect()
     try:
-        conn.execute("DROP TABLE events")
+        conn.cursor().execute("DROP TABLE events")
         conn.commit()
     finally:
         conn.close()
@@ -132,3 +138,36 @@ def test_write_failure_returns_5xx(ingest_client):
     )
     assert response.status_code >= 500
     assert _count("policy_state") == 0
+
+
+@pytest.mark.sqlite_only
+def test_ingest_waits_for_lock_held_longer_than_sqlite_default(ingest_client):
+    """別の接続が書き込みロックを sqlite3 の既定の待ち（5 秒）より長く握っても、解放を待って 200 を返す。"""
+    from ccgov.store import db
+
+    holder = sqlite3.connect(db._sqlite_path(), check_same_thread=False)
+    holder.execute("BEGIN EXCLUSIVE")
+    release = threading.Timer(_LOCK_HOLD_SEC, holder.commit)
+    release.start()
+    try:
+        response = ingest_client.post(
+            "/ingest", data=_event_line("e1"), headers={"X-Ingest-Token": "tok"}
+        )
+    finally:
+        release.join()
+        holder.close()
+    assert response.status_code == 200
+    assert _count("events") == 1
+
+
+@pytest.mark.sqlite_only
+def test_sqlite_busy_timeout_is_explicit(db_dsn):
+    """接続の busy timeout は `db.SQLITE_BUSY_TIMEOUT_SEC` になる。"""
+    from ccgov.store import db
+
+    conn = db.connect()
+    try:
+        (busy_ms,) = conn.execute("PRAGMA busy_timeout").fetchone()
+    finally:
+        conn.close()
+    assert busy_ms == db.SQLITE_BUSY_TIMEOUT_SEC * 1000

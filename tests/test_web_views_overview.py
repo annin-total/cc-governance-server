@@ -4,6 +4,9 @@ import importlib
 import re
 
 from conftest import ADMIN, admin_client, rows_in_table, table_body
+from known_data import TODAY
+
+from ccgov.store import db
 
 
 def _tile(html: str, label: str) -> str:
@@ -22,12 +25,12 @@ def test_overview_page_returns_200(today_client):
 
 
 def test_health_line_shows_event_and_terminal_counts(today_client):
-    """健全性のタイルに、イベント数・送信者数の直近7日の値が読める。"""
+    """健全性のタイルに、イベント数・送信した利用者数の直近7日の値が読める。"""
     html = today_client.get(ADMIN + "/").get_data(as_text=True)
     events_tile = _tile(html, "イベント")
     assert "<b>13</b>" in events_tile
 
-    terminals_tile = _tile(html, "送信者")
+    terminals_tile = _tile(html, "送信した利用者")
     assert "<b>4</b>" in terminals_tile
 
 
@@ -81,3 +84,34 @@ def test_empty_db_shows_dash_without_badge(db_conn):
     assert 'class="pill' not in body
     for path in ("/policy", "/assets"):
         assert client.get(ADMIN + path).status_code == 200
+
+
+def test_error_summary_table_is_empty_without_errors(today_client):
+    """errors が無ければ、失敗の表は見出し行だけになる。"""
+    html = today_client.get(ADMIN + "/").get_data(as_text=True)
+    assert rows_in_table(html, "error-summary") == []
+
+
+def test_error_summary_table_lists_stage_and_error_type(known_db, today_client):
+    """stage x error_type ごとに件数・端末数・最新版が 1 行ずつ出る。"""
+    cur = known_db.cursor()
+    sql = db.q(
+        "INSERT INTO errors (event_id, ts, day, host, plugin_version, stage,"
+        " error_type) VALUES (?, ?, ?, ?, ?, ?, ?)"
+    )
+    cur.execute(sql, ("x1", 2, TODAY, "h1", "0.2.0", "sender", "HTTP 403"))
+    cur.execute(sql, ("x2", 1, TODAY, "h2", "0.1.0", "sender", "HTTP 403"))
+    cur.execute(sql, ("x3", 1, TODAY, "h1", "0.1.0", "hook_entry", "KeyError"))
+    known_db.commit()
+
+    html = today_client.get(ADMIN + "/").get_data(as_text=True)
+    body = table_body(html, "error-summary")
+    rows = re.findall(r"<tr>(.*?)</tr>", body, re.DOTALL)[1:]
+    cells = [
+        [c.strip() for c in re.findall(r"<td[^>]*>(.*?)</td>", row, re.DOTALL)]
+        for row in rows
+    ]
+    assert cells == [
+        ["sender", "HTTP 403", "2", "2", "0.2.0"],
+        ["hook_entry", "KeyError", "1", "1", "0.1.0"],
+    ]

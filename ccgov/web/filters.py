@@ -38,7 +38,6 @@ def day(value: Any) -> str:
 
 
 def num(value: Any) -> str:
-    """整数値に桁区切りのカンマを入れる。"""
     int_value = _to_int(value)
     if int_value is None:
         return EM_DASH
@@ -46,7 +45,6 @@ def num(value: Any) -> str:
 
 
 def usd(value: Any) -> str:
-    """コストを小数 2 桁の USD 表記にする。"""
     float_value = _to_float(value)
     if float_value is None:
         return EM_DASH
@@ -54,7 +52,6 @@ def usd(value: Any) -> str:
 
 
 def pct(value: Any) -> str:
-    """率を小数 1 桁固定のパーセント表記にする。"""
     float_value = _to_float(value)
     if float_value is None:
         return EM_DASH

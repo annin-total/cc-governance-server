@@ -1,5 +1,7 @@
 """`db.analyze()` が統計情報を更新することを確かめる。"""
 
+import pytest
+
 from ccgov.store import db
 
 
@@ -27,20 +29,22 @@ class _FakeConnection:
 
 
 def _insert_cost_daily_rows(conn) -> None:
-    """cost_daily に数行 INSERT する。"""
     cur = conn.cursor()
     for i in range(5):
         cur.execute(
-            "INSERT INTO cost_daily (day, user_email, provider, model, currency,"
-            " cost, input_tokens, output_tokens, cache_read_tokens,"
-            " cache_write_tokens, cached_input_tokens, uncached_input_tokens,"
-            " source_file) VALUES (1, ?, 'aws-bedrock', 'm', 'USD', 1.0, 1, 1, 0,"
-            " 0, 0, 0, 'f.csv')",
+            db.q(
+                "INSERT INTO cost_daily (day, user_email, provider, model, currency,"
+                " cost, input_tokens, output_tokens, cache_read_tokens,"
+                " cache_write_tokens, cached_input_tokens, uncached_input_tokens,"
+                " source_file) VALUES (1, ?, 'aws-bedrock', 'm', 'USD', 1.0, 1, 1, 0,"
+                " 0, 0, 0, 'f.csv')"
+            ),
             (f"u{i}@example.com",),
         )
     conn.commit()
 
 
+@pytest.mark.sqlite_only
 def test_analyze_populates_sqlite_stat1(db_conn):
     """cost_daily に行がある状態で analyze() すると sqlite_stat1 に反映される。"""
     _insert_cost_daily_rows(db_conn)

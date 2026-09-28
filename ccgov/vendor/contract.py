@@ -13,9 +13,10 @@ from typing import Any, Optional
 HOOK_FIELDS = (
     # (列名, キーパス, 型) の 3 つ組。行末の註記は届く hook であって要素ではない
     ("session_id", ("session_id",), "VARCHAR(255)"),  # 全 hook
-    ("prompt_id", ("prompt_id",), "VARCHAR(255)"),  # 広範
+    ("prompt_id", ("prompt_id",), "VARCHAR(255)"),
     ("tool_name", ("tool_name",), "VARCHAR(255)"),  # PostToolUse / PostToolUseFailure
     ("source", ("source",), "VARCHAR(255)"),  # SessionStart
+    # 列名を変えるのは trigger が MySQL の予約語だから
     ("compact_trigger", ("trigger",), "VARCHAR(255)"),  # PreCompact
     ("command_name", ("command_name",), "VARCHAR(255)"),  # UserPromptExpansion
     ("command_source", ("command_source",), "VARCHAR(255)"),  # UserPromptExpansion
@@ -25,7 +26,7 @@ HOOK_FIELDS = (
         ("effort", "level"),
         "VARCHAR(255)",
     ),  # PostToolUse / Stop / PostToolUseFailure
-    ("permission_mode", ("permission_mode",), "VARCHAR(255)"),  # 複数 hook
+    ("permission_mode", ("permission_mode",), "VARCHAR(255)"),
     ("agent_id", ("agent_id",), "VARCHAR(255)"),  # サブエージェントのツール呼出
     ("is_interrupt", ("is_interrupt",), "INTEGER"),  # PostToolUseFailure
 )
@@ -39,6 +40,7 @@ EXTRA_COLUMNS = (
     ("host", "VARCHAR(255)"),
     ("hook_event", "VARCHAR(64)"),
     ("context_tokens", "INTEGER"),
+    ("claude_code_version", "VARCHAR(32)"),
 )
 
 POLICY_COLUMNS = (
@@ -53,6 +55,19 @@ POLICY_COLUMNS = (
     ("prev_value", "VARCHAR(255)"),
     ("apply_result", "VARCHAR(32)"),
     ("plugin_version", "VARCHAR(32)"),
+)
+
+ERROR_COLUMNS = (
+    # errors の列。(列名, 型) の 2 つ組。例外メッセージは持たない
+    ("event_id", "VARCHAR(36)"),
+    ("ts", "INTEGER"),
+    ("day", "INTEGER"),
+    ("user_email", "VARCHAR(255)"),
+    ("host", "VARCHAR(255)"),
+    ("hook_event", "VARCHAR(64)"),
+    ("plugin_version", "VARCHAR(32)"),
+    ("stage", "VARCHAR(255)"),
+    ("error_type", "VARCHAR(255)"),
 )
 
 CSV_COLUMNS = (
@@ -74,7 +89,7 @@ CSV_COLUMNS = (
 
 
 def dig(obj: Any, path: tuple) -> Optional[Any]:
-    """キーパスを先頭から順にたどり、たどれなければ None を返す。"""
+    """キーパスをたどる。たどれなければ None。"""
     cur = obj
     for key in path:
         cur = cur.get(key) if isinstance(cur, dict) else None
@@ -82,7 +97,6 @@ def dig(obj: Any, path: tuple) -> Optional[Any]:
 
 
 def _varchar_length(type_str: str) -> int:
-    """`VARCHAR(n)` から宣言長 n を取り出す。"""
     start = type_str.index("(") + 1
     end = type_str.index(")")
     return int(type_str[start:end])
@@ -154,10 +168,7 @@ def coerce(value: Any, type_str: str) -> Any:
 
 
 def policy_key_name(op: str, path: str) -> str:
-    """policy_state.key_name を組み立てる。`set` はパスそのまま、ほかは `<操作>:<パス>`。
-
-    接頭辞は同じパスの ADD と REMOVE を区別するため。`set` は記録済みの行と key_name を揃える。
-    """
+    """policy_state.key_name を組み立てる。`set` はパスそのまま、ほかは `<操作>:<パス>`。"""
     return path if op == "set" else f"{op}:{path}"
 
 
@@ -181,13 +192,12 @@ def to_day(ts: int) -> int:
 
 
 def _create_table_sql(table_name: str, columns: tuple) -> str:
-    """列の並びから CREATE TABLE IF NOT EXISTS 文を組み立てる。"""
     columns_sql = ", ".join(f"{name} {type_str}" for name, type_str in columns)
     return f"CREATE TABLE IF NOT EXISTS {table_name} ({columns_sql})"
 
 
 def ddl() -> tuple:
-    """events / policy_state / cost_daily の CREATE TABLE 文を組み立てる。"""
+    """events / policy_state / cost_daily / errors の CREATE TABLE 文を組み立てる。"""
     hook_names = {name for name, _, _ in HOOK_FIELDS}
     extra_names = {name for name, _ in EXTRA_COLUMNS}
     duplicated = hook_names & extra_names
@@ -207,4 +217,5 @@ def ddl() -> tuple:
         _create_table_sql("events", events_columns),
         _create_table_sql("policy_state", policy_columns),
         _create_table_sql("cost_daily", cost_columns),
+        _create_table_sql("errors", ERROR_COLUMNS),
     )

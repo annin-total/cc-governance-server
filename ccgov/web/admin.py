@@ -13,7 +13,7 @@ from ccgov.constants import (
     REFERENCE_VALUE,
 )
 from ccgov.ingestion import csv_import
-from ccgov.store import db, queries_events, queries_policy
+from ccgov.store import db, queries_errors, queries_events, queries_policy
 from ccgov.vendor import contract, policy
 
 # CSS を認証つきで配るため、静的配信はアプリ直下ではなくこの Blueprint が持つ。
@@ -28,6 +28,7 @@ def _overview_context() -> dict:
         reconciliation = queries_events.reconciliation_rate(conn, today)[0]
         return {
             "health": queries_events.health_counts(conn, today),
+            "error_summary": queries_errors.error_summary(conn, today),
             "reconciliation_numerator": reconciliation[0],
             "reconciliation_denominator": reconciliation[1],
             "reconciliation_rate": reconciliation[2],
@@ -64,7 +65,6 @@ def _require_admin_password():
 
 @admin.route("/", strict_slashes=False)
 def index() -> str:
-    """概況画面。"""
     return render_template("overview.html", **_overview_context())
 
 
@@ -86,20 +86,18 @@ def import_endpoint() -> str:
 
 
 def _today() -> int:
-    """基準日（epoch 日）を現在時刻から算出する。"""
     return contract.to_day(int(time.time()))
 
 
 @admin.route("/policy")
 def policy_view() -> str:
-    """`/policy` 画面。"""
     today = _today()
     rk = REFERENCE_KEY
     conn = db.connect()
     try:
         items = []
-        # 準拠率の対象は SET のスカラ値だけ。dict・list は value が JSON 文字列になり
-        # prev_value と比較できず、None（キーを消す設定）は prev_value の一致では判定できない。
+        # 準拠率の対象は SET のスカラ値だけ。dict・list は prev_value が NULL で届き（`coerce`）、
+        # None（キーを消す設定）は prev_value の一致では判定できない。
         # ADD/REMOVE/ONCE は key_name に接頭辞が付く別物として扱い、対象にしない。
         for key_name, policy_value in policy.SET.items():
             if policy_value is None or isinstance(policy_value, (dict, list)):
@@ -119,26 +117,32 @@ def policy_view() -> str:
                     ),
                 }
             )
+        csv_imported = queries_policy.csv_imported(conn)
         latest_values = queries_policy.latest_values(conn, today, rk)
         not_introduced = queries_policy.not_introduced(conn, today)
         stale = queries_policy.stale_terminals(conn, today)
         plugin_versions = queries_policy.plugin_version_distribution(conn, today, rk)
+        claude_code_versions = queries_policy.claude_code_version_distribution(
+            conn, today
+        )
     finally:
         conn.close()
     return render_template(
         "policy.html",
         items=items,
+        csv_imported=csv_imported,
         reference_key=rk,
         latest_values=latest_values,
         not_introduced=not_introduced,
         stale=stale,
         plugin_versions=plugin_versions,
+        claude_code_versions=claude_code_versions,
     )
 
 
 @admin.route("/effect")
 def effect_view() -> str:
-    """`/effect` 画面。相対日は準拠開始日基準のため基準日は使わない。"""
+    """相対日は準拠開始日が基準のため、基準日（`_today()`）を使わない。"""
     rk, rv = REFERENCE_KEY, REFERENCE_VALUE
     conn = db.connect()
     try:
@@ -165,7 +169,6 @@ def effect_view() -> str:
 
 @admin.route("/assets")
 def assets_view() -> str:
-    """`/assets` 画面。"""
     today = _today()
     conn = db.connect()
     try:
