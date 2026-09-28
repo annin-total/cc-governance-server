@@ -36,8 +36,8 @@
     {{ m.meter(recent_rate) }} {{ recent_rate|pct }}
     {%- set status = null_rate_status[column] %}
     {%- if status is none %}
-    {%- elif status == "high" %} {{ m.pill("要対応", "ng") }}
-    {%- elif status == "elevated" %} {{ m.pill("注意", "warn") }}
+    {%- elif status == "ng" %} {{ m.pill("要対応", "ng") }}
+    {%- elif status == "warn" %} {{ m.pill("注意", "warn") }}
     {%- else %} {{ m.pill("良好", "ok") }}
     {%- endif %}
   </td>

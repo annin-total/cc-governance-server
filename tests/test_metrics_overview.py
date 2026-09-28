@@ -45,14 +45,20 @@ def test_null_rates_per_column():
     ("null_rate", "status"),
     [
         (None, None),
-        (0.0, "normal"),
-        (20.0, "normal"),
-        (20.1, "elevated"),
-        (50.0, "elevated"),
-        (50.1, "high"),
-        (100.0, "high"),
+        (0.0, "ok"),
+        (20.0, "ok"),
+        (20.1, "warn"),
+        (50.0, "warn"),
+        (50.1, "ng"),
+        (100.0, "ng"),
     ],
 )
 def test_null_rate_status_boundaries(null_rate, status):
     """しきい値ちょうどは下の区分（`>` で判定する）。"""
     assert health.null_rate_status(null_rate) == status
+
+
+def test_worst_null_rate_skips_missing_rates():
+    rates_by_column = {"a": 3.0, "b": None, "c": 12.5}
+    assert health.worst_null_rate(rates_by_column) == ("c", 12.5)
+    assert health.worst_null_rate({"a": None}) == (None, None)
