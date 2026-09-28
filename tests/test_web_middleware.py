@@ -8,7 +8,7 @@ from conftest import ADMIN, admin_client, env_var
 
 
 @pytest.fixture
-def app_with_base_path(sqlite_db_dsn):
+def app_with_base_path(db_dsn):
     """`BASE_PATH` を指定した値にしてから `app` モジュールを再読み込みし、Flask アプリを返す。"""
 
     def _build(base_path: str):
@@ -71,7 +71,7 @@ def test_stylesheet_is_served_under_base_path(app_with_base_path, base_path):
     assert client.get(href).status_code == 200, f"{href} が 200 で返らない"
 
 
-def test_form_action_follows_base_path(sqlite_db_dsn):
+def test_form_action_follows_base_path(db_dsn):
     """`BASE_PATH` を与えた状態で概況画面を描画すると、フォームの action が BASE_PATH を含む。"""
     import app as app_module
 

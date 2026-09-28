@@ -121,6 +121,7 @@ def _has_cost_daily_stats(conn) -> bool:
     return cur.fetchone()[0] > 0
 
 
+@pytest.mark.sqlite_only
 def test_analyze_called_after_import(db_conn, tmp_path):
     """取込の前には統計情報が無く、後には在る。"""
     copy_fixture(tmp_path, "daily_a.csv")

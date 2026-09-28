@@ -10,7 +10,7 @@ from known_data import (
 )
 
 from ccgov.constants import REFERENCE_KEY
-from ccgov.store import queries_policy
+from ccgov.store import db, queries_policy
 
 
 def test_latest_values_returns_one_row_per_terminal(known_db):
@@ -47,11 +47,13 @@ def test_latest_values_without_day_filter_would_include_u11(known_db):
     """`day` の絞り込みを外すと u11 が加わり 8 行になる（この差が本来の実装で落ちる対照実験）。"""
     cur = known_db.cursor()
     cur.execute(
-        "SELECT user_email, host FROM ("
-        "  SELECT user_email, host,"
-        "         ROW_NUMBER() OVER (PARTITION BY user_email, host ORDER BY ts DESC) AS rn"
-        "    FROM policy_state WHERE key_name = ?"
-        ") t WHERE rn = 1",
+        db.q(
+            "SELECT user_email, host FROM ("
+            "  SELECT user_email, host,"
+            "         ROW_NUMBER() OVER (PARTITION BY user_email, host ORDER BY ts DESC) AS rn"
+            "    FROM policy_state WHERE key_name = ?"
+            ") t WHERE rn = 1"
+        ),
         (K,),
     )
     rows = cur.fetchall()
@@ -154,7 +156,7 @@ def test_not_introduced(known_db):
 def test_stale_terminals_uses_policy_state(known_db):
     """途絶えた端末は `policy_state` で判定する。1 行のみ u7 / h7 / 最終 19990。"""
     rows = queries_policy.stale_terminals(known_db, TODAY)
-    assert rows == [("u7", "h7", 19990)]
+    assert list(rows) == [("u7", "h7", 19990)]
 
 
 def test_stale_terminals_excludes_kill_switch_terminal(known_db):

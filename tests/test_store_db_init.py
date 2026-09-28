@@ -1,5 +1,7 @@
 """`db.init()` の DDL 適用とインデックス作成（冪等性を含む）を確かめる。"""
 
+import pytest
+
 from ccgov.store import db
 
 _EXPECTED_INDEX_NAMES = [
@@ -60,12 +62,14 @@ def _assert_expected_indexes(conn) -> None:
     assert _index_names(conn) == _EXPECTED_INDEX_NAMES
 
 
+@pytest.mark.sqlite_only
 def test_init_creates_four_tables(db_conn):
     """1 回の init() で events / policy_state / cost_daily / errors の 4 テーブルができる。"""
     assert _table_names(db_conn) == {"events", "policy_state", "cost_daily", "errors"}
 
 
-def test_init_adds_errors_table_to_existing_db(sqlite_db_dsn):
+@pytest.mark.sqlite_only
+def test_init_adds_errors_table_to_existing_db(db_dsn):
     """errors の無い既存 DB でも、init() で errors ができ、既存の行は残る。"""
     db.init()
     conn = db.connect()
@@ -90,12 +94,14 @@ def test_init_adds_errors_table_to_existing_db(sqlite_db_dsn):
         conn.close()
 
 
+@pytest.mark.sqlite_only
 def test_init_creates_eight_indexes_with_expected_columns(db_conn):
     """1 回の init() で 8 本のインデックスが期待どおりの列順で作られる。"""
     _assert_expected_indexes(db_conn)
 
 
-def test_init_twice_keeps_eight_indexes(sqlite_db_dsn):
+@pytest.mark.sqlite_only
+def test_init_twice_keeps_eight_indexes(db_dsn):
     """2 回目の init() でインデックスが重複して作られない。"""
     db.init()
     db.init()
@@ -106,7 +112,8 @@ def test_init_twice_keeps_eight_indexes(sqlite_db_dsn):
         conn.close()
 
 
-def test_init_recreates_dropped_index(sqlite_db_dsn):
+@pytest.mark.sqlite_only
+def test_init_recreates_dropped_index(db_dsn):
     """インデックスを 1 本 DROP した状態から init() すれば 8 本に戻る。"""
     db.init()
     conn = db.connect()
@@ -128,7 +135,7 @@ def test_init_recreates_dropped_index(sqlite_db_dsn):
         conn.close()
 
 
-def test_init_does_not_touch_existing_rows(sqlite_db_dsn):
+def test_init_does_not_touch_existing_rows(db_dsn):
     """init() 済みのテーブルに INSERT した行は、再度の init() でも消えない。"""
     db.init()
     conn = db.connect()

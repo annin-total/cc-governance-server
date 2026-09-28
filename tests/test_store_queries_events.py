@@ -138,7 +138,7 @@ def test_daily_cost_by_provider(known_db):
     `day` で絞らないため、集計期間より前の u20（day=19970）の行も現れる。
     """
     rows = queries_events.daily_cost(known_db)
-    assert rows == [
+    assert list(rows) == [
         (19970, "aws-bedrock", 1.0),
         (20000, "aws-bedrock", 1.0),
         (20001, "aws-bedrock", 2.0),
