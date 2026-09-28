@@ -1,4 +1,4 @@
-"""`/policy` `/effect` 画面の集計クエリ。準拠は常に `prev_value` で判定し、`apply_result` では絞らない。"""
+"""`/policy` `/effect` 画面の集計クエリ。"""
 
 from ccgov.constants import CONTEXT_BIN, EVENT_STUDY_SPAN, STALE_DAYS
 from ccgov.metrics.windows import around, policy_window_start
@@ -33,7 +33,7 @@ def csv_imported(conn) -> bool:
     return cur.fetchone() is not None
 
 
-def _denominator_users(conn, today: int) -> set:
+def denominator_users(conn, today: int) -> set:
     """準拠率の分母の `user_email` の集合。CSV があれば `cost_daily`、無ければ `policy_state` の集計期間に現れる利用者。"""
     cur = conn.cursor()
     if csv_imported(conn):
@@ -44,31 +44,6 @@ def _denominator_users(conn, today: int) -> set:
         db.q(f"SELECT DISTINCT user_email FROM {table} WHERE day >= ?"), (start,)
     )
     return {row[0] for row in cur.fetchall()}
-
-
-def compliance_rate(conn, today: int, key_name: str, expected_value: str) -> list:
-    """施策項目 1 つの準拠率を `[(分子, 分母, 率)]` で返す。1 台でも未準拠なら利用者は未準拠。"""
-    rows = latest_values(conn, today, key_name)
-    compliant_by_user: dict = {}
-    for user_email, _host, prev_value, _day, _ts in rows:
-        ok = prev_value == expected_value
-        compliant_by_user[user_email] = compliant_by_user.get(user_email, True) and ok
-
-    denom_users = _denominator_users(conn, today)
-    denominator = len(denom_users)
-    numerator = sum(1 for u in denom_users if compliant_by_user.get(u, False))
-    rate = round(numerator / denominator * 100, 1) if denominator else None
-    return [(numerator, denominator, rate)]
-
-
-def non_compliant(conn, today: int, key_name: str, expected_value: str) -> list:
-    """最新 1 行の `prev_value` が施策値と一致しない端末を返す。"""
-    rows = latest_values(conn, today, key_name)
-    return [
-        (user_email, host, prev_value, day)
-        for user_email, host, prev_value, day, _ts in rows
-        if prev_value != expected_value
-    ]
 
 
 def not_introduced(conn, today: int) -> list:

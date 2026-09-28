@@ -13,7 +13,9 @@ from ccgov.constants import (
     REFERENCE_VALUE,
 )
 from ccgov.ingestion import csv_import
+from ccgov.metrics import compliance
 from ccgov.reports import assets, overview
+from ccgov.reports import policy as policy_report
 from ccgov.store import db, queries_errors, queries_events, queries_policy
 from ccgov.vendor import contract, policy
 
@@ -97,14 +99,8 @@ def policy_view() -> str:
     conn = db.connect()
     try:
         items = []
-        # 準拠率の対象は SET のスカラ値だけ。dict・list は prev_value が NULL で届き（`coerce`）、
-        # None（キーを消す設定）は prev_value の一致では判定できない。
-        # ADD/REMOVE/ONCE は key_name に接頭辞が付く別物として扱い、対象にしない。
-        for key_name, policy_value in policy.SET.items():
-            if policy_value is None or isinstance(policy_value, (dict, list)):
-                continue
-            expected_value = contract.policy_text(policy_value)
-            numerator, denominator, rate = queries_policy.compliance_rate(
+        for key_name, expected_value in compliance.targets(policy.SET):
+            numerator, denominator, rate = policy_report.compliance_rate(
                 conn, today, key_name, expected_value
             )[0]
             items.append(
@@ -113,7 +109,7 @@ def policy_view() -> str:
                     "numerator": numerator,
                     "denominator": denominator,
                     "rate": rate,
-                    "non_compliant": queries_policy.non_compliant(
+                    "non_compliant": policy_report.non_compliant(
                         conn, today, key_name, expected_value
                     ),
                 }
