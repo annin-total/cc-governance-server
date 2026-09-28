@@ -96,8 +96,8 @@ def policy_view() -> str:
     conn = db.connect()
     try:
         items = []
-        # 準拠率の対象は SET のスカラ値だけ。dict・list は value が JSON 文字列になり
-        # prev_value と比較できず、None（キーを消す設定）は prev_value の一致では判定できない。
+        # 準拠率の対象は SET のスカラ値だけ。dict・list は prev_value が NULL で届き（`coerce`）、
+        # None（キーを消す設定）は prev_value の一致では判定できない。
         # ADD/REMOVE/ONCE は key_name に接頭辞が付く別物として扱い、対象にしない。
         for key_name, policy_value in policy.SET.items():
             if policy_value is None or isinstance(policy_value, (dict, list)):
