@@ -15,6 +15,7 @@ from ccgov.constants import (
 from ccgov.ingestion import csv_import
 from ccgov.metrics import compliance
 from ccgov.reports import assets, overview
+from ccgov.reports import effect as effect_report
 from ccgov.reports import policy as policy_report
 from ccgov.store import db, queries_errors, queries_events, queries_policy
 from ccgov.vendor import contract, policy
@@ -143,12 +144,12 @@ def effect_view() -> str:
     rk, rv = REFERENCE_KEY, REFERENCE_VALUE
     conn = db.connect()
     try:
-        study = queries_policy.event_study(conn, rk, rv, EFFECT_PROVIDER)
+        study = effect_report.event_study(conn, rk, rv, EFFECT_PROVIDER)
         start_dates = queries_policy.compliance_start_dates(conn, rk, rv)
-        context_pre_compact = queries_policy.context_distribution(
+        context_pre_compact = effect_report.context_distribution(
             conn, "PreCompact", start_dates
         )
-        context_stop = queries_policy.context_distribution(conn, "Stop", start_dates)
+        context_stop = effect_report.context_distribution(conn, "Stop", start_dates)
     finally:
         conn.close()
     return render_template(

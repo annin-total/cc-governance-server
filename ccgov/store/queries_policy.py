@@ -1,6 +1,6 @@
 """`/policy` `/effect` 画面の集計クエリ。"""
 
-from ccgov.constants import CONTEXT_BIN, EVENT_STUDY_SPAN, STALE_DAYS
+from ccgov.constants import STALE_DAYS
 from ccgov.metrics.windows import around, policy_window_start
 from ccgov.store import db, queries_events
 
@@ -130,11 +130,8 @@ def compliance_start_dates(conn, key_name: str, expected_value: str) -> dict:
     return dict(cur.fetchall())
 
 
-def event_study(conn, key_name: str, expected_value: str, provider: str) -> list:
-    """相対日ごとの分母人数・1 人あたり日次コスト・処理トークン（入力とキャッシュの読み書きの和）。"""
-    start_dates = compliance_start_dates(conn, key_name, expected_value)
-    if not start_dates:
-        return []
+def cost_by_user_day(conn, provider: str) -> dict:
+    """`provider` の `(user_email, day)` -> `(コスト, 処理トークン（入力とキャッシュの読み書きの和）)`。"""
     cur = conn.cursor()
     cur.execute(
         db.q(
@@ -145,38 +142,19 @@ def event_study(conn, key_name: str, expected_value: str, provider: str) -> list
         ),
         (provider,),
     )
-    cost_by_key = {(u, d): (c, t) for u, d, c, t in cur.fetchall()}
+    return {(u, d): (c, t) for u, d, c, t in cur.fetchall()}
+
+
+def cost_day_range(conn) -> tuple:
+    """`cost_daily` の最初と最後の `day`（空なら `(None, None)`）。"""
+    cur = conn.cursor()
     cur.execute(db.q("SELECT MIN(day), MAX(day) FROM cost_daily"))
-    min_day, max_day = cur.fetchone()
-
-    rows = []
-    for relative_day in range(-EVENT_STUDY_SPAN, EVENT_STUDY_SPAN + 1):
-        if relative_day == 0 or min_day is None:
-            continue
-        population = [
-            u
-            for u, start in start_dates.items()
-            if min_day <= start + relative_day <= max_day
-        ]
-        if not population:
-            continue
-        total_cost, total_tokens = 0.0, 0
-        for u in population:
-            cost, tokens = cost_by_key.get((u, start_dates[u] + relative_day), (0.0, 0))
-            total_cost += cost
-            total_tokens += tokens
-        n = len(population)
-        rows.append((relative_day, n, total_cost / n, round(total_tokens / n)))
-    return rows
+    return cur.fetchone()
 
 
-def context_distribution(conn, hook_event: str, start_dates: dict) -> dict:
-    """`context_tokens` を `CONTEXT_BIN` 刻みで準拠開始日の前後に分けて数える。
-
-    行が無い側のキーは返さない（度数 0 のビンにしない）。
-    """
-    before: dict = {}
-    after: dict = {}
+def context_samples(conn, hook_event: str, start_dates: dict) -> list:
+    """利用者ごとに準拠開始日の前後の `(準拠開始日, day, context_tokens, event_id)` を返す。"""
+    samples = []
     cur = conn.cursor()
     for user_email, start_day in start_dates.items():
         lo, hi = around(start_day)
@@ -188,13 +166,5 @@ def context_distribution(conn, hook_event: str, start_dates: dict) -> dict:
             ),
             (hook_event, user_email, lo, hi),
         )
-        for day, context_tokens, event_id in cur.fetchall():
-            bucket = (context_tokens // CONTEXT_BIN) * CONTEXT_BIN
-            target = before if day < start_day else after
-            target.setdefault(bucket, set()).add(event_id)
-    result = {}
-    if before:
-        result["before"] = sorted((b, len(ids)) for b, ids in before.items())
-    if after:
-        result["after"] = sorted((b, len(ids)) for b, ids in after.items())
-    return result
+        samples.extend((start_day, *row) for row in cur.fetchall())
+    return samples
