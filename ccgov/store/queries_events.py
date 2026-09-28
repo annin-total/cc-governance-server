@@ -2,7 +2,7 @@
 
 from typing import Optional
 
-from ccgov.constants import RECENT_DAYS
+from ccgov.metrics.windows import previous_window, recent_window
 from ccgov.store import db
 
 # 列 -> NULL 率の分母に入れるイベント。全イベントを分母にすると平常時から高止まりする
@@ -20,17 +20,6 @@ def _rate(numerator: int, denominator: int) -> Optional[float]:
     return round(numerator / denominator * 100, 1) if denominator else None
 
 
-def _recent_window(today: int) -> tuple:
-    """直近 `RECENT_DAYS` 日の開始日（含む）と終了日（`today` そのもの）を返す。"""
-    return today - RECENT_DAYS + 1, today
-
-
-def _previous_window(today: int) -> tuple:
-    """直近の 1 つ前の `RECENT_DAYS` 日の開始日・終了日を返す。"""
-    recent_start, _ = _recent_window(today)
-    return recent_start - RECENT_DAYS, recent_start - 1
-
-
 def _usage_with_trend(
     conn, today: int, filter_column: str, group_columns: tuple
 ) -> list:
@@ -38,8 +27,8 @@ def _usage_with_trend(
 
     条件付き集約 1 本で書く。CTE + LEFT JOIN だと NULL を取りうる結合キーの行が落ちる。
     """
-    recent_start, recent_end = _recent_window(today)
-    prev_start, prev_end = _previous_window(today)
+    recent_start, recent_end = recent_window(today)
+    prev_start, prev_end = previous_window(today)
     cols = ", ".join(group_columns)
     recent_calls_col = len(group_columns) + 1
     sql = (
@@ -88,7 +77,7 @@ def subagent_ratio(conn, today: int) -> list:
 
     `agent_id` はサブエージェント内のツール呼出にだけ付く。
     """
-    recent_start, recent_end = _recent_window(today)
+    recent_start, recent_end = recent_window(today)
     cur = conn.cursor()
     cur.execute(
         db.q(
@@ -116,8 +105,8 @@ def daily_cost(conn) -> list:
 
 def user_session_trend(conn, today: int) -> list:
     """`day` 別の利用者数・セッション数を、直近／前 7 日の集計期間で返す（`day` の昇順）。"""
-    window_start, _ = _previous_window(today)
-    _, window_end = _recent_window(today)
+    window_start, _ = previous_window(today)
+    _, window_end = recent_window(today)
     cur = conn.cursor()
     cur.execute(
         db.q(
@@ -133,7 +122,7 @@ def distribution(conn, today: int, column: str) -> list:
     """`column` 別の直近の件数（生値）。`column` は SQL に埋め込むため `_DISTRIBUTION_COLUMNS` で検査する。"""
     if column not in _DISTRIBUTION_COLUMNS:
         raise ValueError(f"未対応の列: {column}")
-    recent_start, recent_end = _recent_window(today)
+    recent_start, recent_end = recent_window(today)
     cur = conn.cursor()
     cur.execute(
         db.q(
@@ -171,8 +160,8 @@ def _health_window_stats(conn, start: int, end: int) -> dict:
 
 def health_counts(conn, today: int) -> dict:
     """直近／前 7 日のイベント件数・送信した利用者数・NULL 率を返す。"""
-    recent_start, recent_end = _recent_window(today)
-    prev_start, prev_end = _previous_window(today)
+    recent_start, recent_end = recent_window(today)
+    prev_start, prev_end = previous_window(today)
     return {
         "recent": _health_window_stats(conn, recent_start, recent_end),
         "prev": _health_window_stats(conn, prev_start, prev_end),
@@ -195,7 +184,7 @@ def reconciliation_rate(conn, today: int) -> list:
     end = cost_window_end(conn, today)
     if end is None:
         return [(0, 0, None)]
-    recent_start, recent_end = _recent_window(end)
+    recent_start, recent_end = recent_window(end)
     cur = conn.cursor()
     cur.execute(
         db.q(

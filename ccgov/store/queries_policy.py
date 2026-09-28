@@ -1,11 +1,7 @@
 """`/policy` `/effect` 画面の集計クエリ。準拠は常に `prev_value` で判定し、`apply_result` では絞らない。"""
 
-from ccgov.constants import (
-    CONTEXT_BIN,
-    EVENT_STUDY_SPAN,
-    POLICY_DAYS,
-    STALE_DAYS,
-)
+from ccgov.constants import CONTEXT_BIN, EVENT_STUDY_SPAN, STALE_DAYS
+from ccgov.metrics.windows import around, policy_window_start
 from ccgov.store import db, queries_events
 
 _LATEST_VALUES_SQL = (
@@ -17,20 +13,16 @@ _LATEST_VALUES_SQL = (
 )
 
 
-def _window_start(today: int) -> int:
-    return today - POLICY_DAYS + 1
-
-
 def _cost_window_start(conn, today: int) -> int:
     """`cost_daily` を数える集計期間の開始日。終了日は `queries_events.cost_window_end`（空なら `today`）。"""
     end = queries_events.cost_window_end(conn, today)
-    return _window_start(today if end is None else end)
+    return policy_window_start(today if end is None else end)
 
 
 def latest_values(conn, today: int, key_name: str) -> list:
     """`POLICY_DAYS` 日の集計期間で、端末ごとの `ts` が最新の 1 行を返す。"""
     cur = conn.cursor()
-    cur.execute(db.q(_LATEST_VALUES_SQL), (key_name, _window_start(today)))
+    cur.execute(db.q(_LATEST_VALUES_SQL), (key_name, policy_window_start(today)))
     return cur.fetchall()
 
 
@@ -47,7 +39,7 @@ def _denominator_users(conn, today: int) -> set:
     if csv_imported(conn):
         table, start = "cost_daily", _cost_window_start(conn, today)
     else:
-        table, start = "policy_state", _window_start(today)
+        table, start = "policy_state", policy_window_start(today)
     cur.execute(
         db.q(f"SELECT DISTINCT user_email FROM {table} WHERE day >= ?"), (start,)
     )
@@ -91,7 +83,7 @@ def not_introduced(conn, today: int) -> list:
             ") p ON c.user_email = p.user_email"
             " WHERE p.user_email IS NULL ORDER BY c.user_email"
         ),
-        (_cost_window_start(conn, today), _window_start(today)),
+        (_cost_window_start(conn, today), policy_window_start(today)),
     )
     return cur.fetchall()
 
@@ -105,7 +97,7 @@ def stale_terminals(conn, today: int) -> list:
             " WHERE day >= ? GROUP BY user_email, host"
             " HAVING ? - MAX(day) >= ? ORDER BY user_email, host"
         ),
-        (_window_start(today), today, STALE_DAYS),
+        (policy_window_start(today), today, STALE_DAYS),
     )
     return cur.fetchall()
 
@@ -126,7 +118,7 @@ def _latest_per_terminal_distribution(
             f"    FROM {table} WHERE {condition} AND day >= ?"
             f") t WHERE rn = 1 GROUP BY {column}"
         ),
-        (*params, _window_start(today)),
+        (*params, policy_window_start(today)),
     )
     return cur.fetchall()
 
@@ -212,7 +204,7 @@ def context_distribution(conn, hook_event: str, start_dates: dict) -> dict:
     after: dict = {}
     cur = conn.cursor()
     for user_email, start_day in start_dates.items():
-        lo, hi = start_day - EVENT_STUDY_SPAN, start_day + EVENT_STUDY_SPAN
+        lo, hi = around(start_day)
         cur.execute(
             db.q(
                 "SELECT day, context_tokens, event_id FROM events"

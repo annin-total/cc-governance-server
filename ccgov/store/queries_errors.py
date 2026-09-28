@@ -1,6 +1,6 @@
 """概況画面の健全性に出す `errors` の集計。"""
 
-from ccgov.constants import RECENT_DAYS
+from ccgov.metrics.windows import recent_window
 from ccgov.store import db
 
 _WINDOW = " FROM errors WHERE day BETWEEN ? AND ?"
@@ -11,7 +11,7 @@ def error_summary(conn, today: int) -> list:
 
     最新の版は ts が最新の行の値（`MAX(plugin_version)` は文字列比較で誤る）。
     """
-    window = (today - RECENT_DAYS + 1, today)
+    window = recent_window(today)
     cur = conn.cursor()
     cur.execute(
         db.q(
