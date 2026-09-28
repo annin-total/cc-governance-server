@@ -3,7 +3,7 @@
 from typing import Optional
 
 from ccgov import constants
-from ccgov.web import charts, text
+from ccgov.web import charts, filters, text
 from ccgov.web import labels as L
 from ccgov.web.screens import Card, Screen, table
 
@@ -74,8 +74,8 @@ def _card(card: Card, ctx: dict) -> dict:
         "href": f"#{card.tab}" + (f":{card.chip}" if card.chip else ""),
         "label": words["label"],
         "value": value,
-        "unit": "" if value == text.filters.EM_DASH else words.get("unit", ""),
-        "delta": "" if delta == text.filters.EM_DASH else delta,
+        "unit": "" if value == filters.EM_DASH else words.get("unit", ""),
+        "delta": "" if delta == filters.EM_DASH else delta,
         "up": delta.startswith("+"),
         "sub": text.fill(words.get("sub", ""), ctx),
         "state": (state, L.STATE[state]) if state else None,

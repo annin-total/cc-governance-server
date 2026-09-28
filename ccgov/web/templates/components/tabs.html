@@ -8,7 +8,7 @@
   <header class="p-head"><h2>{{ t.title }}</h2>
     <p class="scope">{{ t.scope }}
     {%- if t.cols|selectattr("kind", "equalto", "dot")|list %}
-      {%- for value in (true, false, none) %} · {{ dot(value) }} {{ L.DOT_LEGEND[value] }}{% endfor %}
+      {%- for value in (true, false, none) %}<span class="dot-key">{{ dot(value) }} {{ L.DOT_LEGEND[value] }}</span>{% endfor %}
     {%- endif %}</p>
   </header>
   {%- if t.chart %}

@@ -4,7 +4,7 @@ from typing import Any, Optional
 
 from ccgov import constants
 from ccgov.metrics import series
-from ccgov.web import charts, text
+from ccgov.web import charts, filters, text
 from ccgov.web import labels as L
 from ccgov.web.screens import Col, Tab
 
@@ -137,7 +137,7 @@ def _chips(tab: Tab, rows: list, words: dict, ctx: dict) -> tuple:
 
 def _chart(tab: Tab, words: dict, rows: list, ctx: dict) -> Optional[dict]:
     if tab.chart == "trend":
-        days = [text.filters.md(r["day"]) for r in rows]
+        days = [filters.md(r["day"]) for r in rows]
         return {
             "kind": "trend",
             "charts": [

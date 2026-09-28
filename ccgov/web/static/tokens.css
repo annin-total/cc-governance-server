@@ -8,10 +8,10 @@
   --track: #ebe7e1;
   --chip: #e3e0da;
   --chip-up: #dde6ea;
-  /* 色: 文字と線 */
+  /* 色: 文字と線。--muted は --card・--bg・--tabs のどの面でも WCAG AA（4.5:1）を満たす */
   --ink: #2b2926;
   --ink-2: #4a4640;
-  --muted: #69635a;
+  --muted: #625c53;
   --rule: #d6d1c9;
   --chip-up-ink: #2f4b58;
   --on-ink: #f6f4f0;

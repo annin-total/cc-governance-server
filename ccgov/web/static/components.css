@@ -86,6 +86,7 @@ svg text { font: var(--fs-xs) var(--sans); fill: var(--muted); font-variant-nume
 .js .panel[hidden] { display: none; }
 .p-head h2 { font-size: var(--fs-h2); font-weight: 700; margin: 0; }
 .scope { margin: var(--sp-3xs) 0 0; font-size: var(--fs-sm); color: var(--muted); }
+.dot-key { margin-left: var(--sp-m); }
 .p-chart { margin-top: var(--sp-l); }
 .p-chart h3 { font-size: var(--fs-label); font-weight: 600; margin: 0 0 var(--sp-2xs); color: var(--ink-2); }
 .p-chart .legend { margin-top: var(--sp-xs); font-size: var(--fs-sm); }
