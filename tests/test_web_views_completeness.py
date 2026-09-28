@@ -71,7 +71,12 @@ def test_import_results_is_referenced_by_overview(today_app):
 
 @pytest.mark.parametrize(
     ("report", "args"),
-    [("overview", (TODAY,)), ("policy", (TODAY,)), ("effect", ())],
+    [
+        ("overview", (TODAY,)),
+        ("policy", (TODAY,)),
+        ("effect", ()),
+        ("assets", (TODAY,)),
+    ],
 )
 def test_every_report_value_is_used_by_screen_definition(known_db, report, args):
     """定義で組み立てる画面は、集計結果の名前を 1 つ残らずカード・タブ・群の見出しが参照していること。"""

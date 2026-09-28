@@ -56,7 +56,7 @@ def test_non_basic_authorization_is_401(client):
 
 def test_stylesheet_requires_credentials(client):
     """管理画面の CSS も認証の内側にある。"""
-    path = ADMIN + "/static/app.css"
+    path = ADMIN + "/static/tokens.css"
     assert client.get(path).status_code == 401
     assert client.get(path, headers=basic_auth("pw")).status_code == 200
 
@@ -74,7 +74,7 @@ def test_import_requires_credentials(client):
         ("get", "/effect"),
         ("get", "/assets"),
         ("post", "/import"),
-        ("get", "/static/app.css"),
+        ("get", "/static/tokens.css"),
     ],
 )
 def test_legacy_paths_are_404_even_with_credentials(client, method, path):

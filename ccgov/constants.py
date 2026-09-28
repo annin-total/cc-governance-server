@@ -10,6 +10,9 @@ EVENT_STUDY_SPAN = 14
 COST_SPARK_DAYS = 28
 COST_FILTER_DAYS = 30
 
+# スキル・コマンドの利用のカードに並べる名前の数
+ASSET_CARD_ROWS = 3
+
 # コンテキストトークン数の分布のビン幅
 CONTEXT_BIN = 20000
 

@@ -10,7 +10,6 @@
 {%- for sheet in ("tokens.css", "layout.css", "components.css") %}
 <link rel="stylesheet" href="{{ url_for('admin.static', filename=sheet) }}">
 {%- endfor %}
-{% block styles %}{% endblock %}
 <script src="{{ url_for('admin.static', filename='app.js') }}" defer></script>
 </head>
 <body>

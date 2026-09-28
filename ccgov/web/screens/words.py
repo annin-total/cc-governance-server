@@ -14,6 +14,8 @@ GROUP = {
     "who": ("利用者", "直近 {POLICY_DAYS} 日 · 対象は{basis:basis} {denominator:num} 人"),
     "set": ("設定と更新", "直近 {POLICY_DAYS} 日 · 端末ごとに最新の報告 1 件"),
     "work": ("設定は働いているか", "{REFERENCE_KEY:setting}を {REFERENCE_VALUE} にした前後 {EVENT_STUDY_SPAN} 日 · 前後の境は各利用者が守り始めた日"),
+    "calls": ("呼び出し", "直近 {RECENT_DAYS} 日と、その前の {RECENT_DAYS} 日"),
+    "agent": ("サブエージェント", "直近 {RECENT_DAYS} 日 · 分母は全記録"),
     "spend": ("コストの前後差", "1 人 1 日あたり · {EFFECT_PROVIDER:provider} · 時期の変動を含むため、前後差を施策の効果と読まない"),
 }
 # カード: label・unit・sub（値の下の 1 行）・cap（グラフの下の注記）・row（rates の行の右端）
@@ -57,10 +59,18 @@ CARD = {
                  "cap": ("0 日目（守り始めた当日）を除く",)},
     "per_tokens": {"label": "1 人 1 日あたりのトークン", "unit": "トークン", "sub": "適用前 {study[before][tokens]:num}",
                    "cap": ("入力とキャッシュの読み書き（出力は含まない）",)},
+    "skills": {"label": "スキルの呼び出し", "unit": "回", "sub": "前の {RECENT_DAYS} 日 {skills[prev]:num} 回 · {skills[kinds]:num} 種類",
+               "cap": ("呼び出しの多い順 · 割合は直近 {RECENT_DAYS} 日の全呼び出しのうち",), "row": ("{calls:num} 回", "{share:pct}")},
+    "commands": {"label": "コマンドの呼び出し", "unit": "回", "sub": "前の {RECENT_DAYS} 日 {commands[prev]:num} 回 · {commands[kinds]:num} 種類",
+                 "cap": ("呼び出しの多い順（定義元をまたいで合計）· 割合は直近 {RECENT_DAYS} 日の全呼び出しのうち",),
+                 "row": ("{calls:num} 回", "{share:pct}")},
+    "agent": {"label": "サブエージェントの中の記録", "unit": "%", "sub": "{agent[numerator]:num} 件 / 全 {agent[denominator]:num} 件",
+              "cap": ("サブエージェントの中で起きた記録の割合",)},
 }
 PAIR = {"prev": PREV, "recent": RECENT}
 _HIST_SCOPE = " · 前後 {EVENT_STUDY_SPAN} 日 · 区間の幅 {CONTEXT_BIN:num} トークン · 割合は各期間の中の割合"
 _HIST_NOTE = "両方の期間で 0 件の区間は出しません。しきい値が効いていれば、適用後は小さい区間に寄ります。"
+_USAGE_NOTE = "差は直近から前の {RECENT_DAYS} 日を引いた値です。増えた・減ったは呼び出し回数の差で分けます。"
 # タブ: label・hint（タブの 2 行目）・title・scope・note・search（入力欄の案内）・all（全件の区分の名前）
 TAB = {
     "daily": {"label": "日ごとの利用", "hint": "直近 {TREND_DAYS} 日", "title": "日ごとの利用者数とセッション数",
@@ -98,6 +108,15 @@ TAB = {
               "unit": "日", "scope": "守り始めた日を 0 日目とした前後 {EVENT_STUDY_SPAN} 日 · {EFFECT_PROVIDER:provider} · トークンは入力とキャッシュの読み書きの合計",
               "note": "0 日目（守り始めた当日）は前後が混ざるため除いています。その日が利用明細（CSV）の期間に入る人だけを数えるため、日ごとに人数が変わります。"
                       "時期による変動（繁忙・モデルの切り替えなど）を差し引いていないため、前後差を施策の効果と読まないでください。"},
+    "skills": {"label": "スキル", "hint": "{skills[kinds]:num} 種類 · {skills[recent]:num} 回", "title": "スキルごとの呼び出し回数と利用者数",
+               "unit": "行", "scope": "直近 {RECENT_DAYS} 日と前の {RECENT_DAYS} 日 · スキルの呼び出しの記録", "search": "スキル名で絞り込み",
+               "note": _USAGE_NOTE},
+    "commands": {"label": "コマンド", "hint": "{commands[kinds]:num} 種類 · {commands[recent]:num} 回", "title": "コマンドごとの呼び出し回数と利用者数",
+                 "unit": "行", "scope": "直近 {RECENT_DAYS} 日と前の {RECENT_DAYS} 日 · コマンドの呼び出しの記録 · 定義元は記録された値のまま",
+                 "search": "コマンド名・定義元で絞り込み", "note": "同じコマンドでも定義元が違えば別の行です。" + _USAGE_NOTE},
+    "agent": {"label": "サブエージェント", "hint": "直近 {RECENT_DAYS} 日 · {agent[rate]:pct}", "title": "サブエージェントの利用", "unit": "行",
+              "scope": "直近 {RECENT_DAYS} 日 · 分母は全記録 {agent[denominator]:num} 件",
+              "note": "サブエージェントの中で起きた記録にだけ、サブエージェントの識別子が付きます。"},
 }
 COL = {
     "day": "日付", "period": "期間", "users": "利用者数", "sessions": "セッション数", "sessions_bar": "セッション数の比較",
@@ -110,6 +129,8 @@ COL = {
     "bin": "トークン数の区間", "before_count": "適用前の件数", "before_share": "適用前の割合", "after_count": "適用後の件数",
     "after_share": "適用後の割合", "rel_day": "守り始めてからの日数", "side": "期間", "people": "対象者数",
     "per_cost": "1 人あたりコスト", "per_tokens": "1 人あたりトークン",
+    "skill": "スキル", "command": "コマンド", "source": "定義元", "recent_calls": "呼び出し回数", "prev_calls": PREV,
+    "calls_diff": "差", "recent_users": "利用者数", "users_diff": "利用者の差", "record": "記録",
 }
 COL_EACH_SUB = "{numerator:num} / {denominator:num} 人"
 COST_CHIPS = {"long": "最後の {COST_FILTER_DAYS} 日", "short": "最後の {RECENT_DAYS} 日"}

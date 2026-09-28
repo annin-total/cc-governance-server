@@ -32,6 +32,8 @@ RECENT = f"直近 {RECENT_DAYS} 日"
 PREV = f"前の {RECENT_DAYS} 日"
 PERIOD = {"recent": RECENT, "prev": PREV}
 SIDE = {"before": "適用前", "after": "適用後"}
+TREND = {"up": "増えた", "down": "減った", "flat": "変わらない"}
+AGENT = {"agent": ("サブエージェントの中",), "main": ("サブエージェントの外",)}
 
 # 概況: CSV の取り込み
 CSV_NOTE = "利用明細（CSV）はコストとトークンの正本です"
@@ -106,6 +108,6 @@ BASIS_NOTE = {
     "policy": "CSV を取り込んでいないため、分母は設定の報告があった利用者だけです。プラグインを入れていない人は含みません。",
 }
 STALE_NOTE = f"報告停止 = 最後の報告から {STALE_DAYS} 日以上経った端末。{POLICY_DAYS} 日を過ぎると一覧から外れます。"
-UNIT = {"person": "人", "item": "件", "terminal": "台", "pt": "pt"}
+UNIT = {"person": "人", "item": "件", "terminal": "台", "pt": "pt", "times": "回"}
 
 # fmt: on

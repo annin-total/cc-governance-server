@@ -56,5 +56,5 @@ def test_effect_fills_context_distribution(no_csv_client):
 
 def test_assets_fills_usage_tables(no_csv_client):
     html = no_csv_client.get(ADMIN + "/assets").get_data(as_text=True)
-    assert rows_in_table(html, "skill-usage")
-    assert rows_in_table(html, "command-usage")
+    assert rows_in_table(html, "skills")
+    assert rows_in_table(html, "commands")

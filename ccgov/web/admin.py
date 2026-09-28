@@ -11,6 +11,7 @@ from ccgov.reports import assets, effect, overview, policy
 from ccgov.store import db
 from ccgov.vendor import contract
 from ccgov.web import labels
+from ccgov.web.screens import assets as assets_screen
 from ccgov.web.screens import effect as effect_screen
 from ccgov.web.screens import overview as overview_screen
 from ccgov.web.screens import policy as policy_screen
@@ -93,4 +94,5 @@ def effect_view() -> str:
 
 @admin.route("/assets")
 def assets_view() -> str:
-    return render_template("assets.html", **_build(assets.build, _today()))
+    data = _build(assets.build, _today())
+    return render_template("assets.html", view=view.build(assets_screen.SCREEN, data))
