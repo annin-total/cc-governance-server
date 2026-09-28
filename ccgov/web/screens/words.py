@@ -13,6 +13,8 @@ GROUP = {
     "data": ("データの届き具合", "直近 {RECENT_DAYS} 日と、その前の {RECENT_DAYS} 日（照合率は利用明細の最終日までの {RECENT_DAYS} 日）"),
     "who": ("利用者", "直近 {POLICY_DAYS} 日 · 対象は{basis:basis} {denominator:num} 人"),
     "set": ("設定と更新", "直近 {POLICY_DAYS} 日 · 端末ごとに最新の報告 1 件"),
+    "work": ("設定は働いているか", "{REFERENCE_KEY:setting}を {REFERENCE_VALUE} にした前後 {EVENT_STUDY_SPAN} 日 · 前後の境は各利用者が守り始めた日"),
+    "spend": ("コストの前後差", "1 人 1 日あたり · {EFFECT_PROVIDER:provider} · 時期の変動を含むため、前後差を施策の効果と読まない"),
 }
 # カード: label・unit・sub（値の下の 1 行）・cap（グラフの下の注記）・row（rates の行の右端）
 CARD = {
@@ -42,8 +44,23 @@ CARD = {
                  "row": ("{numerator:num} / {denominator:num} 人", "{rate:pct}")},
     "plugin": {"label": "プラグインが最新版の端末", "unit": "台", "sub": "最新 {plugin[latest]} · 全 {plugin[total]:num} 台"},
     "core": {"label": "本体が最新版の端末", "unit": "台", "sub": "最新 {core[latest]} · 全 {core[total]:num} 台"},
+    "precompact": {"label": "圧縮直前のコンテキスト（中央の区間）", "unit": "トークン",
+                   "sub": "適用前 {precompact[median][before]:bin} · 記録 {precompact[total][before]:num} → {precompact[total][after]:num} 件",
+                   "cap": ("区間の幅 {CONTEXT_BIN:num} トークン · 縦は各期間の中の割合",)},
+    "stop": {"label": "応答終了時のコンテキスト（中央の区間）", "unit": "トークン",
+             "sub": "適用前 {stop[median][before]:bin} · 記録 {stop[total][before]:num} → {stop[total][after]:num} 件",
+             "cap": ("区間の幅 {CONTEXT_BIN:num} トークン · 縦は各期間の中の割合",)},
+    "adopters": {"label": "設定を守り始めた利用者", "unit": "人", "sub": "日ごとの対象者 {study[people_min]:num}〜{study[people_max]:num} 人",
+                 "cap": ("その日が利用明細の期間に入る人だけを数える",)},
+    "per_cost": {"label": "1 人 1 日あたりのコスト",
+                 "sub": "適用前 {study[before][cost]:usd} · のべ {study[before][person_days]:num} → {study[after][person_days]:num} 人日",
+                 "cap": ("0 日目（守り始めた当日）を除く",)},
+    "per_tokens": {"label": "1 人 1 日あたりのトークン", "unit": "トークン", "sub": "適用前 {study[before][tokens]:num}",
+                   "cap": ("入力とキャッシュの読み書き（出力は含まない）",)},
 }
-PAIR = (PREV, RECENT)
+PAIR = {"prev": PREV, "recent": RECENT}
+_HIST_SCOPE = " · 前後 {EVENT_STUDY_SPAN} 日 · 区間の幅 {CONTEXT_BIN:num} トークン · 割合は各期間の中の割合"
+_HIST_NOTE = "両方の期間で 0 件の区間は出しません。しきい値が効いていれば、適用後は小さい区間に寄ります。"
 # タブ: label・hint（タブの 2 行目）・title・scope・note・search（入力欄の案内）・all（全件の区分の名前）
 TAB = {
     "daily": {"label": "日ごとの利用", "hint": "直近 {TREND_DAYS} 日", "title": "日ごとの利用者数とセッション数",
@@ -71,6 +88,16 @@ TAB = {
                  "search": "設定名・キーで絞り込み", "note": "{basis:basis_note}"},
     "versions": {"label": "バージョン", "hint": "プラグイン・本体", "title": "バージョンの分布", "unit": "行",
                  "scope": "直近 {POLICY_DAYS} 日 · 端末ごとに最新の報告 1 件 · 古い版が残るのは更新が届いていない端末"},
+    "precompact": {"label": "圧縮直前の分布", "hint": "記録 {precompact[total][before]:num} → {precompact[total][after]:num} 件",
+                   "title": "圧縮直前のコンテキストの大きさ", "unit": "区間", "note": _HIST_NOTE,
+                   "scope": "自動圧縮が走る直前（PreCompact）のトークン数" + _HIST_SCOPE},
+    "stop": {"label": "応答終了時の分布", "hint": "記録 {stop[total][before]:num} → {stop[total][after]:num} 件",
+             "title": "応答終了時のコンテキストの大きさ", "unit": "区間", "note": _HIST_NOTE,
+             "scope": "各応答が終わった時点（Stop）のトークン数" + _HIST_SCOPE},
+    "study": {"label": "日ごとの 1 人あたり", "hint": "守り始めた日の前後 {EVENT_STUDY_SPAN} 日", "title": "日ごとの 1 人あたりコストとトークン",
+              "unit": "日", "scope": "守り始めた日を 0 日目とした前後 {EVENT_STUDY_SPAN} 日 · {EFFECT_PROVIDER:provider} · トークンは入力とキャッシュの読み書きの合計",
+              "note": "0 日目（守り始めた当日）は前後が混ざるため除いています。その日が利用明細（CSV）の期間に入る人だけを数えるため、日ごとに人数が変わります。"
+                      "時期による変動（繁忙・モデルの切り替えなど）を差し引いていないため、前後差を施策の効果と読まないでください。"},
 }
 COL = {
     "day": "日付", "period": "期間", "users": "利用者数", "sessions": "セッション数", "sessions_bar": "セッション数の比較",
@@ -80,6 +107,9 @@ COL = {
     "user_terminals": "端末", "last_day": "最終報告日", "host": "端末名", "reference": SETTING[REFERENCE_KEY][0],
     "off_keys": "未適用の設定", "setting": "設定", "ratio": "適用済み / 対象", "rate": "適用率", "off_terminals": "未適用の端末",
     "kind": "種類", "versions": "バージョン", "version_count": "端末数",
+    "bin": "トークン数の区間", "before_count": "適用前の件数", "before_share": "適用前の割合", "after_count": "適用後の件数",
+    "after_share": "適用後の割合", "rel_day": "守り始めてからの日数", "side": "期間", "people": "対象者数",
+    "per_cost": "1 人あたりコスト", "per_tokens": "1 人あたりトークン",
 }
 COL_EACH_SUB = "{numerator:num} / {denominator:num} 人"
 COST_CHIPS = {"long": "最後の {COST_FILTER_DAYS} 日", "short": "最後の {RECENT_DAYS} 日"}

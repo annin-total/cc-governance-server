@@ -14,7 +14,7 @@ FOOTER = "端末から送られた値です。コストとトークンは全社�
 SCREENS = {
     "admin.index": ("概況", "全体の利用量と、データの届き具合"),
     "admin.policy_view": ("設定の適用状況", "配布した設定が各端末で有効になっているか"),
-    "admin.effect_view": ("設定の効果", "設定を守り始めた前後でコストとコンテキストの大きさを比べる"),
+    "admin.effect_view": ("設定の効果", "設定を守り始めた前後で、コンテキストの大きさとコストを比べる"),
     "admin.assets_view": ("スキル・コマンドの利用", "配布したスキルやコマンドが使われているか"),
 }
 
@@ -31,6 +31,7 @@ WEEKDAYS = "月火水木金土日"
 RECENT = f"直近 {RECENT_DAYS} 日"
 PREV = f"前の {RECENT_DAYS} 日"
 PERIOD = {"recent": RECENT, "prev": PREV}
+SIDE = {"before": "適用前", "after": "適用後"}
 
 # 概況: CSV の取り込み
 CSV_NOTE = "利用明細（CSV）はコストとトークンの正本です"

@@ -12,7 +12,7 @@ CARDS = (
     Card("sessions", "use", "daily", "{sessions[recent]:dec1}", "{sessions[delta]:signed1}", viz=Viz("spark", "trend[rows]", "sessions")),
     Card("cost", "use", "cost", "{cost[recent]:usd}", "{cost[change]:signed_pct}", viz=Viz("spark", "cost[spark]")),
     Card("bypass", "use", "modes", "{bypass[rate]:dec1}", viz=Viz("meter", "bypass[numerator]", den="bypass[denominator]")),
-    Card("events", "data", "health", "{events[recent]:num}", "{events[delta]:signed}", viz=Viz("pair", "events")),
+    Card("events", "data", "health", "{events[recent]:num}", "{events[delta]:signed}", viz=Viz("pair", "events", terms=W.PAIR)),
     Card("reconciliation", "data", "health", "{reconciliation[rate]:dec1}",
          viz=Viz("meter", "reconciliation[numerator]", den="reconciliation[denominator]")),
     Card("errors", "data", "errors", "{errors[total]:num}", state="errors[state]",

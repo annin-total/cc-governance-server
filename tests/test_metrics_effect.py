@@ -41,16 +41,24 @@ def test_median_bin_is_where_cumulative_count_reaches_half():
     assert context.median_bin({}) is None
 
 
-def test_sides_weights_by_person_days_and_skips_day_zero():
+def test_summary_weights_by_person_days_and_skips_day_zero():
     """前後それぞれ、分母人数で重み付けした平均。相対日 0 の行があっても数えない。"""
     study = [(-2, 1, 10.0, 100), (-1, 3, 2.0, 20), (0, 9, 99.0, 999), (1, 2, 5.0, 50)]
-    result = effect.sides(study)
+    result = effect.summary(study)
     assert result["before"] == {"person_days": 4, "cost": 4.0, "tokens": 40}
     assert result["after"] == {"person_days": 2, "cost": 5.0, "tokens": 50}
-    assert (result["people_min"], result["people_max"]) == (1, 9)
+    assert (result["people_min"], result["people_max"]) == (1, 3)
+    assert [r["side"] for r in result["rows"]] == ["before", "before", "after"]
+    assert result["rows"][0] == {
+        "day": -2,
+        "side": "before",
+        "people": 1,
+        "cost": 10.0,
+        "tokens": 100,
+    }
 
 
-def test_sides_without_rows_are_none():
-    result = effect.sides([(1, 2, 5.0, 50)])
+def test_summary_without_rows_are_none():
+    result = effect.summary([(1, 2, 5.0, 50)])
     assert result["before"] == {"person_days": 0, "cost": None, "tokens": None}
-    assert effect.sides([])["people_min"] is None
+    assert effect.summary([])["people_min"] is None

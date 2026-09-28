@@ -9,7 +9,10 @@ from typing import Optional
 
 @dataclass(frozen=True)
 class Viz:
-    """カードの小さなグラフ。`kind` は spark・meter・pair・stack・rates。"""
+    """カードの小さなグラフ。`kind` は spark・meter・pair・stack・rates・hist。
+
+    pair は `terms` の順に 2 本の棒を並べ、最初を薄くする（`field` があれば `src[キー][field]` を比べる）。
+    """
 
     kind: str
     src: str = ""

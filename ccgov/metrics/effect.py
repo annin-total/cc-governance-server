@@ -36,27 +36,33 @@ def event_study(
     return rows
 
 
-def sides(study: list) -> dict:
+def summary(study: list) -> dict:
     """`event_study` の行を相対日の前（負）と後（正）に分け、のべ人日で重み付けした 1 人 1 日あたりの値にする。
 
-    `people_min`・`people_max` は相対日ごとの分母人数の最小と最大。
+    `rows` は行ごとの dict（`side` が前後）、`people_min`・`people_max` は相対日ごとの分母人数の最小と最大。
+    相対日 0 の行は数えない。
     """
-    result: dict = {
-        "people_min": min((n for _, n, _, _ in study), default=None),
-        "people_max": max((n for _, n, _, _ in study), default=None),
+    sides = {
+        "before": [r for r in study if r[0] < 0],
+        "after": [r for r in study if r[0] > 0],
     }
-    for side, rows in (
-        ("before", [r for r in study if r[0] < 0]),
-        ("after", [r for r in study if r[0] > 0]),
-    ):
+    people = [n for rows in sides.values() for _, n, _, _ in rows]
+    result: dict = {
+        "rows": [
+            {"day": d, "side": side, "people": n, "cost": c, "tokens": t}
+            for side, rows in sides.items()
+            for d, n, c, t in rows
+        ],
+        "people_min": min(people, default=None),
+        "people_max": max(people, default=None),
+    }
+    for side, rows in sides.items():
         person_days = sum(n for _, n, _, _ in rows)
+        cost = sum(n * c for _, n, c, _ in rows)
+        tokens = sum(n * t for _, n, _, t in rows)
         result[side] = {
             "person_days": person_days,
-            "cost": sum(n * c for _, n, c, _ in rows) / person_days
-            if person_days
-            else None,
-            "tokens": round(sum(n * t for _, n, _, t in rows) / person_days)
-            if person_days
-            else None,
+            "cost": cost / person_days if person_days else None,
+            "tokens": round(tokens / person_days) if person_days else None,
         }
     return result

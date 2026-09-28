@@ -3,6 +3,7 @@
 from typing import Optional
 
 from ccgov import constants
+from ccgov.metrics import context
 from ccgov.web import charts, filters, text
 from ccgov.web import labels as L
 from ccgov.web.screens import Card, Screen, table
@@ -17,10 +18,16 @@ CONSTANTS = {
         "COST_FILTER_DAYS",
         "NULL_RATE_ELEVATED",
         "NULL_RATE_HIGH",
+        "EVENT_STUDY_SPAN",
+        "CONTEXT_BIN",
+        "REFERENCE_KEY",
+        "REFERENCE_VALUE",
+        "EFFECT_PROVIDER",
     )
 }
 CONSTANTS["TREND_DAYS"] = 2 * constants.RECENT_DAYS
 _SHADES = 3
+HIST_CARD = (charts.SPARK_W, charts.SPARK_H, 0, 0)
 
 
 def build(screen: Screen, data: dict) -> dict:
@@ -97,14 +104,18 @@ def _viz(card: Card, words: dict, ctx: dict) -> Optional[dict]:
         whole = text.lookup(ctx, viz.den)
         return {"kind": "meter", "pct": charts.pct(src, whole), "tone": viz.tone}
     if viz.kind == "pair":
-        top = max(src["prev"], src["recent"])
+        values = {k: src[k][viz.field] if viz.field else src[k] for k in viz.terms}
+        top = max((v or 0 for v in values.values()), default=0)
         return {
             "kind": "pair",
             "rows": [
-                (W.PAIR[0], charts.pct(src["prev"], top), "ghost"),
-                (W.PAIR[1], charts.pct(src["recent"], top), ""),
+                (label, charts.pct(values[k], top), "" if i else "ghost")
+                for i, (k, label) in enumerate(viz.terms.items())
             ],
         }
+    if viz.kind == "hist":
+        geo = charts.hist(src, context.SIDES, *HIST_CARD)
+        return {"kind": "hist", "geo": geo, "terms": viz.terms} if src else None
     if viz.kind == "stack":
         parts = [
             {

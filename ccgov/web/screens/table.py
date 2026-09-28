@@ -3,15 +3,16 @@
 from typing import Any, Optional
 
 from ccgov import constants
-from ccgov.metrics import series
+from ccgov.metrics import context, series
 from ccgov.web import charts, filters, text
 from ccgov.web import labels as L
 from ccgov.web.screens import Col, Tab
 from ccgov.web.screens import words as W
 
 NUMERIC = {"num", "usd", "usd_strong", "pct", "pct_strong", "measure", "measure_sub"}
-NUMERIC |= {"diff", "last_day", "ratio", "count_of", "dash_num"}
+NUMERIC |= {"diff", "last_day", "ratio", "count_of", "dash_num", "num_sub"}
 TREND_CHART, COST_CHART, COST_TICK_EVERY = (540, 132), (1100, 180), 7
+HIST_CHART = (1100, 200, charts.STACK_PAD_LEFT, charts.STACK_PAD_BOTTOM)
 
 
 def _sort_key(value: Any) -> tuple:
@@ -161,5 +162,11 @@ def _chart(tab: Tab, words: dict, rows: list, ctx: dict) -> Optional[dict]:
             "kind": "cost",
             "geo": geo,
             "series": [text.term(L.PROVIDER, p) for p in providers],
+        }
+    if tab.chart == "hist" and rows:
+        return {
+            "kind": "hist",
+            "geo": charts.hist(rows, context.SIDES, *HIST_CHART),
+            "series": list(L.SIDE.values()),
         }
     return None
