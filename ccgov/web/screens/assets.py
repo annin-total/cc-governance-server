@@ -6,8 +6,8 @@ from ccgov.web.screens import Card, Chip, Col, Screen, Tab, Viz
 GROUPS = ("calls", "agent")
 _TREND_CHIPS = tuple(Chip(k, v) for k, v in L.TREND.items())
 _CALLS = (
-    Col("recent_calls", "num", unit="times"), Col("prev_calls", "num_sub"), Col("calls_diff", "diff"),
-    Col("recent_calls", "bar", label="bar", sort=None), Col("recent_users", "num", unit="person"), Col("users_diff", "diff"),
+    Col("recent_calls", "num", unit="times"), Col("recent_calls", "bar", label="bar", sort=None),
+    Col("prev_calls", "num_sub"), Col("calls_diff", "diff"), Col("recent_users", "num", unit="person"), Col("users_diff", "diff"),
 )  # fmt: skip
 
 # fmt: off

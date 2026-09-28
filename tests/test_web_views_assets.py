@@ -16,8 +16,7 @@ def test_skill_table_rows_show_recent_previous_and_difference(today_client):
     """スキルの表は 2 行。直近・前の期間・差の呼び出し回数と、利用者数とその差が読める。"""
     rows = table_rows(_html(today_client), "skills")
     assert len(rows) == 2
-    assert rows[0]["cells"][:4] == ["pdf", "3 回", "1", "+2"]
-    assert rows[0]["cells"][5:] == ["2 人", "+1"]
+    assert rows[0]["cells"] == ["pdf", "3 回", "", "1", "+2", "2 人", "+1"]
     assert rows[0]["tags"] == ["up"]
 
 
