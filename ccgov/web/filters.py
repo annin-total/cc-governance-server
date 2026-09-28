@@ -48,7 +48,38 @@ def usd(value: Any) -> str:
     float_value = _to_float(value)
     if float_value is None:
         return EM_DASH
-    return f"${float_value:.2f}"
+    return f"${float_value:,.2f}"
+
+
+def usd0(value: Any) -> str:
+    float_value = _to_float(value)
+    if float_value is None:
+        return EM_DASH
+    return f"${float_value:,.0f}"
+
+
+def dec1(value: Any) -> str:
+    float_value = _to_float(value)
+    if float_value is None:
+        return EM_DASH
+    return f"{float_value:,.1f}"
+
+
+def signed(value: Any, digits: int = 0) -> str:
+    """増減を符号付きで表記する。0 は ±、マイナスは U+2212（−）を使う。"""
+    float_value = _to_float(value)
+    if float_value is None:
+        return EM_DASH
+    body = f"{abs(float_value):,.{digits}f}"
+    if round(float_value, digits) == 0:
+        return "±" + body
+    return ("+" if float_value > 0 else "−") + body
+
+
+def md(value: Any) -> str:
+    """epoch 日を `MM/DD` にする。"""
+    text = day(value)
+    return text if text == EM_DASH else text[5:].replace("-", "/")
 
 
 def pct(value: Any) -> str:

@@ -1,0 +1,87 @@
+/* 見た目の値の置き場。色・文字の大きさ・余白・角丸・格子の最小幅は、ここの変数だけを使う */
+:root {
+  /* 色: 面 */
+  --bg: #e8e5e0;
+  --card: #f6f4f0;
+  --card-hover: #fbfaf8;
+  --tabs: #dedad3;
+  --track: #ebe7e1;
+  --chip: #e3e0da;
+  --chip-up: #dde6ea;
+  /* 色: 文字と線 */
+  --ink: #2b2926;
+  --ink-2: #4a4640;
+  --muted: #69635a;
+  --rule: #d6d1c9;
+  --chip-up-ink: #2f4b58;
+  --on-ink: #f6f4f0;
+  /* 色: 強調とグラフ */
+  --accent: #4c6a78;
+  --accent-2: #a9b9c1;
+  --ghost: #cdc7bd;
+  /* 色: 状態（4 区分）と、その段階 */
+  --ok: #3d6b4c;
+  --warn: #8a5a12;
+  --ng: #9e3a2e;
+  --neutral: #6f6a62;
+  --ok-bg: #e2eadf;
+  --warn-bg: #f1e5cf;
+  --ng-bg: #f3dfdb;
+  --warn-2: #b0823f;
+  --warn-3: #d6b98f;
+  /* 影 */
+  --shadow-card: 0 1px 0 rgba(0, 0, 0, .04);
+  --shadow-raised: 0 1px 2px rgba(0, 0, 0, .1);
+  --tab-hover: rgba(255, 255, 255, .35);
+
+  /* 文字 */
+  --sans: "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic UI", "Yu Gothic", "Meiryo", system-ui, sans-serif;
+  --fig: "Avenir Next", "Helvetica Neue", "Segoe UI", var(--sans);
+  --mono: ui-monospace, "SF Mono", Menlo, monospace;
+  --fs: 14px;
+  --fs-label: 13px;
+  --fs-sm: 12px;
+  --fs-xs: 11px;
+  --fs-unit: 15px;
+  --fs-h1: 22px;
+  --fs-h2: 16px;
+  --fs-val: 40px;
+  --fw-val: 600;
+  --lh: 1.65;
+
+  /* 余白 */
+  --sp-3xs: 2px;
+  --sp-2xs: 4px;
+  --sp-xs: 6px;
+  --sp-s: 8px;
+  --sp-m: 12px;
+  --sp-l: 16px;
+  --sp-xl: 20px;
+  --sp-2xl: 24px;
+  --sp-3xl: 32px;
+  --sp-4xl: 40px;
+  --cell-y: 7px;
+
+  /* 角丸 */
+  --r-xs: 2px;
+  --r-s: 5px;
+  --r-m: 7px;
+  --r-l: 10px;
+
+  /* 大きさと格子 */
+  --wrap: 1240px;
+  --bar-h: 56px;
+  --card-min-h: 184px;
+  --card-min-w: 248px;
+  --spark-h: 48px;
+  --meter-h: 10px;
+  --hbar-h: 8px;
+  --mark-dot: 6px;
+  --on-dot: 10px;
+  --col-bar: 26%;
+  --col-state: 132px;
+  --col-on: 100px;
+  --cell-max: 320px;
+  --search-w: 240px;
+  --table-max-h: 560px;
+}

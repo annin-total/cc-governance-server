@@ -6,6 +6,7 @@ import pytest
 from conftest import ADMIN, admin_client, copy_fixture, count_and_sum, env_var
 
 from ccgov.store import db
+from ccgov.web import labels
 
 
 @pytest.fixture
@@ -58,7 +59,7 @@ def test_post_import_without_csv_dir_imports_nothing(db_dsn, tmp_path, monkeypat
     importlib.reload(app_module)
 
     body = admin_client(app_module.app).post(ADMIN + "/import").get_data(as_text=True)
-    assert "未設定のため取り込まなかった" in body
+    assert labels.CSV_DIR_UNSET in body
     assert "daily_a.csv" not in body
     conn = db.connect()
     try:

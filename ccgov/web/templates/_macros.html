@@ -1,4 +1,4 @@
-{# 表を `.tbl` で包む処理はマクロにしない（`<table>` を呼び出し側に残すため）。 #}
+{# 設定の効果・スキル・コマンドの利用の 2 画面が使う部品。表を `.tbl` で包む処理はマクロにしない（`<table>` を呼び出し側に残すため）。 #}
 
 {# マイナスは U+2212 を使う（ハイフンより視認性が高い）。 #}
 {% macro delta_badge(value) -%}
@@ -23,14 +23,6 @@
 
 {% macro meter(rate) -%}
 <span class="meter"><i style="width: {{ [rate or 0, 100]|min }}%;"></i></span>
-{%- endmacro %}
-
-{% macro rate_cell(rate, numerator, denominator) -%}
-{{ meter(rate) }}{{ rate|pct }} <span class="muted">({{ numerator }}/{{ denominator }})</span>
-{%- endmacro %}
-
-{% macro pill(text, kind='neutral') -%}
-<span class="pill {{ kind }}">{{ text }}</span>
 {%- endmacro %}
 
 {% macro chips(items) %}

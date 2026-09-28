@@ -3,9 +3,14 @@
 テンプレートの AST から参照名を取るため、条件分岐で出ない枝も参照として数える。
 """
 
+import importlib
+
 import pytest
 from conftest import ADMIN, admin_client
 from jinja2 import meta
+from known_data import TODAY
+
+from ccgov.web.screens import view
 
 # 渡すが描画に使わないキー。足すときは理由をコメントで残す。
 _ALLOWED_UNUSED = set()
@@ -62,3 +67,16 @@ def test_import_results_is_referenced_by_overview(today_app):
     assert "import_results" in referenced, (
         "取込結果を画面が参照していない。失敗が黙って消える"
     )
+
+
+@pytest.mark.parametrize(
+    ("report", "screen"),
+    [("overview", "overview"), ("policy", "policy")],
+)
+def test_every_report_value_is_used_by_screen_definition(known_db, report, screen):
+    """定義で組み立てる画面は、集計結果の名前を 1 つ残らずカード・タブ・群の見出しが参照していること。"""
+    data = importlib.import_module(f"ccgov.reports.{report}").build(known_db, TODAY)
+    definition = importlib.import_module(f"ccgov.web.screens.{screen}").SCREEN
+    used = view.sources(definition)
+    assert set(data) - used == set(), "集計したが画面の定義が参照していない"
+    assert used - set(data) == set(), "定義が参照するが集計結果に無い"

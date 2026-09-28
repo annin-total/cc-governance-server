@@ -1,30 +1,35 @@
-{%- set app_name = "Claude Code 利用状況" -%}
+{#- 別の endpoint から同じ画面を描くとき（取り込み後の概況）は、子のテンプレートが here を決める -#}
+{%- set here = here | default(request.endpoint) -%}
+{%- set screen_title, screen_lead = L.SCREENS[here] -%}
 <!doctype html>
 <html lang="ja">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>{% block title %}集計{% endblock %} · {{ app_name }}</title>
-<link rel="stylesheet" href="{{ url_for('admin.static', filename='app.css') }}">
+<title>{{ screen_title }} — {{ L.APP }}</title>
+{%- for sheet in ("tokens.css", "layout.css", "components.css") %}
+<link rel="stylesheet" href="{{ url_for('admin.static', filename=sheet) }}">
+{%- endfor %}
+{% block styles %}{% endblock %}
+<script src="{{ url_for('admin.static', filename='app.js') }}" defer></script>
 </head>
 <body>
-<header><div class="bar">
-  <a class="brand" href="{{ url_for('admin.index') }}">{{ app_name }}</a>
-  <nav>
-    {%- set here = request.endpoint %}
-    <a href="{{ url_for('admin.index') }}"{% if here == 'admin.index' %} aria-current="page"{% endif %}>概況</a>
-    <a href="{{ url_for('admin.policy_view') }}"{% if here == 'admin.policy_view' %} aria-current="page"{% endif %}>policy</a>
-    <a href="{{ url_for('admin.effect_view') }}"{% if here == 'admin.effect_view' %} aria-current="page"{% endif %}>effect</a>
-    <a href="{{ url_for('admin.assets_view') }}"{% if here == 'admin.assets_view' %} aria-current="page"{% endif %}>assets</a>
+<header class="top"><div class="wrap bar">
+  <a class="brand" href="{{ url_for('admin.index') }}">{{ L.APP }}</a>
+  <nav aria-label="{{ L.NAV }}">
+    {%- for endpoint, (title, _) in L.SCREENS.items() %}
+    <a href="{{ url_for(endpoint) }}"{% if endpoint == here %} aria-current="page"{% endif %}>{{ title }}</a>
+    {%- endfor %}
   </nav>
+  <span class="asof">{{ L.ASOF.format(asof|day) }}</span>
 </div></header>
-<main>
-<h1>{% block heading %}{% endblock %}</h1>
-{% block content %}{% endblock %}
+<main class="wrap">
+  <div class="page-head">
+    <div><h1>{{ screen_title }}</h1><p class="lead">{{ screen_lead }}</p></div>
+    {% block head_actions %}{% endblock %}
+  </div>
+  {% block content %}{% endblock %}
 </main>
-<footer>
-  端末からの自己申告値。コストとトークンは全社 CSV を正とする。
-  監査・人事評価・勤怠管理には使わない。
-</footer>
+<footer class="wrap foot">{{ L.FOOTER }}</footer>
 </body>
 </html>

@@ -1,0 +1,9 @@
+{# 上段の要点のカードと、下段の詳しい一覧でできた画面。中身は screens/<画面>.py の定義から組み立てる。 #}
+{% extends "base.html" %}
+{% from "components/card.html" import card_groups %}
+{% from "components/tabs.html" import detail %}
+{% block content %}
+{% block notices %}{% endblock %}
+{{ card_groups(view.groups) }}
+{{ detail(view.tabs) }}
+{% endblock %}

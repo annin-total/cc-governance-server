@@ -1,0 +1,65 @@
+{# 小さなグラフ。座標は charts.py が計算済み。色はクラスで指定し、直値を書かない。 #}
+{% macro caps(parts) -%}
+<span class="cap">{% for p in parts %}<span>{{ p }}</span>{% endfor %}</span>
+{%- endmacro %}
+
+{% macro hbar(pct, tone="") -%}
+<span class="hbar {{ tone }}"><i style="width: {{ pct|round(1) }}%"></i></span>
+{%- endmacro %}
+
+{% macro spark(g) -%}
+<svg class="spark" viewBox="0 0 {{ g.w }} {{ g.h }}" preserveAspectRatio="none" aria-hidden="true">
+  <rect class="spark-shade" x="{{ g.shade_x }}" y="0" width="{{ g.w - g.shade_x }}" height="{{ g.h }}"/>
+  <path class="spark-area" d="{{ g.area }}"/>
+  <polyline class="spark-old" points="{{ g.old }}" vector-effect="non-scaling-stroke"/>
+  <polyline class="spark-new" points="{{ g.new }}" vector-effect="non-scaling-stroke"/>
+  <circle class="spark-dot" cx="{{ g.last[0] }}" cy="{{ g.last[1] }}" r="3"/>
+</svg>
+{%- endmacro %}
+
+{% macro viz(v) -%}
+{%- if v.kind == "spark" -%}{{ spark(v.geo) }}
+{%- elif v.kind == "meter" -%}<span class="meter {{ v.tone }}"><i style="width: {{ v.pct|round(1) }}%"></i></span>
+{%- elif v.kind == "pair" -%}
+{%- for label, pct, tone in v.rows %}<span class="pair"><span>{{ label }}</span>{{ hbar(pct, tone) }}</span>{% endfor -%}
+{%- elif v.kind == "stack" -%}
+<span class="stack">{% for p in v.parts %}<i class="{{ p.cls }}" style="flex: {{ p.value }}"></i>{% endfor %}</span>
+<span class="legend">{% for p in v.parts %}<span><i class="{{ p.cls }}"></i>{{ p.label }} {{ p.value|num }}</span>{% endfor %}</span>
+{%- elif v.kind == "rates" -%}
+<span class="rates{{ ' wide' if v.wide }}">{% for r in v.rows %}<span class="rate"><span>{{ r.label }}</span>{{ hbar(r.pct) }}
+{%- for right in r.right %}<span class="num{{ ' strong' if loop.last }}">{{ right }}</span>{% endfor %}</span>{% endfor %}</span>
+{%- endif -%}
+{%- endmacro %}
+
+{% macro bars(title, g) -%}
+<div><h3>{{ title }}</h3>
+<svg viewBox="0 0 {{ g.w }} {{ g.h }}" aria-hidden="true">
+{%- for b in g.bars %}
+  <rect class="{{ 'bar-hi' if b.hi else 'bar-old' }}" x="{{ b.x }}" y="{{ b.y }}" width="{{ b.w }}" height="{{ b.h }}" rx="1.5"/>
+  <text x="{{ b.cx }}" y="{{ b.y - 4 }}" text-anchor="middle">{{ b.v|num }}</text>
+  {%- if b.label %}<text x="{{ b.cx }}" y="{{ g.h - 4 }}" text-anchor="middle">{{ b.label }}</text>{% endif %}
+{%- endfor %}
+  <line class="axis" x1="0" x2="{{ g.w }}" y1="{{ g.base }}" y2="{{ g.base }}"/>
+</svg></div>
+{%- endmacro %}
+
+{% macro tab_chart(c) -%}
+{%- if c.kind == "trend" -%}
+<div class="two">{% for title, g in c.charts %}{{ bars(title, g) }}{% endfor %}</div>
+{%- elif c.kind == "cost" -%}
+{%- set g = c.geo -%}
+<svg viewBox="0 0 {{ g.w }} {{ g.h }}" role="img" aria-label="{{ c.title }}">
+{%- for t in g.ticks %}
+  <line class="gridline" x1="{{ g.left }}" x2="{{ g.w }}" y1="{{ t.y }}" y2="{{ t.y }}"/>
+  <text x="{{ g.left - 8 }}" y="{{ t.y + 4 }}" text-anchor="end">{{ t.v|usd0 }}</text>
+{%- endfor %}
+{%- for b in g.bars %}
+  {%- for s in b.segs %}
+  <rect class="series-{{ s.series }}" x="{{ b.x }}" y="{{ s.y }}" width="{{ b.w }}" height="{{ s.h }}"><title>{{ b.key|day }} {{ c.series[s.series] }} {{ s.v|usd }}</title></rect>
+  {%- endfor %}
+  {%- if b.tick %}<text x="{{ b.cx }}" y="{{ g.h - 4 }}" text-anchor="middle">{{ b.key|md }}</text>{% endif %}
+{%- endfor %}
+</svg>
+<div class="legend">{% for name in c.series %}<span><i class="series-{{ loop.index0 }}"></i>{{ name }}</span>{% endfor %}</div>
+{%- endif -%}
+{%- endmacro %}

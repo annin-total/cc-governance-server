@@ -19,14 +19,13 @@ _LATEST = {
 
 
 def _terminals():
-    return rollup.terminals(_LATEST, _EXPECTED, "k", {("u3", "h3")}, 20)
+    return rollup.terminals(_LATEST, _EXPECTED, {("u3", "h3")}, 20)
 
 
 def test_terminals_mark_each_setting():
     rows = {(t["email"], t["host"]): t for t in _terminals()}
     assert rows[("u1", "h1")]["status"] == "ok"
     assert rows[("u2", "h2")]["on"] == {"k": False, "a": True}
-    assert rows[("u2", "h2")]["value"] == "80"
     assert rows[("u2", "h2b")]["on"] == {"k": True, "a": None}
     assert rows[("u2", "h2b")]["off_keys"] == ["a"]
     assert rows[("u3", "h3")]["status"] == "stale"
@@ -34,7 +33,7 @@ def test_terminals_mark_each_setting():
 
 
 def test_terminal_off_and_stale_carries_both_tags():
-    rows = rollup.terminals(_LATEST, _EXPECTED, "k", {("u2", "h2")}, 20)
+    rows = rollup.terminals(_LATEST, _EXPECTED, {("u2", "h2")}, 20)
     h2 = next(t for t in rows if t["host"] == "h2")
     assert h2["tags"] == ["off", "stale"]
     assert rollup.count_status(rows, "stale") == 1

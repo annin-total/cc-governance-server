@@ -17,18 +17,13 @@ def _rank(status: str, off_count: int) -> int:
     return _ORDER[status] * _RANK_STEP - off_count
 
 
-def terminals(
-    latest_by_key: dict, expected: dict, reference_key: str, stale: set, today: int
-) -> list:
+def terminals(latest_by_key: dict, expected: dict, stale: set, today: int) -> list:
     """端末ごとの行。`latest_by_key` は設定 -> 端末ごとの最新 1 行 `(user_email, host, prev_value, day, ts)`。"""
     found: dict = {}
     for key, rows in latest_by_key.items():
         for user_email, host, prev_value, day, _ts in rows:
-            t = found.setdefault(
-                (user_email, host), {"on": {}, "values": {}, "day": day}
-            )
+            t = found.setdefault((user_email, host), {"on": {}, "day": day})
             t["on"][key] = prev_value == expected[key]
-            t["values"][key] = prev_value
             t["day"] = max(t["day"], day)
     result = []
     for (user_email, host), t in sorted(found.items(), key=lambda kv: str(kv[0])):
@@ -42,11 +37,11 @@ def terminals(
                 "email": user_email,
                 "host": host,
                 "on": on,
-                "value": t["values"].get(reference_key),
                 "off_keys": off_keys,
                 "day": t["day"],
                 "ago": today - t["day"],
                 "stale": is_stale,
+                "late": is_stale,
                 "status": status,
                 "tags": tags,
                 "rank": _rank(status, len(off_keys)),
@@ -85,6 +80,7 @@ def users(terminal_rows: list, keys: list, targets: set, not_introduced: set) ->
                 "off": off,
                 "day": max((t["day"] for t in ts), default=None),
                 "ago": min((t["ago"] for t in ts), default=None),
+                "late": bool(ts) and all(t["stale"] for t in ts),
                 "status": status,
                 "rank": _rank(status, off),
             }
