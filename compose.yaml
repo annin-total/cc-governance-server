@@ -1,6 +1,5 @@
 # ローカル開発用。既定は SQLite で動かす: docker compose up
-# MySQL で動かす:
-#   CCGOV_DB_DSN=mysql://ccgov:dev-db-password@mysql:3306/ccgov docker compose --profile mysql up
+# MySQL で動かす: dev.env の DB_DSN を MySQL の行に入れ替え、docker compose --profile mysql up
 # テストだけ MySQL で流す:
 #   docker compose --profile mysql up -d mysql
 #   CCGOV_TEST_MYSQL_DSN=mysql://root:dev-root-password@127.0.0.1:13306 .venv/bin/python -m pytest -q
@@ -11,8 +10,6 @@ services:
       # macOS では 5000 番が AirPlay レシーバーと衝突するため、ホスト側だけ 15000 にする。
       # 127.0.0.1 に限定し、LAN に公開しない。
       - "127.0.0.1:15000:5000"
-    environment:
-      DB_DSN: ${CCGOV_DB_DSN:-sqlite:////app/data/dev.db}
     volumes:
       - ./dev.env:/mnt/data/secrets/cc-governance-server.env:ro
       - dev_data:/app/data
@@ -25,7 +22,7 @@ services:
   mysql:
     image: mysql:8.4
     profiles: ["mysql"]
-    # 資格情報はダミー。上の CCGOV_DB_DSN の例とそろえる。
+    # 資格情報はダミー。dev.env の MySQL の DB_DSN とそろえる。
     environment:
       MYSQL_ROOT_PASSWORD: dev-root-password
       MYSQL_DATABASE: ccgov
