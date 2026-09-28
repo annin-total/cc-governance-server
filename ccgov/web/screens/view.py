@@ -6,6 +6,7 @@ from ccgov import constants
 from ccgov.web import charts, filters, text
 from ccgov.web import labels as L
 from ccgov.web.screens import Card, Screen, table
+from ccgov.web.screens import words as W
 
 CONSTANTS = {
     name: getattr(constants, name)
@@ -29,8 +30,8 @@ def build(screen: Screen, data: dict) -> dict:
         "groups": [
             {
                 "id": g,
-                "label": L.GROUP[g][0],
-                "scope": text.fill(L.GROUP[g][1], ctx),
+                "label": W.GROUP[g][0],
+                "scope": text.fill(W.GROUP[g][1], ctx),
                 "cards": [c for c in cards if c["group"] == g],
             }
             for g in screen.groups
@@ -43,7 +44,7 @@ def sources(screen: Screen) -> set:
     """定義が参照する集計結果の名前（`users[recent]` なら `users`）。"""
     names: set = set()
     for card in screen.cards:
-        words = L.CARD[card.id]
+        words = W.CARD[card.id]
         for template in (
             card.value,
             card.delta,
@@ -54,17 +55,17 @@ def sources(screen: Screen) -> set:
         paths = [card.state] + ([card.viz.src, card.viz.den] if card.viz else [])
         names |= {p.split("[")[0] for p in paths if p}
     for tab in screen.tabs:
-        words = L.TAB[tab.id]
+        words = W.TAB[tab.id]
         for template in (words["hint"], words["scope"], words.get("note", "")):
             names |= text.fields(template)
         names |= {p.split("[")[0] for p in [tab.rows] + [c.each for c in tab.cols] if p}
     for group in screen.groups:
-        names |= text.fields(L.GROUP[group][1])
+        names |= text.fields(W.GROUP[group][1])
     return names - set(CONSTANTS)
 
 
 def _card(card: Card, ctx: dict) -> dict:
-    words = L.CARD[card.id]
+    words = W.CARD[card.id]
     value = text.fill(card.value, ctx) if card.value else ""
     delta = text.fill(card.delta, ctx) if card.delta else ""
     state = text.lookup(ctx, card.state) if card.state else None
@@ -100,8 +101,8 @@ def _viz(card: Card, words: dict, ctx: dict) -> Optional[dict]:
         return {
             "kind": "pair",
             "rows": [
-                (L.PAIR[0], charts.pct(src["prev"], top), "ghost"),
-                (L.PAIR[1], charts.pct(src["recent"], top), ""),
+                (W.PAIR[0], charts.pct(src["prev"], top), "ghost"),
+                (W.PAIR[1], charts.pct(src["recent"], top), ""),
             ],
         }
     if viz.kind == "stack":

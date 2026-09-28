@@ -1,7 +1,8 @@
-"""概況の定義。カードを足すなら `CARDS` に、タブを足すなら `TABS` に 1 要素足す（文言は `labels.py`）。"""
+"""概況の定義。カードを足すなら `CARDS` に、タブを足すなら `TABS` に 1 要素足す（文言は `words.py`）。"""
 
 from ccgov.web import labels as L
 from ccgov.web.screens import Card, Chip, Col, Screen, Tab, Viz
+from ccgov.web.screens import words as W
 
 GROUPS = ("use", "data")
 
@@ -28,7 +29,7 @@ TABS = (
     Tab("cost", "cost[days]", (
         Col("day", "date"), Col("providers", "usd", each="cost[providers]", terms=L.PROVIDER),
         Col("total", "usd_strong"), Col("total", "bar", label="bar", sort=None),
-    ), sort=("day", "desc"), chips_by="tags", chips=tuple(Chip(k, v) for k, v in L.COST_CHIPS.items()),
+    ), sort=("day", "desc"), chips_by="tags", chips=tuple(Chip(k, v) for k, v in W.COST_CHIPS.items()),
         search="{day:day}", chart="cost"),
     Tab("modes", "usage", (
         Col("field", "tag", terms=L.USAGE_FIELD), Col("value", "term", terms=L.USAGE_VALUE, by="field"),

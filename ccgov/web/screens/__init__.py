@@ -1,6 +1,6 @@
 """画面の定義の型。画面は「上段の要点のカード（群ごと）」と「下段のタブ（一覧）」でできている。
 
-文言は `labels.py` にあり、定義は id で引く。値の場所は `users[recent]` の形（`str.format` と同じ）で書く。
+文言は `words.py` にあり、定義は id で引く。値の場所は `users[recent]` の形（`str.format` と同じ）で書く。
 """
 
 from dataclasses import dataclass
@@ -21,7 +21,7 @@ class Viz:
 
 @dataclass(frozen=True)
 class Card:
-    """要点のカード 1 枚。文言は `labels.CARD[id]`（label・unit・sub・cap・row）。"""
+    """要点のカード 1 枚。文言は `words.CARD[id]`（label・unit・sub・cap・row）。"""
 
     id: str
     group: str
@@ -61,7 +61,7 @@ class Chip:
 
 @dataclass(frozen=True)
 class Tab:
-    """下段のタブ 1 つ。文言は `labels.TAB[id]`（label・hint・title・scope・note・search・all・unit）。"""
+    """下段のタブ 1 つ。文言は `words.TAB[id]`（label・hint・title・scope・note・search・all・unit）。"""
 
     id: str
     rows: str

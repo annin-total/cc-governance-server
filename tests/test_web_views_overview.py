@@ -148,7 +148,8 @@ def test_cost_card_sums_window_ending_at_last_csv_day(known_db, today_client):
 def test_lead_names_the_data_card_group(today_client):
     """画面の説明が、データの届き具合のカード群と同じ語を使う。"""
     from ccgov.web import labels
+    from ccgov.web.screens import words
 
     lead = labels.SCREENS["admin.index"][1]
-    assert labels.GROUP["data"][0] in lead
+    assert words.GROUP["data"][0] in lead
     assert f'<p class="lead">{lead}</p>' in _html(today_client)
