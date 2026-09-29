@@ -94,4 +94,8 @@
   --cum-dash: 5 4;
   --date-w: 150px;
   --name-w: 240px;
+  --caret-h: 4px;
+  --caret-w: 5px;
+  --month-cols: minmax(0, 1fr) 9em 7em var(--col-bar) 7.5em;
+  --month-table-cols: 9.5em 6em minmax(0, 1fr);
 }

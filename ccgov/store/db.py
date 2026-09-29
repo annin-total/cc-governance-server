@@ -81,6 +81,15 @@ def connect():
     return pymysql.connect(**_mysql_kwargs())
 
 
+def stream_cursor(conn):
+    """行を少しずつ読むカーソル。MySQL はサーバ側のカーソル（PyMySQL の既定は execute で全行を読み込む）。"""
+    if _dialect() == "mysql":
+        import pymysql
+
+        return conn.cursor(pymysql.cursors.SSCursor)
+    return conn.cursor()
+
+
 def q(sql: str) -> str:
     """方言が mysql のときだけ `?` を `%s` に置き換える。"""
     if _dialect() == "mysql":

@@ -10,6 +10,7 @@ EM_DASH = "—"
 _SECONDS_PER_DAY = 86400
 WHOLE_FROM = 1_000
 TOKEN_K, TOKEN_M, TOKEN_M_WHOLE_FROM = 1_000, 1_000_000, 10_000_000
+KB, MB = 1_000, 1_000_000
 _TOKEN_COL_M_DIGITS = 2
 
 
@@ -150,6 +151,16 @@ def mon(value: Any) -> str:
     """epoch 日の月の数（1〜12）。"""
     text = day(value)
     return text if text == EM_DASH else str(int(text[5:7]))
+
+
+def size(value: Any) -> str:
+    """ファイルの大きさ。1 KB 未満・整数の KB・小数 1 桁の MB（1 KB = 1,000 バイト）。"""
+    n = _to_int(value)
+    if n is None:
+        return EM_DASH
+    if _half_up(n / KB) >= KB:
+        return f"{n / MB:,.1f} MB"
+    return f"{_half_up(n / KB):,} KB" if n >= KB else "1 KB 未満"
 
 
 def pct(value: Any) -> str:

@@ -166,14 +166,3 @@ def test_period_keys_are_built_from_constants():
     from ccgov.constants import LONG_MONTHS, PERIOD_DAYS
 
     assert windows.KEYS == tuple(str(d) for d in PERIOD_DAYS) + (f"{LONG_MONTHS}m",)
-
-
-def test_switcher_after_import_points_to_the_overview(today_client):
-    """取り込み（POST）の応答の画面でも、期間のリンクは概況（GET）を指す。"""
-    from conftest import csrf_form
-
-    html = today_client.post(
-        ADMIN + "/import", data=csrf_form(today_client, {})
-    ).get_data(as_text=True)
-    links = re.findall(r'<a href="([^"]*)"[^>]*data-period=', html)
-    assert links == [f"{ADMIN}/?period={k}" for k in windows.KEYS]

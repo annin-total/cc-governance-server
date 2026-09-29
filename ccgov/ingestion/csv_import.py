@@ -91,13 +91,21 @@ def parse_file(path: str) -> tuple:
     return parsed, dropped
 
 
-def _import_rows(conn, rows: list) -> None:
-    """行が含む `day` を DELETE してから全行を INSERT する。冪等キーは `day` で、`source_file` ではない。"""
+def _import_rows(conn, rows: list, replace_file: bool = False) -> None:
+    """行が含む `day` を DELETE してから全行を INSERT する。冪等キーは `day` で、`source_file` ではない。
+
+    `replace_file` なら、同じ `source_file` の前の行も同じトランザクションで消す（同じ名前の取り直し）。
+    """
     if not rows:
         return
     days = sorted({row["day"] for row in rows})
     cur = conn.cursor()
     try:
+        if replace_file:
+            cur.execute(
+                db.q("DELETE FROM cost_daily WHERE source_file = ?"),
+                (rows[0]["source_file"],),
+            )
         placeholders = ", ".join("?" for _ in days)
         cur.execute(db.q(f"DELETE FROM cost_daily WHERE day IN ({placeholders})"), days)
         columns_sql = ", ".join(_DB_COLUMNS)
@@ -112,10 +120,10 @@ def _import_rows(conn, rows: list) -> None:
         raise
 
 
-def import_file(path: str, conn) -> dict:
-    """1 ファイルを取り込み、`{"file", "rows", "dropped"}` を返す。"""
+def import_file(path: str, conn, replace_file: bool = False) -> dict:
+    """1 ファイルを取り込み、`{"file", "rows", "dropped"}` を返す。`replace_file` は `_import_rows` と同じ。"""
     rows, dropped = parse_file(path)
-    _import_rows(conn, rows)
+    _import_rows(conn, rows, replace_file)
     return {"file": os.path.basename(path), "rows": len(rows), "dropped": dropped}
 
 

@@ -1,4 +1,4 @@
-"""管理画面の Blueprint。Basic 認証・CSRF の検証と、4 画面（概況・policy・effect・assets）・データと設定を持つ。"""
+"""管理画面の Blueprint。Basic 認証・CSRF の検証・取込の大きさの上限と、4 画面（概況・policy・effect・assets）・データと設定を持つ。"""
 
 import hmac
 import time
@@ -6,12 +6,12 @@ from typing import Callable
 
 from flask import Blueprint, Response, current_app, render_template, request
 
-from ccgov.ingestion import csv_import
+from ccgov.constants import CSV_UPLOAD_MAX_BYTES
 from ccgov.metrics import windows
 from ccgov.reports import assets, effect, overview, policy
 from ccgov.store import db
 from ccgov.vendor import contract
-from ccgov.web import csrf, labels, settings
+from ccgov.web import csrf, csv_files, export, labels, settings
 from ccgov.web.screens import assets as assets_screen
 from ccgov.web.screens import effect as effect_screen
 from ccgov.web.screens import overview as overview_screen
@@ -31,6 +31,13 @@ def _build(build: Callable, *args) -> dict:
         return build(conn, *args)
     finally:
         conn.close()
+
+
+@admin.before_request
+def _limit_upload() -> None:
+    """取込の経路にだけ本文の大きさの上限を掛ける。CSRF の照合が本文を読む前に決めるため、認証より先に登録する。"""
+    if request.endpoint == csv_files.ENDPOINT:
+        request.max_content_length = CSV_UPLOAD_MAX_BYTES
 
 
 @admin.before_request
@@ -71,24 +78,6 @@ def index() -> str:
     return render_template("overview.html", view=_overview_view(key), period=key)
 
 
-@admin.route("/import", methods=["POST"])
-def import_endpoint() -> str:
-    """CSV_DIR の全ファイルを取り込み、結果を概況画面に表示する。"""
-    csv_dir = current_app.config["CSV_DIR"]
-    if not csv_dir:
-        results = [{"file": "CSV_DIR", "error": labels.CSV_DIR_UNSET}]
-    else:
-        conn = db.connect()
-        try:
-            results = csv_import.import_all(csv_dir, conn)
-        finally:
-            conn.close()
-    key = windows.DEFAULT
-    return render_template(
-        "overview.html", import_results=results, view=_overview_view(key), period=key
-    )
-
-
 def _today() -> int:
     return contract.to_day(int(time.time()))
 
@@ -124,3 +113,9 @@ admin.add_url_rule(
     settings.delete_holiday,
     methods=["POST"],
 )
+admin.add_url_rule("/settings/csv", "upload_csv", csv_files.upload, methods=["POST"])
+admin.add_url_rule(
+    "/settings/csv/delete", "delete_csv", csv_files.delete, methods=["POST"]
+)
+admin.add_url_rule("/settings/export/<month>", "export_month", export.download)
+admin.register_error_handler(413, csv_files.too_large)

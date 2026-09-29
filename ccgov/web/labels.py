@@ -5,6 +5,7 @@
 
 # fmt: off
 from ccgov.constants import (
+    CSV_UPLOAD_MAX_BYTES,
     HOLIDAY_NAME_MAX,
     HOLIDAY_RANGE_MAX_DAYS,
     LONG_MONTHS,
@@ -25,7 +26,7 @@ SCREENS = {
     "admin.assets_view": ("スキル・コマンドの利用", "配布したスキルやコマンドが使われているか"),
 }
 # 見出し帯の右端の入口: endpoint -> (見出し, 説明)
-PAGES = {"admin.settings": ("データと設定", "営業日の数え方に使う会社の休日")}
+PAGES = {"admin.settings": ("データと設定", "利用明細（CSV）の取り込み、月ごとの全ログの書き出し、営業日の数え方に使う会社の休日")}
 
 NAV = "画面"
 DETAIL = "詳しい一覧"
@@ -78,12 +79,44 @@ SIDE = {"before": "適用前", "after": "適用後"}
 TREND = {"up": "増えた", "down": "減った", "flat": "変わらない"}
 AGENT = {"agent": ("サブエージェントの中",), "main": ("サブエージェントの外",)}
 
-# 概況: CSV の取り込み
-CSV_NOTE = "利用明細（CSV）はコストとトークンの正本です"
-CSV_BUTTON = "CSV を取り込む"
+# データと設定: 取り込む（CSV）
+IMPORT = {
+    "title": "取り込む", "lead": "利用明細（CSV）はコストとトークンの正本です", "file": "利用明細の CSV", "button": "CSV を取り込む",
+    "note": "同じ名前のファイルは上書きし、前の中身の行を消して取り込み直します。取り込みは日ごとの置き換えで、同じ日を含むファイルは後から取り込んだほうが残ります。"
+            "1 ファイルには、含む日の全行を入れてください。",
+    "confirm": "{source_file} を削除します。取り込んだ {first:day}〜{last:day} の利用明細の行も消えます。よろしいですか。",
+    "confirm_file": "{source_file} を削除します。よろしいですか。",
+    "delete": "削除", "empty": "取り込んだファイルはありません。",
+}
+SPAN = "{first:day}〜{last:day}"
 CSV_DONE = "{file}: {rows:num} 行を取り込み（読めなかった行 {dropped:num}）"
 CSV_FAILED = "{file}: 取り込めませんでした（{error}）"
-CSV_DIR_UNSET = "取り込み元のフォルダが設定されていません"
+CSV_REJECTED = "取り込めませんでした（{error}）"
+CSV_ERROR = {
+    "unset": "取り込み先のフォルダ（CSV_DIR）が設定されていません",
+    "dir": "取り込み先のフォルダ（CSV_DIR）がありません",
+    "write": "取り込み先のフォルダ（CSV_DIR）に書き込めません: {detail}",
+    "none": "ファイルを選んでください",
+    "name": "使えないファイル名です。.csv で終わり、. で始まらず、/ と \\ を含まない名前にしてください",
+    "large": f"ファイルが大きすぎます。{CSV_UPLOAD_MAX_BYTES // 1_000_000} MB までにしてください",
+    "encoding": "UTF-8 の CSV として読めません",
+    "format": "CSV として読めません: {detail}",
+    "columns": "{detail}",
+    "empty": "取り込める行がありません",
+    "unknown": "一覧に無いファイルです",
+}
+
+# データと設定: 書き出す
+EXPORT = {
+    "title": "書き出す", "lead": "記録・設定の報告・エラー・利用明細の 4 表を、月（JST）ごとに表ごとの CSV の ZIP で",
+    "month": "月", "rows": "行数（4 表）", "size": "大きさ（目安）", "download": "ダウンロード", "unit": "件",
+    "from": "（{day:md} から）", "to": "（{day:md} まで）", "hint": "月を押すと、表ごとの行数と列が開きます",
+    "note": "ZIP には表ごとの CSV と列の説明（README.txt）が入ります。利用者名つき・値は加工なし・UTF-8（BOM なし）です。"
+            "大きさは圧縮後の目安です。Excel で直接開かず、Python などで読んでください。",
+    "empty": "書き出せる記録はありません。",
+}
+EXPORT_TABLE = {"events": "記録", "policy_state": "設定の報告", "errors": "エラー", "cost_daily": "利用明細"}
+EXPORT_ERROR = {"format": "月は YYYY-MM の形で指定してください。", "missing": "{month} の記録はありません。"}
 
 # 値の表示名: 値 -> (名前, 説明)
 STAGE = {

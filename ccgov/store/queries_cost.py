@@ -57,3 +57,19 @@ def cost_user_count(conn, start: int, end: int) -> int:
         (start, end),
     )
     return cur.fetchone()[0]
+
+
+def source_files(conn) -> list:
+    """取り込んだファイルごとの `(source_file, 最初の day, 最後の day)`。ファイル名の無い行は除く。"""
+    cur = conn.cursor()
+    cur.execute(
+        "SELECT source_file, MIN(day), MAX(day) FROM cost_daily"
+        " WHERE source_file IS NOT NULL GROUP BY source_file"
+    )
+    return [tuple(row) for row in cur.fetchall()]
+
+
+def delete_source_file(conn, name: str) -> None:
+    cur = conn.cursor()
+    cur.execute(db.q("DELETE FROM cost_daily WHERE source_file = ?"), (name,))
+    conn.commit()

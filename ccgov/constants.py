@@ -18,6 +18,18 @@ FORECAST_MIN_BUSINESS_DAYS = 3
 HOLIDAY_RANGE_MAX_DAYS = 31
 HOLIDAY_NAME_MAX = 64
 
+# 画面から取り込む CSV の大きさの上限（バイト）。取込の経路にだけ掛け、`/ingest` には掛けない
+CSV_UPLOAD_MAX_BYTES = 32_000_000
+# 取り込む CSV のファイル名の上限（UTF-8 のバイト数）。`cost_daily.source_file` の桁とファイル名の上限に収める
+CSV_NAME_MAX_BYTES = 255
+# 書き出す ZIP の大きさの目安に使う、表ごとの 1 行あたりの圧縮後のバイト数（合成データで測った値）
+EXPORT_BYTES_PER_ROW = {
+    "events": 70,
+    "policy_state": 30,
+    "errors": 40,
+    "cost_daily": 30,
+}
+
 # スキル・コマンドの利用のカードに並べる名前の数
 ASSET_CARD_ROWS = 3
 
