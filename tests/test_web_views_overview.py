@@ -153,3 +153,12 @@ def test_lead_names_the_data_card_group(today_client):
     lead = labels.SCREENS["admin.index"][1]
     assert words.GROUP["data"][0] in lead
     assert f'<p class="lead">{lead}</p>' in _html(today_client)
+
+
+def test_footer_keeps_only_the_source_note(today_client):
+    html = _html(today_client)
+    assert (
+        "端末から送られた値です。コストとトークンは全社の利用明細（CSV）の値を正とします。"
+        in html
+    )
+    assert "監査" not in html and "人事評価" not in html

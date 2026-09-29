@@ -8,7 +8,7 @@ from ccgov.constants import POLICY_DAYS, RECENT_DAYS, STALE_DAYS
 
 APP = "Claude Code 利用状況"
 ASOF = "{} 時点"
-FOOTER = "端末から送られた値です。コストとトークンは全社の利用明細（CSV）の値を正とします。監査・人事評価・勤怠管理には使いません。"
+FOOTER = "端末から送られた値です。コストとトークンは全社の利用明細（CSV）の値を正とします。"
 
 # endpoint -> (見出し, 説明)
 SCREENS = {
