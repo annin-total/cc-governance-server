@@ -132,6 +132,19 @@ th[aria-sort="descending"] .arrow::after { content: "↓"; opacity: 1; }
 .empty { color: var(--muted); font-size: var(--fs-label); padding: var(--sp-l) 0; margin: 0; }
 .empty[hidden] { display: none; }
 
+/* 浮いた札（カードの小さなグラフの点と、丸めた値） */
+.tip { position: fixed; z-index: 10; max-width: var(--tip-max-w); pointer-events: none; padding: var(--sp-2xs) var(--sp-s); background: var(--card); border: 1px solid var(--rule); border-radius: var(--r-s); box-shadow: var(--shadow-tip); font-size: var(--fs-sm); line-height: 1.5; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.tip[hidden] { display: none; }
+.tip span { margin-right: var(--sp-s); }
+.tip b { font-weight: 600; color: var(--ink); }
+svg .hit { fill: transparent; }
+.spark-guide { stroke: var(--ink-2); stroke-width: 1; visibility: hidden; }
+.spark-guide.is-on { visibility: visible; }
+
+/* 下段のグラフと表の連動: 当てた棒と行を強調し、ほかの棒を薄くする */
+.is-linking svg g.col:not(.is-hot) rect:not(.hit) { opacity: var(--link-dim); }
+.tscroll tbody tr.is-hot td { background: var(--tabs); }
+
 /* 丸めた値: 当てると点線の下線と、正確な値の札 */
 .exact { cursor: help; text-decoration: underline dotted transparent; text-underline-offset: .2em; text-decoration-thickness: 1px; }
 .exact:hover { text-decoration-color: var(--muted); }

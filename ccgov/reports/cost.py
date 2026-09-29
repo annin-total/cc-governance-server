@@ -44,7 +44,9 @@ def build(conn, today: int) -> dict:
         "start": recent_start,
         "end": end,
         "spark_start": spark_start,
-        "spark": [v for _, v in series.by_day(totals, spark_start, end)],
+        "spark": [
+            {"day": d, "total": v} for d, v in series.by_day(totals, spark_start, end)
+        ],
         "first": min(by_day),
         "last": last,
         "providers": [p for p, _ in providers],

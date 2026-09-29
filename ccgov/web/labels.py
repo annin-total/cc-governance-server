@@ -23,6 +23,8 @@ DETAIL = "詳しい一覧"
 DETAIL_HINT = "タブで切り替え · カードを押すと該当する一覧が開きます"
 OPEN_LIST = "一覧"
 EXACT = "正確な値"
+# カードの小さなグラフの札。2 つの空白の前が見出し、後ろが値（app.js が組む）
+SPARK_TIP = "{day:md}（{day:weekday}）  {value}"
 SEARCH = "絞り込み"
 ALL = "すべて"
 EMPTY = "条件に合う行はありません。"

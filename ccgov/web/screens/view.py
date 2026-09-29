@@ -93,13 +93,22 @@ def _card(card: Card, ctx: dict) -> dict:
     }
 
 
+def _tip(day: int, value: float, fmt: str, words: dict) -> str:
+    unit = words.get("unit", "")
+    shown = text.FORMATS[fmt](value) + (f" {unit}" if unit else "")
+    return text.fill(L.SPARK_TIP, {"day": day, "value": shown})
+
+
 def _viz(card: Card, words: dict, ctx: dict) -> Optional[dict]:
     viz = card.viz
     src = text.lookup(ctx, viz.src)
     if viz.kind == "spark":
-        values = [r[viz.field] for r in src] if viz.field else src
-        geo = charts.spark(values, constants.RECENT_DAYS)
-        return {"kind": "spark", "geo": geo} if geo else None
+        geo = charts.spark([r[viz.field] for r in src], constants.RECENT_DAYS)
+        if not geo:
+            return None
+        tips = [_tip(r["day"], r[viz.field], viz.fmt, words) for r in src]
+        geo["hits"] = [{**h, "tip": t} for h, t in zip(geo["hits"], tips)]
+        return {"kind": "spark", "geo": geo}
     if viz.kind == "meter":
         whole = text.lookup(ctx, viz.den)
         return {"kind": "meter", "pct": charts.pct(src, whole), "tone": viz.tone}

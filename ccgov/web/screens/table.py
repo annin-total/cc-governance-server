@@ -12,6 +12,8 @@ from ccgov.web.screens import words as W
 SCALED = {"usd", "usd_strong", "tok"}
 NUMERIC = {"num", "pct", "pct_strong", "measure", "measure_sub"} | SCALED
 NUMERIC |= {"diff", "last_day", "ratio", "count_of", "dash_num", "num_sub"}
+# グラフの棒と表の行を結ぶ行の値（グラフの種類ごと）
+CHART_KEY = {"trend": "day", "cost": "day", "hist": "bin"}
 TREND_CHART, COST_CHART, COST_TICK_EVERY = (540, 132), (1100, 180), 7
 HIST_CHART = (1100, 200, charts.STACK_PAD_LEFT, charts.STACK_PAD_BOTTOM)
 
@@ -47,6 +49,7 @@ def tab(tab: Tab, ctx: dict) -> dict:
             {
                 "tags": " ".join(tags(r)),
                 "q": text.fill(tab.search, r) if tab.search else "",
+                "key": r.get(CHART_KEY[tab.chart]) if tab.chart else None,
                 "cells": [_cell(c, r) for c in cols],
             }
             for r in rows
@@ -161,7 +164,11 @@ def _chart(tab: Tab, words: dict, rows: list, ctx: dict) -> Optional[dict]:
                 (
                     title,
                     charts.bars(
-                        [r[k] for r in rows], days, constants.RECENT_DAYS, *TREND_CHART
+                        [r[k] for r in rows],
+                        days,
+                        [r["day"] for r in rows],
+                        constants.RECENT_DAYS,
+                        *TREND_CHART,
                     ),
                 )
                 for title, k in zip(words["charts"], ("users", "sessions"))

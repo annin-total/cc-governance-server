@@ -26,7 +26,7 @@
 </tr></thead>
 <tbody>
 {%- for r in t.rows %}
-<tr data-tags="{{ r.tags }}" data-q="{{ r.q }}">{% for c in r.cells %}<td class="c-{{ c.col.kind }}{{ ' num' if c.col.num }}" data-v="{{ c.sort }}">{{ cell(c) }}</td>{% endfor %}</tr>
+<tr data-tags="{{ r.tags }}" data-q="{{ r.q }}"{% if r.key is not none %} data-key="{{ r.key }}"{% endif %}>{% for c in r.cells %}<td class="c-{{ c.col.kind }}{{ ' num' if c.col.num }}" data-v="{{ c.sort }}">{{ cell(c) }}</td>{% endfor %}</tr>
 {%- endfor %}
 </tbody>
 </table>

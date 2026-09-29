@@ -19,9 +19,26 @@ def test_spark_splits_recent_points():
     assert charts.spark([1], 7) is None
 
 
+def test_spark_hits_cover_width_around_each_point():
+    """点ごとの当たり判定は、隣の点との中間で区切って幅を埋める。"""
+    hits = charts.spark([1, 3, 2, 5, 4], 2)["hits"]
+    assert [(h["x"], h["w"], h["gx"]) for h in hits] == [
+        (0.0, 37.5, 0.0),
+        (37.5, 75.0, 75.0),
+        (112.5, 75.0, 150.0),
+        (187.5, 75.0, 225.0),
+        (262.5, 37.5, 300.0),
+    ]
+
+
 def test_bars_mark_recent_and_label_every_other():
-    g = charts.bars([1, 2, 4], ["a", "b", "c"], 1, 90, 100)
+    g = charts.bars([1, 2, 4], ["a", "b", "c"], [7, 8, 9], 1, 90, 100)
     assert [b["hi"] for b in g["bars"]] == [False, False, True]
+    assert [(b["key"], b["hit_x"], b["hit_w"]) for b in g["bars"]] == [
+        (7, 0.0, 30.0),
+        (8, 30.0, 30.0),
+        (9, 60.0, 30.0),
+    ]
     assert [b["label"] for b in g["bars"]] == ["", "b", ""]
     assert g["bars"][2]["y"] == charts.BAR_PAD_TOP
     assert g["bars"][2]["h"] == g["base"] - charts.BAR_PAD_TOP
@@ -41,6 +58,7 @@ def test_stacked_segments_follow_series_order():
     assert [s["series"] for s in second["segs"]] == [1]
     assert first["segs"][1]["y"] < first["segs"][0]["y"]
     assert (first["tick"], second["tick"]) == (True, False)
+    assert (first["hit_x"], first["hit_w"]) == (charts.STACK_PAD_LEFT, 78.0)
 
 
 def test_hist_puts_sides_side_by_side_from_zero():
@@ -57,3 +75,4 @@ def test_hist_puts_sides_side_by_side_from_zero():
     assert a0["x"] > b0["x"]
     assert [t["v"] for t in g["ticks"]] == [0, 5, 10, 15, 20]
     assert [bar["key"] for bar in g["bars"]] == [0, 20000]
+    assert [(bar["hit_x"], bar["hit_w"]) for bar in g["bars"]] == [(0, 100), (100, 100)]

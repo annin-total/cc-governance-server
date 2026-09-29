@@ -1,5 +1,5 @@
 "use strict";
-// 画面の操作だけを受け持つ（タブの切り替え・絞り込み・並べ替え）。中身はサーバが描画済みで、data-* 属性だけを見る。
+// 画面の操作だけを受け持つ（タブの切り替え・絞り込み・並べ替え・札・グラフと表の連動）。中身はサーバが描画済みで、data-* 属性だけを見る。
 // 値を HTML として組み立てない（textContent と属性の切り替えだけを使う）。
 (() => {
   document.documentElement.classList.add("js");
@@ -94,5 +94,93 @@
     open(id, chip, Boolean(chip));
   }
 
-  document.addEventListener("DOMContentLoaded", () => all(document, "[data-tabs]").forEach(setup));
+  // 浮いた札: カードの小さなグラフの点と丸めた値（data-tip）。文言は「見出し  値」で、2 つの空白の前を薄く、後ろを濃く出す。
+  // JS が無ければ同じ文言の title が出る。札を出すときは title を外し、二重に出さない
+  const TIP_OFFSET = 14;
+  const TIP_MARGIN = 4;
+  const tip = Object.assign(document.createElement("div"), { className: "tip", hidden: true });
+  tip.setAttribute("role", "tooltip");
+
+  function placeTip(e) {
+    const r = tip.getBoundingClientRect();
+    const above = e.clientY - r.height - TIP_OFFSET;
+    tip.style.left = `${Math.min(e.clientX + TIP_OFFSET, window.innerWidth - r.width - TIP_MARGIN)}px`;
+    tip.style.top = `${above < TIP_MARGIN ? e.clientY + TIP_OFFSET : above}px`;
+  }
+
+  function guide(target) {
+    for (const line of all(document, ".spark-guide.is-on")) line.classList.remove("is-on");
+    const line = target && target.closest("svg") && target.closest("svg").querySelector(".spark-guide");
+    if (!line || target.dataset.gx === undefined) return;
+    line.setAttribute("x1", target.dataset.gx);
+    line.setAttribute("x2", target.dataset.gx);
+    line.classList.add("is-on");
+  }
+
+  function showTip(target, e) {
+    const [head, ...rest] = target.dataset.tip.split("  ");
+    const parts = rest.length ? [["span", head], ["b", rest.join("  ")]] : [["b", head]];
+    tip.replaceChildren(...parts.map(([tag, text]) => Object.assign(document.createElement(tag), { textContent: text })));
+    tip.hidden = false;
+    guide(target);
+    placeTip(e);
+  }
+
+  // 下段のグラフと表の連動: 同じ data-key の棒（svg の g）と行を強調する。
+  // グラフから当てた行が表の枠の中で見えていなければ、枠の中だけを最小限動かす（ページは動かさない）
+  const LINKED = "svg g[data-key], tbody tr[data-key]";
+
+  function unlink(panel) {
+    panel.classList.remove("is-linking");
+    for (const el of all(panel, ".is-hot")) el.classList.remove("is-hot");
+  }
+
+  function reveal(row) {
+    const box = row.closest(".tscroll");
+    const head = box.querySelector("thead").getBoundingClientRect().height;
+    const b = box.getBoundingClientRect();
+    const r = row.getBoundingClientRect();
+    const top = Math.max(b.top + head, 0);
+    const bottom = Math.min(b.bottom, window.innerHeight);
+    if (bottom - top < r.height) return;
+    if (r.top < top) box.scrollTop -= top - r.top;
+    else if (r.bottom > bottom) box.scrollTop += r.bottom - bottom;
+  }
+
+  function link(el, panel) {
+    unlink(panel);
+    panel.classList.add("is-linking");
+    const same = all(panel, LINKED).filter((x) => x.dataset.key === el.dataset.key);
+    for (const x of same) x.classList.add("is-hot");
+    const row = same.find((x) => x.tagName === "TR");
+    if (el.tagName !== "TR" && row && !row.hidden) reveal(row);
+  }
+
+  document.addEventListener("pointerover", (e) => {
+    const target = e.target.closest("[data-tip]");
+    if (target) showTip(target, e);
+    const linked = e.target.closest(LINKED);
+    const panel = linked && linked.closest("[data-panel]");
+    if (panel) link(linked, panel);
+  });
+  document.addEventListener("pointermove", (e) => { if (!tip.hidden) placeTip(e); });
+  document.addEventListener("pointerout", (e) => {
+    const target = e.target.closest("[data-tip]");
+    if (target && !target.contains(e.relatedTarget)) {
+      tip.hidden = true;
+      guide(null);
+    }
+    const linked = e.target.closest(LINKED);
+    const panel = linked && linked.closest("[data-panel]");
+    if (panel && !linked.contains(e.relatedTarget)) unlink(panel);
+  });
+
+  document.addEventListener("DOMContentLoaded", () => {
+    all(document, "[data-tabs]").forEach(setup);
+    for (const el of all(document, "[data-tip]")) {
+      el.removeAttribute("title");
+      for (const t of all(el, "title")) t.remove();
+    }
+    document.body.appendChild(tip);
+  });
 })();
