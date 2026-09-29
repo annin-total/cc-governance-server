@@ -64,6 +64,17 @@ def test_names_with_control_characters_are_rejected(name):
         csv_upload.check_name(name)
 
 
+def test_same_name_drops_the_days_only_the_previous_contents_had(
+    csv_client, csv_dir, known_db
+):
+    upload(csv_client, "cost.csv", _AUG)
+    upload(csv_client, "other.csv", csv_bytes(("2026-08-05", "c@example.com", 7)))
+    fewer = csv_bytes(("2026-08-01", "a@example.com", 9))
+    assert upload(csv_client, "cost.csv", fewer).status_code == 200
+    assert [cost for _, cost in _rows(known_db, "cost.csv")] == [9.0]
+    assert [cost for _, cost in _rows(known_db, "other.csv")] == [7.0]
+
+
 def test_same_name_overwrites_the_file_and_imports_again(csv_client, csv_dir, known_db):
     upload(csv_client, "cost.csv", _AUG)
     fixed = csv_bytes(

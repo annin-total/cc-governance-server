@@ -42,9 +42,10 @@ def too_large(e):
 def delete():
     """一覧にある名前だけを受け付ける（任意のパスを消させない）。"""
     name = request.form.get("file", "")
-    if name not in settings.run(csv_files.names):
+    csv_dir = current_app.config["CSV_DIR"]
+    if name not in settings.run(csv_files.names, csv_upload.stored(csv_dir)):
         return settings.render(
             400, imported=[_rejected(csv_upload.Rejected("unknown"))]
         )
-    settings.run(csv_upload.delete, current_app.config["CSV_DIR"], name)
+    settings.run(csv_upload.delete, csv_dir, name)
     return redirect(url_for("admin.settings", _anchor="import"), code=303)

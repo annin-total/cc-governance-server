@@ -7,6 +7,7 @@ from typing import Optional
 from flask import Response, current_app, redirect, render_template, request, url_for
 
 from ccgov.constants import HOLIDAY_NAME_MAX, HOLIDAY_RANGE_MAX_DAYS
+from ccgov.ingestion import csv_upload
 from ccgov.metrics import calendar
 from ccgov.reports import csv_files, export, holidays
 from ccgov.store import db
@@ -75,9 +76,10 @@ def run(action, *args):
 
 
 def _build(conn) -> dict:
+    csv_dir = current_app.config["CSV_DIR"]
     return {
         "holidays": holidays.build(conn),
-        "files": csv_files.build(conn, current_app.config["CSV_DIR"]),
+        "files": csv_files.build(conn, csv_dir, csv_upload.stored(csv_dir)),
         "export": export.build(conn),
     }
 

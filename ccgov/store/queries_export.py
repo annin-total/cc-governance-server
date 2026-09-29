@@ -33,13 +33,18 @@ def day_counts(conn, table: str) -> list:
 def rows(conn, table: str, first: int, last: int) -> Iterator[tuple]:
     """`day` が `first`〜`last` の行を、列を `TABLES[table]` の並びにして返す。"""
     columns = ", ".join(n for n, _ in TABLES[table])
-    cur = conn.cursor()
-    cur.execute(
-        db.q(f"SELECT {columns} FROM {table} WHERE day BETWEEN ? AND ? ORDER BY day"),
-        (first, last),
-    )
-    while True:
-        batch = cur.fetchmany(_BATCH)
-        if not batch:
-            return
-        yield from batch
+    cur = db.stream_cursor(conn)
+    try:
+        cur.execute(
+            db.q(
+                f"SELECT {columns} FROM {table} WHERE day BETWEEN ? AND ? ORDER BY day"
+            ),
+            (first, last),
+        )
+        while True:
+            batch = cur.fetchmany(_BATCH)
+            if not batch:
+                return
+            yield from batch
+    finally:
+        cur.close()

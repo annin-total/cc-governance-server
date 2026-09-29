@@ -105,7 +105,9 @@ def test_delete_without_csrf_changes_nothing(two_files, csv_dir, known_db):
     assert (csv_dir / "2026-01.csv").exists()
 
 
-@pytest.mark.parametrize("name", ["other.csv", "../csv/2026-01.csv", "", "2026-01.CSV"])
+@pytest.mark.parametrize(
+    "name", ["absent.csv", "../csv/2026-01.csv", "", "2026-01.CSV"]
+)
 def test_delete_accepts_only_listed_names(two_files, csv_dir, known_db, name):
     (csv_dir / "other.csv").write_bytes(_JAN)
     response = _delete(two_files, name)
@@ -125,3 +127,26 @@ def test_file_name_is_escaped(csv_client):
     html = _page(csv_client)
     assert "<img src=x" not in html
     assert "&lt;img src=x onerror=alert(1)&gt;.csv" in html
+
+
+def test_files_without_rows_are_listed_with_a_dash_and_can_be_deleted(
+    two_files, csv_dir, known_db
+):
+    """日をすべて別のファイルに取られたファイルと、CSV_DIR にだけあるファイルも一覧に出し、消せる。"""
+    upload(two_files, "fix.csv", _JAN)
+    (csv_dir / "manual.csv").write_bytes(_AUG)
+    (csv_dir / ".hidden.csv").write_bytes(_AUG)
+    (csv_dir / "note.txt").write_bytes(b"x")
+    rows = {
+        r["cells"][0]: r["cells"][1:3]
+        for r in table_rows(_page(two_files), "csv_files")
+    }
+    assert set(rows) == {"2026-01.csv", "2026-08.csv", "fix.csv", "manual.csv"}
+    assert rows["2026-01.csv"] == ["—", filters.size(len(_JAN))]
+    assert rows["manual.csv"] == ["—", filters.size(len(_AUG))]
+    assert 'data-confirm="manual.csv を削除します。よろしいですか。"' in _page(
+        two_files
+    )
+    assert _delete(two_files, "2026-01.csv").status_code == 303
+    assert not (csv_dir / "2026-01.csv").exists()
+    assert _names(known_db) == ["2026-08.csv", "fix.csv"]

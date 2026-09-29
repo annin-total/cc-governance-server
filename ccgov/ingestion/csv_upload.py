@@ -56,7 +56,7 @@ def receive(conn, csv_dir: str, name: str, stream: BinaryIO) -> dict:
 def _import(path: str, conn) -> dict:
     """`csv_import.import_file` で取り込む。行が無ければ DB に触れずに断る（空の取込は `_import_rows` が何もしない）。"""
     try:
-        result = csv_import.import_file(path, conn)
+        result = csv_import.import_file(path, conn, replace_file=True)
     except UnicodeDecodeError:
         raise Rejected("encoding") from None
     except csv.Error as exc:
@@ -66,6 +66,25 @@ def _import(path: str, conn) -> dict:
     if not result["rows"]:
         raise Rejected("empty")
     return result
+
+
+def stored(csv_dir: str) -> list:
+    """`csv_dir` にある、受け付ける名前の CSV ファイル（`CSV_DIR` が未設定・不在なら空）。"""
+    if not csv_dir or not os.path.isdir(csv_dir):
+        return []
+    return [
+        n
+        for n in os.listdir(csv_dir)
+        if _acceptable(n) and os.path.isfile(os.path.join(csv_dir, n))
+    ]
+
+
+def _acceptable(name: str) -> bool:
+    try:
+        check_name(name)
+    except Rejected:
+        return False
+    return True
 
 
 def delete(conn, csv_dir: str, name: str) -> None:
