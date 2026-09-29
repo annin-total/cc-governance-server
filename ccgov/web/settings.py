@@ -1,4 +1,4 @@
-"""「データと設定」のページ。会社の休日の追加（期間でまとめて）・一覧・削除（1 日ずつ）。"""
+"""「データと設定」のページ（書き出す・会社の休日）の描画と、会社の休日の追加（期間でまとめて）・削除（1 日ずつ）。"""
 
 import datetime
 import re
@@ -8,9 +8,9 @@ from flask import Response, redirect, render_template, request, url_for
 
 from ccgov.constants import HOLIDAY_NAME_MAX, HOLIDAY_RANGE_MAX_DAYS
 from ccgov.metrics import calendar
-from ccgov.reports import holidays
+from ccgov.reports import export, holidays
 from ccgov.store import db
-from ccgov.web import labels
+from ccgov.web import charts, labels
 from ccgov.web.screens import Col, Tab, table
 
 # 3.11 以降の `date.fromisoformat` は YYYY-MM-DD 以外の形も受けるため、形は先に正規表現で絞る
@@ -54,7 +54,7 @@ def parse(form) -> tuple:
     return list(range(start, end + 1)), name
 
 
-def _run(action, *args):
+def run(action, *args):
     """接続を開いて `action(conn, *args)` を呼び、閉じてから結果を返す。"""
     conn = db.connect()
     try:
@@ -63,11 +63,31 @@ def _run(action, *args):
         conn.close()
 
 
-def _render(error: Optional[str] = None, status: int = 200):
-    rows = table.tab(HOLIDAYS, _run(holidays.build))
+def _build(conn) -> dict:
+    return {
+        "holidays": holidays.build(conn),
+        "export": export.build(conn),
+    }
+
+
+def _months(data: dict) -> list:
+    """月の一覧に、大きさの棒の長さ（最大の月を 100）を足す。"""
+    top = max((m["bytes"] for m in data["months"]), default=0)
+    return [{**m, "bar": charts.pct(m["bytes"], top)} for m in data["months"]]
+
+
+def render(status: int = 200, error: Optional[str] = None, export_error: str = ""):
+    """ページ全体を描く。`error` は休日の、`export_error` は書き出しの知らせ。"""
+    data = run(_build)
     html = render_template(
         "settings.html",
-        holidays={**rows, "empty": labels.HOLIDAY["empty"]},
+        holidays={
+            **table.tab(HOLIDAYS, data["holidays"]),
+            "empty": labels.HOLIDAY["empty"],
+        },
+        months=_months(data["export"]),
+        columns=data["export"]["columns"],
+        export_error=export_error,
         error=error,
         form=request.form,
         name_max=HOLIDAY_NAME_MAX,
@@ -76,20 +96,20 @@ def _render(error: Optional[str] = None, status: int = 200):
 
 
 def page():
-    return _render()
+    return render()
 
 
 def add_holiday():
     try:
         days, name = parse(request.form)
     except InputError as e:
-        return _render(labels.HOLIDAY_ERROR[e.args[0]], 400)
-    _run(holidays.add, days, name)
+        return render(400, labels.HOLIDAY_ERROR[e.args[0]])
+    run(holidays.add, days, name)
     return _back()
 
 
 def delete_holiday(day: int) -> Response:
-    _run(holidays.delete, day)
+    run(holidays.delete, day)
     return _back()
 
 

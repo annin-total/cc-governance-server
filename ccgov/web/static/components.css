@@ -97,12 +97,36 @@ svg text { font: var(--fs-xs) var(--sans); fill: var(--muted); font-variant-nume
 
 /* データと設定: 節と、期間でまとめて足すフォーム */
 .section { margin-top: 0; }
+.section + .section { margin-top: var(--sp-2xl); }
 .section .notice { margin: var(--sp-m) 0 0; }
 .holiday-form { display: flex; flex-wrap: wrap; align-items: flex-end; gap: var(--sp-m); margin: var(--sp-l) 0 0; }
 .holiday-form label { display: grid; gap: var(--sp-2xs); font-size: var(--fs-sm); color: var(--muted); }
 .holiday-form input { font: inherit; font-size: var(--fs-label); padding: var(--sp-2xs) var(--sp-s); border: 1px solid var(--rule); border-radius: var(--r-m); background: var(--bg); color: var(--ink); width: var(--date-w); }
 .holiday-form .grow input { width: var(--name-w); }
 .holiday-form input:focus { outline: 2px solid var(--accent); outline-offset: -1px; background: var(--card-hover); }
+.btn-sub { display: inline-block; background: var(--chip); color: var(--ink); border-radius: var(--r-m); font-size: var(--fs-sm); font-weight: 600; padding: var(--sp-3xs) var(--sp-m); text-decoration: none; white-space: nowrap; }
+.btn-sub:hover { background: var(--tabs); }
+
+/* 書き出す: 月の一覧。行（summary）を押すと、同じ地のまま表ごとの行数と列が開く */
+.months { margin-top: var(--sp-s); font-size: var(--fs-label); font-variant-numeric: tabular-nums; }
+.m-row { display: grid; grid-template-columns: var(--month-cols); align-items: center; gap: var(--sp-m); padding: var(--cell-y) 0; border-bottom: 1px solid var(--rule); }
+.m-head { font-size: var(--fs-sm); font-weight: 600; color: var(--muted); padding-top: var(--sp-xs); border-bottom-color: var(--ink-2); }
+.months .num { text-align: right; white-space: nowrap; }
+.m-item summary { cursor: pointer; list-style: none; }
+.m-item summary::-webkit-details-marker { display: none; }
+.m-item summary:hover .m-month { color: var(--accent); }
+.m-month { white-space: nowrap; }
+.m-month::before { content: ""; display: inline-block; margin: 0 var(--sp-xs) 1px 0; border-style: solid; border-width: 4px 0 4px 5px; border-color: transparent transparent transparent var(--muted); vertical-align: middle; transition: transform .15s; }
+.m-item[open] .m-month::before { transform: rotate(90deg); }
+.m-item[open] summary { font-weight: 600; border-bottom-style: dashed; }
+.m-item[open] summary .sub { font-weight: 400; }
+.m-tables { margin: 0; padding: var(--sp-2xs) 0 var(--sp-s) var(--sp-l); border-bottom: 1px solid var(--rule); font-size: var(--fs-sm); }
+.m-tables > div { display: grid; grid-template-columns: var(--month-table-cols); gap: var(--sp-m); align-items: baseline; padding: var(--sp-xs) 0; }
+.m-tables > div + div { border-top: 1px dotted var(--rule); }
+.m-tables dt b { font-weight: 600; color: var(--ink-2); }
+.m-tables dt .code { display: block; font-size: var(--fs-xs); color: var(--muted); }
+.m-tables dd { margin: 0; color: var(--ink-2); }
+.m-tables dd.code { font-size: var(--fs-xs); line-height: 1.6; overflow-wrap: anywhere; }
 
 /* 絞り込み */
 .filters { display: flex; align-items: center; flex-wrap: wrap; gap: var(--sp-s) var(--sp-l); margin: var(--sp-l) 0 var(--sp-s); }
@@ -164,4 +188,4 @@ svg .hit { fill: transparent; }
 /* 丸めた値: 当てると点線の下線と、正確な値のツールチップ */
 .exact { cursor: help; text-decoration: underline dotted transparent; text-underline-offset: .2em; text-decoration-thickness: 1px; }
 .exact:hover { text-decoration-color: var(--muted); }
-@media (prefers-reduced-motion: reduce) { .card { transition: none; } }
+@media (prefers-reduced-motion: reduce) { .card, .m-month::before { transition: none; } }

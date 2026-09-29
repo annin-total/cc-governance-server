@@ -66,6 +66,10 @@ def test_import_requires_credentials(client):
     assert client.post(ADMIN + "/import").status_code == 401
 
 
+def test_export_requires_credentials(client):
+    assert client.get(ADMIN + "/settings/export/2026-08").status_code == 401
+
+
 @pytest.mark.parametrize(
     "method, path",
     [

@@ -11,7 +11,7 @@ from ccgov.metrics import windows
 from ccgov.reports import assets, effect, overview, policy
 from ccgov.store import db
 from ccgov.vendor import contract
-from ccgov.web import csrf, labels, settings
+from ccgov.web import csrf, export, labels, settings
 from ccgov.web.screens import assets as assets_screen
 from ccgov.web.screens import effect as effect_screen
 from ccgov.web.screens import overview as overview_screen
@@ -124,3 +124,4 @@ admin.add_url_rule(
     settings.delete_holiday,
     methods=["POST"],
 )
+admin.add_url_rule("/settings/export/<month>", "export_month", export.download)

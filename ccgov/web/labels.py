@@ -25,7 +25,7 @@ SCREENS = {
     "admin.assets_view": ("スキル・コマンドの利用", "配布したスキルやコマンドが使われているか"),
 }
 # 見出し帯の右端の入口: endpoint -> (見出し, 説明)
-PAGES = {"admin.settings": ("データと設定", "営業日の数え方に使う会社の休日")}
+PAGES = {"admin.settings": ("データと設定", "月ごとの全ログの書き出しと、営業日の数え方に使う会社の休日")}
 
 NAV = "画面"
 DETAIL = "詳しい一覧"
@@ -84,6 +84,18 @@ CSV_BUTTON = "CSV を取り込む"
 CSV_DONE = "{file}: {rows:num} 行を取り込み（読めなかった行 {dropped:num}）"
 CSV_FAILED = "{file}: 取り込めませんでした（{error}）"
 CSV_DIR_UNSET = "取り込み元のフォルダが設定されていません"
+
+# データと設定: 書き出す
+EXPORT = {
+    "title": "書き出す", "lead": "記録・設定の報告・エラー・利用明細の 4 表を、月（JST）ごとに表ごとの CSV の ZIP で",
+    "month": "月", "rows": "行数（4 表）", "size": "大きさ（目安）", "download": "ダウンロード", "unit": "件",
+    "from": "（{day:md} から）", "to": "（{day:md} まで）", "hint": "月を押すと、表ごとの行数と列が開きます",
+    "note": "ZIP には表ごとの CSV と列の説明（README.txt）が入ります。利用者名つき・値は加工なし・UTF-8（BOM なし）です。"
+            "大きさは圧縮後の目安です。Excel で直接開かず、Python などで読んでください。",
+    "empty": "書き出せる記録はありません。",
+}
+EXPORT_TABLE = {"events": "記録", "policy_state": "設定の報告", "errors": "エラー", "cost_daily": "利用明細"}
+EXPORT_ERROR = {"format": "月は YYYY-MM の形で指定してください。", "missing": "{month} の記録はありません。"}
 
 # 値の表示名: 値 -> (名前, 説明)
 STAGE = {

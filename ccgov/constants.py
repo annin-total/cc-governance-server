@@ -18,6 +18,14 @@ FORECAST_MIN_BUSINESS_DAYS = 3
 HOLIDAY_RANGE_MAX_DAYS = 31
 HOLIDAY_NAME_MAX = 64
 
+# 書き出す ZIP の大きさの目安に使う、表ごとの 1 行あたりの圧縮後のバイト数（合成データで測った値）
+EXPORT_BYTES_PER_ROW = {
+    "events": 70,
+    "policy_state": 30,
+    "errors": 40,
+    "cost_daily": 30,
+}
+
 # スキル・コマンドの利用のカードに並べる名前の数
 ASSET_CARD_ROWS = 3
 
