@@ -1,6 +1,6 @@
 """`web/charts.py` の座標計算の単体検査。"""
 
-from ccgov.web import charts
+from ccgov.web import charts, filters, ticks
 
 
 def test_pct_clamps_and_guards_zero():
@@ -51,14 +51,56 @@ def test_nice_step():
 
 
 def test_stacked_segments_follow_series_order():
-    g = charts.stacked([(1, [100, 20]), (2, [0, 50])], 200, 100, 2)
+    g = charts.stacked([(1, [100, 20]), (2, [0, 50])], 200, 100)
     assert [t["v"] for t in g["ticks"]] == [0, 50, 100, 150]
     first, second = g["bars"]
     assert [s["series"] for s in first["segs"]] == [0, 1]
     assert [s["series"] for s in second["segs"]] == [1]
     assert first["segs"][1]["y"] < first["segs"][0]["y"]
-    assert (first["tick"], second["tick"]) == (True, False)
     assert (first["hit_x"], first["hit_w"]) == (charts.STACK_PAD_LEFT, 78.0)
+
+
+def _gaps(picked: list) -> list:
+    return [b - a for a, b in zip(picked, picked[1:])]
+
+
+def test_day_ticks_thin_out_by_pitch():
+    """目盛りは、文字が重ならない最初の間隔（毎日 → 1 日おき → 月曜 → 隔週の月曜 → 月初）で付ける。"""
+    start = 20696  # 2026-08-31（月）
+    days = list(range(start, start + 56))
+    assert ticks.day_ticks(days[:14], 75.0) == list(range(14))
+    assert _gaps(ticks.day_ticks(days[:28], 37.7)) == [2] * 13
+    weekly = ticks.day_ticks(days, 18.9)
+    assert _gaps(weekly) == [7] * 7 and weekly[0] == 0
+
+
+def test_day_ticks_use_month_starts_for_long_ranges():
+    """400 日を 1,056 幅に並べると月初だけになり、隣の目盛りとの間は文字の幅より広い。"""
+    days = list(range(20400, 20800))
+    pitch = (1100 - charts.STACK_PAD_LEFT) / len(days)
+    picked = ticks.day_ticks(days, pitch)
+    assert all(filters.day(days[i]).endswith("-01") for i in picked)
+    assert len(picked) == 13
+    assert min(_gaps(picked)) * pitch >= ticks.TICK_LABEL_W + ticks.TICK_GAP
+
+
+def test_day_ticks_thin_months_when_even_months_collide():
+    days = list(range(20000, 22000))
+    picked = ticks.day_ticks(days, 0.5)
+    assert min(_gaps(picked)) * 0.5 >= ticks.TICK_LABEL_W + ticks.TICK_GAP
+    assert all(filters.day(days[i]).endswith("-01") for i in picked)
+
+
+def test_day_ticks_label_first_present_day_when_the_first_is_missing():
+    """記録の無い日は棒が無い。月の 1 日が無ければ、その月の最初にある日に目盛りを付ける。"""
+    days = [d for d in range(20400, 20800) if not filters.day(d).endswith("-01")]
+    picked = ticks.day_ticks(days, (1100 - charts.STACK_PAD_LEFT) / len(days))
+    assert [filters.day(days[i])[8:] for i in picked] == ["02"] * 13
+
+
+def test_stacked_marks_ticks_from_width():
+    g = charts.stacked([(d, [1]) for d in range(20696, 20696 + 14)], 1100, 180)
+    assert all(b["tick"] for b in g["bars"])
 
 
 def test_hist_puts_sides_side_by_side_from_zero():

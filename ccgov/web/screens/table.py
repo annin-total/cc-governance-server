@@ -14,7 +14,7 @@ NUMERIC = {"num", "pct", "pct_strong", "measure", "measure_sub"} | SCALED
 NUMERIC |= {"diff", "last_day", "ratio", "count_of", "dash_num", "num_sub"}
 # グラフの棒と表の行を結ぶ行の値（グラフの種類ごと）
 CHART_KEY = {"trend": "day", "cost": "day", "hist": "bin"}
-TREND_CHART, COST_CHART, COST_TICK_EVERY = (540, 132), (1100, 180), 7
+TREND_CHART, COST_CHART = (540, 132), (1100, 180)
 HIST_CHART = (1100, 200, charts.STACK_PAD_LEFT, charts.STACK_PAD_BOTTOM)
 
 
@@ -179,7 +179,7 @@ def _chart(tab: Tab, words: dict, rows: list, ctx: dict) -> Optional[dict]:
         columns = [
             (r["day"], [r["providers"].get(p, 0) for p in providers]) for r in rows
         ]
-        geo = charts.stacked(columns, *COST_CHART, COST_TICK_EVERY)
+        geo = charts.stacked(columns, *COST_CHART)
         return {
             "kind": "cost",
             "geo": geo,
