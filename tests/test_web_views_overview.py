@@ -13,10 +13,10 @@ def _html(client) -> str:
 
 
 def test_overview_page_returns_200(today_client):
-    """`/` が 200 で応答する（取込ボタンを含む）。"""
+    """`/` が 200 で応答する（取込ボタンは「データと設定」に移したので含まない）。"""
     response = today_client.get(ADMIN + "/")
     assert response.status_code == 200
-    assert "CSV を取り込む" in response.get_data(as_text=True)
+    assert "CSV を取り込む" not in response.get_data(as_text=True)
 
 
 def test_cards_show_event_and_user_counts(today_client):

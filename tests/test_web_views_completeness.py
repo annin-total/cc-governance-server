@@ -75,10 +75,10 @@ def test_every_context_variable_is_referenced(today_app, monkeypatch, path):
     )
 
 
-def test_import_results_is_referenced_by_overview(today_app):
-    """CSV 取込の結果も画面が参照していること（`/import` は POST でのみ渡す）。"""
-    referenced = _referenced_names(today_app.app.jinja_env, "overview.html")
-    assert "import_results" in referenced, (
+def test_import_results_is_referenced_by_settings(today_app):
+    """CSV 取込の結果も画面が参照していること（取り込みの POST の応答でだけ渡す）。"""
+    referenced = _referenced_names(today_app.app.jinja_env, "settings.html")
+    assert "imported" in referenced, (
         "取込結果を画面が参照していない。失敗が黙って消える"
     )
 

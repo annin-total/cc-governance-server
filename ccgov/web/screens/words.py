@@ -5,7 +5,7 @@
 
 # fmt: off
 from ccgov.constants import REFERENCE_KEY
-from ccgov.web.labels import HOLIDAY, PREV, RECENT, SETTING, STALE_NOTE
+from ccgov.web.labels import HOLIDAY, IMPORT, PREV, RECENT, SETTING, STALE_NOTE
 
 # 群: id -> (見出し, 期間と母集団)
 GROUP = {
@@ -113,6 +113,7 @@ TAB = {
                       "（{month[month]:mon} 月 {month[users]:num} 人・{month[prev_month]:mon} 月 {month[prev_users]:num} 人）で割った値です。"
                       "経過が {FORECAST_MIN_BUSINESS_DAYS} 営業日未満のあいだは見込みを出しません（仮の基準）。"},
     "holidays": {"label": HOLIDAY["title"], "hint": "", "title": HOLIDAY["title"], "scope": "", "unit": "日"},
+    "csv_files": {"label": IMPORT["title"], "hint": "", "title": IMPORT["title"], "scope": "", "unit": "件"},
     "modes": {"label": "使われ方", "hint": "直近 {period[days]} 日 · 記録", "title": "使われ方", "unit": "行",
               "scope": "直近 {period[days]} 日 · 記録の件数（開始のしかたはセッション開始の記録）· 割合は区分の中での割合"},
     "health": {"label": "受信と項目の欠け", "hint": "直近 {period[days]} 日と前の {period[days]} 日", "title": "受信と項目の欠け",
@@ -167,6 +168,7 @@ COL = {
     "calls_diff": "差", "recent_users": "利用者数", "users_diff": "利用者の差", "record": "記録",
     "week": "週の始まり", "month_day": "日付", "n": "営業日", "cost": "その日のコスト", "cum": "今月の累積",
     "prev_cum": "前月（{month[prev_month]:mon} 月）の累積", "weekday": "曜日", "name": "名前", "delete": "",
+    "file": "取り込んだファイル", "span": "期間", "bytes": "大きさ",
 }
 COL_EACH_SUB = "{numerator:num} / {denominator:num} 人"
 MONTH_CHIPS = {"bd": "営業日", "cal": "暦日"}

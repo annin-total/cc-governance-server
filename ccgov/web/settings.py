@@ -1,14 +1,14 @@
-"""「データと設定」のページ（書き出す・会社の休日）の描画と、会社の休日の追加（期間でまとめて）・削除（1 日ずつ）。"""
+"""「データと設定」のページ（取り込む・書き出す・会社の休日）の描画と、会社の休日の追加（期間でまとめて）・削除（1 日ずつ）。"""
 
 import datetime
 import re
 from typing import Optional
 
-from flask import Response, redirect, render_template, request, url_for
+from flask import Response, current_app, redirect, render_template, request, url_for
 
 from ccgov.constants import HOLIDAY_NAME_MAX, HOLIDAY_RANGE_MAX_DAYS
 from ccgov.metrics import calendar
-from ccgov.reports import export, holidays
+from ccgov.reports import csv_files, export, holidays
 from ccgov.store import db
 from ccgov.web import charts, labels
 from ccgov.web.screens import Col, Tab, table
@@ -25,6 +25,17 @@ HOLIDAYS = Tab(
         Col("day", "delete", label="delete", sort=None),
     ),
     sort=("day", "desc"),
+)
+FILES = Tab(
+    "csv_files",
+    "files",
+    (
+        Col("source_file", "code", label="file"),
+        Col("first", "span", label="span", sort="last"),
+        Col("bytes", "bytes", label="bytes"),
+        Col("source_file", "delete_file", label="delete", sort=None),
+    ),
+    sort=("last", "desc"),
 )
 
 
@@ -66,6 +77,7 @@ def run(action, *args):
 def _build(conn) -> dict:
     return {
         "holidays": holidays.build(conn),
+        "files": csv_files.build(conn, current_app.config["CSV_DIR"]),
         "export": export.build(conn),
     }
 
@@ -76,8 +88,17 @@ def _months(data: dict) -> list:
     return [{**m, "bar": charts.pct(m["bytes"], top)} for m in data["months"]]
 
 
-def render(status: int = 200, error: Optional[str] = None, export_error: str = ""):
-    """ページ全体を描く。`error` は休日の、`export_error` は書き出しの知らせ。"""
+def render(
+    status: int = 200,
+    error: Optional[str] = None,
+    imported=(),
+    export_error: str = "",
+    form=None,
+):
+    """ページ全体を描く。`error`・`form` は休日の知らせと入力、`imported` は取込の結果、`export_error` は書き出しの知らせ。
+
+    `form` を `request.form` から読まないのは、大きさの上限を超えた取込の応答でも描くため（本文を読むと 413 を繰り返す）。
+    """
     data = run(_build)
     html = render_template(
         "settings.html",
@@ -85,11 +106,13 @@ def render(status: int = 200, error: Optional[str] = None, export_error: str = "
             **table.tab(HOLIDAYS, data["holidays"]),
             "empty": labels.HOLIDAY["empty"],
         },
+        files={**table.tab(FILES, data["files"]), "empty": labels.IMPORT["empty"]},
         months=_months(data["export"]),
         columns=data["export"]["columns"],
+        imported=imported,
         export_error=export_error,
         error=error,
-        form=request.form,
+        form=form or {},
         name_max=HOLIDAY_NAME_MAX,
     )
     return html, status
@@ -103,7 +126,7 @@ def add_holiday():
     try:
         days, name = parse(request.form)
     except InputError as e:
-        return render(400, labels.HOLIDAY_ERROR[e.args[0]])
+        return render(400, labels.HOLIDAY_ERROR[e.args[0]], form=request.form)
     run(holidays.add, days, name)
     return _back()
 

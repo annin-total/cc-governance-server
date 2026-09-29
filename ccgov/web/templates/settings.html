@@ -1,9 +1,22 @@
-{# データと設定。書き出す（月ごとの ZIP）・会社の休日の節を縦に並べる。 #}
+{# データと設定。取り込む（CSV の受け取りと取り込み済みのファイル）・書き出す（月ごとの ZIP）・会社の休日の 3 節を縦に並べる。 #}
 {% set here = "admin.settings" %}
 {% extends "base.html" %}
 {% from "components/table.html" import table %}
 {% from "components/charts.html" import hbar %}
 {% block content %}
+<section class="panel section" id="import" aria-labelledby="import-title">
+  <header class="p-head"><h2 id="import-title">{{ L.IMPORT.title }}</h2><p class="scope">{{ L.IMPORT.lead }}</p></header>
+  {%- for r in imported %}
+  <p class="notice {{ 'ng' if r.error else 'ok' }}"{% if r.error %} role="alert"{% endif %}>{{ fill(L.CSV_FAILED if r.file else L.CSV_REJECTED, r) if r.error else fill(L.CSV_DONE, r) }}</p>
+  {%- endfor %}
+  <form class="upload-form" method="post" action="{{ url_for('admin.upload_csv') }}" enctype="multipart/form-data">
+    <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+    <label>{{ L.IMPORT.file }}<input type="file" name="file" accept=".csv" required></label>
+    <button type="submit" class="btn">{{ L.IMPORT.button }}</button>
+  </form>
+  <p class="note">{{ L.IMPORT.note }}</p>
+  {{ table(files) }}
+</section>
 <section class="panel section" id="export" aria-labelledby="export-title">
   <header class="p-head"><h2 id="export-title">{{ L.EXPORT.title }}</h2><p class="scope">{{ L.EXPORT.lead }} · {{ L.EXPORT.hint }}</p></header>
   {%- if export_error %}

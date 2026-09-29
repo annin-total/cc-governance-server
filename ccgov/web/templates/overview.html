@@ -1,18 +1,4 @@
 {% set here = "admin.index" %}
 {% extends "screen.html" %}
 {% from "components/period.html" import switcher %}
-{% block head_actions %}
-<div class="head-act">
-<form class="head-form" method="post" action="{{ url_for('admin.import_endpoint') }}">
-  <input type="hidden" name="csrf" value="{{ csrf_token() }}">
-  <span>{{ L.CSV_NOTE }}</span>
-  <button type="submit" class="btn">{{ L.CSV_BUTTON }}</button>
-</form>
-{{ switcher(period, "admin.index") }}
-</div>
-{% endblock %}
-{% block notices %}
-{%- for r in import_results or [] %}
-<p class="notice {{ 'ng' if r.error else 'ok' }}">{{ fill(L.CSV_FAILED if r.error else L.CSV_DONE, r) }}</p>
-{%- endfor %}
-{% endblock %}
+{% block head_actions %}<div class="head-act">{{ switcher(period, "admin.index") }}</div>{% endblock %}

@@ -61,13 +61,17 @@ def test_stylesheet_requires_credentials(client):
     assert client.get(path, headers=basic_auth("pw")).status_code == 200
 
 
-def test_import_requires_credentials(client):
-    """`POST /import` も認証が要る。"""
-    assert client.post(ADMIN + "/import").status_code == 401
-
-
-def test_export_requires_credentials(client):
-    assert client.get(ADMIN + "/settings/export/2026-08").status_code == 401
+@pytest.mark.parametrize(
+    ("method", "path"),
+    [
+        ("post", "/settings/csv"),
+        ("post", "/settings/csv/delete"),
+        ("get", "/settings/export/2026-08"),
+    ],
+)
+def test_import_and_export_require_credentials(client, method, path):
+    """CSV の取り込み・削除と書き出しも認証が要る。"""
+    assert getattr(client, method)(ADMIN + path).status_code == 401
 
 
 @pytest.mark.parametrize(

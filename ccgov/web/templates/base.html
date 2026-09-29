@@ -1,4 +1,4 @@
-{#- 別の endpoint から同じ画面を描くとき（取り込み後の概況）は、子のテンプレートが here を決める -#}
+{#- 別の endpoint から同じ画面を描くとき（取り込みの応答の「データと設定」など）は、子のテンプレートが here を決める -#}
 {%- set here = here | default(request.endpoint) -%}
 {%- set screen_title, screen_lead = L.SCREENS[here] if here in L.SCREENS else L.PAGES[here] -%}
 {#- 期間を持つ画面では、期間を切り替えた状態をナビのリンクに引き継ぐ（既定の期間は URL に付けない） -#}

@@ -79,15 +79,15 @@ def test_stylesheet_is_served_under_base_path(app_with_base_path, base_path):
 
 
 def test_form_action_follows_base_path(db_dsn):
-    """`BASE_PATH` を与えた状態で概況画面を描画すると、フォームの action が BASE_PATH を含む。"""
+    """`BASE_PATH` を与えた状態で「データと設定」を描画すると、フォームの action が BASE_PATH を含む。"""
     import app as app_module
 
     try:
         with env_var("BASE_PATH", "/gov/cc"):
             importlib.reload(app_module)
             client = admin_client(app_module.app)
-            response = client.get("/gov/cc" + ADMIN)
+            response = client.get("/gov/cc" + ADMIN + "/settings")
             body = response.get_data(as_text=True)
-            assert "/gov/cc" + ADMIN + "/import" in body
+            assert 'action="/gov/cc' + ADMIN + '/settings/csv"' in body
     finally:
         importlib.reload(app_module)
