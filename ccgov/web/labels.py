@@ -4,7 +4,14 @@
 """
 
 # fmt: off
-from ccgov.constants import POLICY_DAYS, RECENT_DAYS, STALE_DAYS
+from ccgov.constants import (
+    HOLIDAY_NAME_MAX,
+    HOLIDAY_RANGE_MAX_DAYS,
+    LONG_MONTHS,
+    POLICY_DAYS,
+    STALE_DAYS,
+)
+from ccgov.metrics.windows import KEYS, LONG_KEY
 
 APP = "Claude Code 利用状況"
 ASOF = "{} 時点"
@@ -17,6 +24,8 @@ SCREENS = {
     "admin.effect_view": ("設定の効果", "設定を守り始めた前後で、コンテキストの大きさとコストを比べる"),
     "admin.assets_view": ("スキル・コマンドの利用", "配布したスキルやコマンドが使われているか"),
 }
+# 見出し帯の右端の入口: endpoint -> (見出し, 説明)
+PAGES = {"admin.settings": ("データと設定", "営業日の数え方に使う会社の休日")}
 
 NAV = "画面"
 DETAIL = "詳しい一覧"
@@ -25,15 +34,46 @@ OPEN_LIST = "一覧"
 EXACT = "正確な値"
 # カードの小さなグラフのツールチップ。2 つの空白の前が見出し、後ろが値（app.js が組む）
 SPARK_TIP = "{day:md}（{day:weekday}）  {value}"
+SPARK_TIP_WEEK = "{day:md}〜{end:md}  {value}"
 SEARCH = "絞り込み"
 ALL = "すべて"
 EMPTY = "条件に合う行はありません。"
 FILTER_GROUP = "区分"
 STATE = {"ok": "正常", "warn": "注意", "ng": "要確認", "neutral": "—"}
 WEEKDAYS = "月火水木金土日"
-RECENT = f"直近 {RECENT_DAYS} 日"
-PREV = f"前の {RECENT_DAYS} 日"
+RECENT = "直近 {period[days]} 日"
+PREV = "前の {period[days]} 日"
 PERIOD = {"recent": RECENT, "prev": PREV}
+
+# 期間の切り替え（概況とスキル・コマンドの利用）
+PERIOD_NAV = "期間"
+LONG_NAME = f"{LONG_MONTHS} か月"
+PERIOD_NAMES = {key: LONG_NAME if key == LONG_KEY else f"{key} 日" for key in KEYS}
+NOT_LONG = f"{LONG_NAME}では出しません"
+NOT_LONG_CARDS = "{names}は、記録から数えるため " + LONG_NAME + "では出しません"
+NOT_LONG_PANEL = (
+    NOT_LONG + "。記録から数える項目は "
+    + "・".join(n for k, n in PERIOD_NAMES.items() if k != LONG_KEY) + "で見られます。"
+)
+LIST_SEP = "・"
+WEEK = "{day:day}〜{end:md}"
+WEEK_PARTIAL = "{day:day}〜"
+WEEK_DAYS = "（{days} 日分）"
+MONTH_PARTIAL = "（途中）"
+COST_SHADE = "濃い地が直近 {period[days]} 日"
+MONTH_SKIPPED = "{day:ym} は {day:md}〜{end:md} の {days} 日分のため行に出しません。"
+
+# 月末のコストの見込みと今月のコスト
+MDAY_WEEKDAY = "（{day:weekday}）"
+MDAY_OFF = " · {off}"
+BD_FROM = " · {from:md}〜 の合計"
+BD_TO = " · {to:md} までの合計"
+FC_TIP = "{n} 営業日目 · {day:md}"
+FC_TIP_N = "{n} 営業日目"
+FC_FORECAST = "見込み {}"
+FC_PREV = "{month:mon} 月 {value}"
+FC_UNTIL = "{} まで"
+FC_NO_CSV = "今月の利用明細はまだありません"
 SIDE = {"before": "適用前", "after": "適用後"}
 TREND = {"up": "増えた", "down": "減った", "flat": "変わらない"}
 AGENT = {"agent": ("サブエージェントの中",), "main": ("サブエージェントの外",)}
@@ -58,7 +98,7 @@ STAGE = {
 HEALTH_ITEM = {
     "events": ("受信した記録", "再送の重複を除く"),
     "users": ("送信した利用者", ""),
-    "reconciliation": ("CSV との照合率", "利用明細の最終日までの 7 日"),
+    "reconciliation": ("CSV との照合率", "利用明細の最終日までの {period[days]} 日"),
     "tool_name": ("ツール名", "ツール実行の記録が分母"),
     "skill_name": ("スキル名", "Skill ツールの実行記録が分母"),
     "context_tokens": ("コンテキストのトークン数", "圧縮直前と応答終了の記録が分母"),
@@ -112,5 +152,23 @@ BASIS_NOTE = {
 }
 STALE_NOTE = f"報告停止 = 最後の報告から {STALE_DAYS} 日以上経った端末。{POLICY_DAYS} 日を過ぎると一覧から外れます。"
 UNIT = {"person": "人", "item": "件", "terminal": "台", "pt": "pt", "times": "回"}
+
+# データと設定: 会社の休日
+SETTINGS_ENTRY = PAGES["admin.settings"][0]
+HOLIDAY = {
+    "title": "会社の休日",
+    "lead": "営業日は、平日から国民の祝日と会社の休日を除いた日です。月末のコストの見込みと今月のコストで使います。",
+    "national": "国民の祝日は自動で除きます。ここには会社独自の休日だけを入れます。",
+    "start": "開始日", "end": "終了日", "name": "名前", "add": "追加", "delete": "削除",
+    "confirm": "{day:day}（{day:weekday}）の休日「{name}」を削除します。よろしいですか。",
+    "empty": "登録された会社の休日はありません。",
+}
+HOLIDAY_ERROR = {
+    "format": "日付は YYYY-MM-DD の形で入力してください。",
+    "order": "開始日が終了日より後になっています。",
+    "range": f"一度に追加できるのは {HOLIDAY_RANGE_MAX_DAYS} 日までです。",
+    "name": f"名前を 1〜{HOLIDAY_NAME_MAX} 文字で入力してください。",
+}
+CSRF_FAILED = "送信を受け付けませんでした。画面を読み込み直してから、もう一度送ってください。"
 
 # fmt: on

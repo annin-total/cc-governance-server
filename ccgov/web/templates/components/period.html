@@ -1,0 +1,6 @@
+{# 期間の切り替え（画面の見出しの右）。サーバで描き直すリンクで、JS は開いているタブ（#）を持ち越すだけ。 #}
+{% macro switcher(current, endpoint) -%}
+<nav class="chipbar period" aria-label="{{ L.PERIOD_NAV }}">
+  {%- for key, name in L.PERIOD_NAMES.items() %}<a href="{{ url_for(endpoint, period=key) }}"{% if key == current %} aria-current="true"{% endif %} data-period="{{ key }}">{{ name }}</a>{% endfor -%}
+</nav>
+{%- endmacro %}

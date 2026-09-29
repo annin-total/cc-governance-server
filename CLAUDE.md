@@ -15,6 +15,11 @@
 - **フレームワークは境界に閉じ込める**：Web フレームワークに依存するのは `ccgov/web/` だけ。
   それ以外のモジュールは素の値を受け取り、素の値を返す
 - **管理画面のルートは `admin` Blueprint に足す**：`app` 直下に足すと `ADMIN_PATH` と Basic 認証の外に出る
+- **状態を変える POST のフォームには `csrf_token()` を隠し項目 `csrf` で埋める**：`admin` Blueprint の POST はすべて照合し、
+  無い・違うものは 403 にする（`web/csrf.py`）。Basic 認証はブラウザが別のサイトからの POST にも付けて送るため
+- **国民の祝日（`jpholiday`）に依存するのは `metrics/business_days.py` だけ**：営業日は平日から国民の祝日と会社の休日を除いた日
+- **サーバ専用の表（`company_holidays`）は `store/db.py` の `_SERVER_DDL` で起動時に作る**：契約（`vendor/`）の表ではないので、
+  起動時の列の突き合わせには入れない。同じ日を 1 件に保つため、例外として `day` を主キーにしている（登録は UPSERT を使わず、消してから入れる）
 - **層の責務を分ける**：SQL は `ccgov/store/`（実行して行を返すだけ）、集計済みの値どうしの算術と取り出した結果の分類
   （率・差分・しきい値の判定・ビン分けなど）は `ccgov/metrics/`（DB にもフレームワークにも依存しない純粋関数）、
   画面ごとの組み立ては `ccgov/reports/` に置く。依存の向きは `web` → `reports` → `store`・`metrics`（`store` から使えるのは `metrics.windows` だけ）。

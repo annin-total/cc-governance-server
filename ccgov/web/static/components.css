@@ -5,6 +5,8 @@ button { font: inherit; color: inherit; }
 .notice { margin: 0 0 var(--sp-m); padding: var(--sp-s) var(--sp-l); border-radius: var(--r-m); font-size: var(--fs-sm); }
 .notice.ok { background: var(--ok-bg); color: var(--ok); }
 .notice.ng { background: var(--ng-bg); color: var(--ng); }
+.btn-quiet { background: none; border: 1px solid var(--rule); border-radius: var(--r-s); font-size: var(--fs-sm); color: var(--ink-2); padding: var(--sp-3xs) var(--sp-s); cursor: pointer; }
+.btn-quiet:hover { color: var(--ng); border-color: var(--ng); }
 
 /* 指標カード */
 .card {
@@ -91,6 +93,16 @@ svg text { font: var(--fs-xs) var(--sans); fill: var(--muted); font-variant-nume
 .p-chart h3 { font-size: var(--fs-label); font-weight: 600; margin: 0 0 var(--sp-2xs); color: var(--ink-2); }
 .p-chart .legend { margin-top: var(--sp-xs); font-size: var(--fs-sm); }
 .note { font-size: var(--fs-sm); color: var(--muted); margin: var(--sp-m) 0 0; }
+.na { margin: var(--sp-l) 0 0; padding: var(--sp-2xl) 0 var(--sp-s); border-top: 1px solid var(--rule); font-size: var(--fs-label); color: var(--muted); }
+
+/* データと設定: 節と、期間でまとめて足すフォーム */
+.section { margin-top: 0; }
+.section .notice { margin: var(--sp-m) 0 0; }
+.holiday-form { display: flex; flex-wrap: wrap; align-items: flex-end; gap: var(--sp-m); margin: var(--sp-l) 0 0; }
+.holiday-form label { display: grid; gap: var(--sp-2xs); font-size: var(--fs-sm); color: var(--muted); }
+.holiday-form input { font: inherit; font-size: var(--fs-label); padding: var(--sp-2xs) var(--sp-s); border: 1px solid var(--rule); border-radius: var(--r-m); background: var(--bg); color: var(--ink); width: var(--date-w); }
+.holiday-form .grow input { width: var(--name-w); }
+.holiday-form input:focus { outline: 2px solid var(--accent); outline-offset: -1px; background: var(--card-hover); }
 
 /* 絞り込み */
 .filters { display: flex; align-items: center; flex-wrap: wrap; gap: var(--sp-s) var(--sp-l); margin: var(--sp-l) 0 var(--sp-s); }
@@ -102,6 +114,10 @@ svg text { font: var(--fs-xs) var(--sans); fill: var(--muted); font-variant-nume
 .chipbar button b { font-weight: 600; color: var(--muted); font-variant-numeric: tabular-nums; }
 .chipbar button[aria-pressed="true"] { background: var(--card); color: var(--ink); font-weight: 700; box-shadow: var(--shadow-raised); }
 .chipbar button[aria-pressed="true"] b { color: var(--ink); }
+/* 期間の切り替え（絞り込みの区分と同じ見た目のリンク） */
+.period a { padding: var(--sp-3xs) var(--sp-m); border-radius: var(--r-s); font-size: var(--fs-label); color: var(--ink-2); text-decoration: none; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.period a:hover { color: var(--ink); }
+.period a[aria-current="true"] { background: var(--card); color: var(--ink); font-weight: 700; box-shadow: var(--shadow-raised); }
 .count { margin-left: auto; font-size: var(--fs-sm); color: var(--muted); font-variant-numeric: tabular-nums; }
 .count b { color: var(--ink); }
 

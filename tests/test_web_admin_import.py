@@ -3,7 +3,14 @@
 import importlib
 
 import pytest
-from conftest import ADMIN, admin_client, copy_fixture, count_and_sum, env_var
+from conftest import (
+    ADMIN,
+    admin_client,
+    copy_fixture,
+    count_and_sum,
+    csrf_form,
+    env_var,
+)
 
 from ccgov.store import db
 from ccgov.web import labels
@@ -24,7 +31,7 @@ def import_client(db_dsn, tmp_path):
 
 def test_post_import_processes_csv_dir_and_reports_files(import_client):
     """`POST /import` で CSV_DIR の全ファイルが処理され、応答にファイル名と行数が含まれる。"""
-    response = import_client.post(ADMIN + "/import")
+    response = import_client.post(ADMIN + "/import", data=csrf_form(import_client, {}))
     assert response.status_code == 200
     body = response.get_data(as_text=True)
     assert "daily_a.csv" in body
@@ -33,8 +40,12 @@ def test_post_import_processes_csv_dir_and_reports_files(import_client):
 
 def test_post_import_twice_gives_same_result(import_client):
     """2 回続けて送っても同じファイル名・行数が返り、SUM(cost) が変わらない。"""
-    first = import_client.post(ADMIN + "/import").get_data(as_text=True)
-    second = import_client.post(ADMIN + "/import").get_data(as_text=True)
+    first = import_client.post(
+        ADMIN + "/import", data=csrf_form(import_client, {})
+    ).get_data(as_text=True)
+    second = import_client.post(
+        ADMIN + "/import", data=csrf_form(import_client, {})
+    ).get_data(as_text=True)
     assert first == second
 
     conn = db.connect()
@@ -58,7 +69,10 @@ def test_post_import_without_csv_dir_imports_nothing(db_dsn, tmp_path, monkeypat
     monkeypatch.delenv("CSV_DIR", raising=False)
     importlib.reload(app_module)
 
-    body = admin_client(app_module.app).post(ADMIN + "/import").get_data(as_text=True)
+    client = admin_client(app_module.app)
+    body = client.post(ADMIN + "/import", data=csrf_form(client, {})).get_data(
+        as_text=True
+    )
     assert labels.CSV_DIR_UNSET in body
     assert "daily_a.csv" not in body
     conn = db.connect()
@@ -81,7 +95,7 @@ def test_overview_shows_error_for_failed_file(db_dsn, tmp_path):
         with env_var("CSV_DIR", str(tmp_path)):
             importlib.reload(app_module)
             client = admin_client(app_module.app)
-            response = client.post(ADMIN + "/import")
+            response = client.post(ADMIN + "/import", data=csrf_form(client, {}))
             body = response.get_data(as_text=True)
             assert "a_good.csv" in body
             assert "z_unrelated.csv" in body

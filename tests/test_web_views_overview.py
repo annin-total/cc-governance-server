@@ -49,10 +49,11 @@ def test_reconciliation_card_shows_rate_and_counts(today_client):
 
 
 def test_daily_cost_table_has_one_row_per_day_and_provider_columns(today_client):
-    """コストの表は日ごとに 1 行（6 日）。提供元ごとの列と合計が出る。"""
+    """コストの表は、CSV の最終日で終わる直近と前の 7 日のうち記録のある日に 1 行（5 日。範囲の外の 09-04 は出ない）。提供元ごとの列と合計が出る。"""
     html = _html(today_client)
     rows = table_rows(html, "cost")
-    assert len(rows) == 6
+    assert len(rows) == 5
+    assert "2024-09-04" not in [r["cells"][0][:10] for r in rows]
     head = table_body(html, "cost").split("</thead>")[0]
     assert "AWS Bedrock" in head and "openai" in head
     by_day = {r["cells"][0][:10]: r["cells"][1:4] for r in rows}
@@ -135,14 +136,15 @@ def test_cost_card_sums_window_ending_at_last_csv_day(known_db, today_client):
     assert card_value(html, "コスト（利用明細）") == "$15.50"
     assert 'class="change' not in card(html, "コスト（利用明細）")
     rows = table_rows(html, "cost")
-    short = [r["cells"][0][:10] for r in rows if "short" in r["tags"]]
-    assert short == [
+    recent = [r["cells"][0][:10] for r in rows if r["tags"] == ["recent"]]
+    assert recent == [
         "2024-10-08",
         "2024-10-07",
         "2024-10-06",
         "2024-10-05",
         "2024-10-04",
     ]
+    assert [r["cells"][0][:10] for r in rows if r["tags"] == ["prev"]] == ["2024-10-01"]
 
 
 def test_lead_names_the_data_card_group(today_client):

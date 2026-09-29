@@ -1,0 +1,21 @@
+{# データと設定。会社の休日の節（期間でまとめて追加・一覧・1 日ずつ削除）。 #}
+{% set here = "admin.settings" %}
+{% extends "base.html" %}
+{% from "components/table.html" import table %}
+{% block content %}
+<section class="panel section" id="holidays" aria-labelledby="holidays-title">
+  <header class="p-head"><h2 id="holidays-title">{{ L.HOLIDAY.title }}</h2><p class="scope">{{ L.HOLIDAY.lead }}</p></header>
+  {%- if error %}
+  <p class="notice ng" role="alert">{{ error }}</p>
+  {%- endif %}
+  <form class="holiday-form" method="post" action="{{ url_for('admin.add_holiday') }}">
+    <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+    <label>{{ L.HOLIDAY.start }}<input type="date" name="start" value="{{ form.start }}" required></label>
+    <label>{{ L.HOLIDAY.end }}<input type="date" name="end" value="{{ form.end }}" required></label>
+    <label class="grow">{{ L.HOLIDAY.name }}<input type="text" name="name" value="{{ form.name }}" maxlength="{{ name_max }}" required></label>
+    <button type="submit" class="btn">{{ L.HOLIDAY.add }}</button>
+  </form>
+  <p class="note">{{ L.HOLIDAY.national }}</p>
+  {{ table(holidays) }}
+</section>
+{% endblock %}

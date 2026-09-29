@@ -1,4 +1,4 @@
-"""管理画面の Blueprint。Basic 認証と 4 画面（概況・policy・effect・assets）を持つ。"""
+"""管理画面の Blueprint。Basic 認証・CSRF の検証と、4 画面（概況・policy・effect・assets）・データと設定を持つ。"""
 
 import hmac
 import time
@@ -7,10 +7,11 @@ from typing import Callable
 from flask import Blueprint, Response, current_app, render_template, request
 
 from ccgov.ingestion import csv_import
+from ccgov.metrics import windows
 from ccgov.reports import assets, effect, overview, policy
 from ccgov.store import db
 from ccgov.vendor import contract
-from ccgov.web import labels
+from ccgov.web import csrf, labels, settings
 from ccgov.web.screens import assets as assets_screen
 from ccgov.web.screens import effect as effect_screen
 from ccgov.web.screens import overview as overview_screen
@@ -19,6 +20,8 @@ from ccgov.web.screens import view
 
 # CSS を認証つきで配るため、静的配信はアプリ直下ではなくこの Blueprint が持つ。
 admin = Blueprint("admin", __name__, static_folder="static")
+# 期間を切り替える画面。ナビのリンクに選んだ期間を引き継ぐ
+PERIOD_SCREENS = ("admin.index", "admin.assets_view")
 
 
 def _build(build: Callable, *args) -> dict:
@@ -41,6 +44,8 @@ def _require_admin_password():
             status=401,
             headers={"WWW-Authenticate": 'Basic realm="admin", charset="UTF-8"'},
         )
+    if request.method == "POST" and not csrf.valid(request.form.get(csrf.FIELD)):
+        return Response(labels.CSRF_FAILED, status=403, mimetype="text/plain")
     return None
 
 
@@ -49,13 +54,21 @@ def _asof() -> dict:
     return {"asof": _today()}
 
 
-def _overview_view() -> dict:
-    return view.build(overview_screen.SCREEN, _build(overview.build, _today()))
+def _period_key() -> str:
+    """`?period=` の値。知らない値は既定の期間にする。"""
+    key = request.args.get("period", windows.DEFAULT)
+    return key if key in windows.KEYS else windows.DEFAULT
+
+
+def _overview_view(key: str) -> dict:
+    period = windows.period(key, _today())
+    return view.build(overview_screen.SCREEN, _build(overview.build, period))
 
 
 @admin.route("/", strict_slashes=False)
 def index() -> str:
-    return render_template("overview.html", view=_overview_view())
+    key = _period_key()
+    return render_template("overview.html", view=_overview_view(key), period=key)
 
 
 @admin.route("/import", methods=["POST"])
@@ -70,8 +83,9 @@ def import_endpoint() -> str:
             results = csv_import.import_all(csv_dir, conn)
         finally:
             conn.close()
+    key = windows.DEFAULT
     return render_template(
-        "overview.html", import_results=results, view=_overview_view()
+        "overview.html", import_results=results, view=_overview_view(key), period=key
     )
 
 
@@ -94,5 +108,19 @@ def effect_view() -> str:
 
 @admin.route("/assets")
 def assets_view() -> str:
-    data = _build(assets.build, _today())
-    return render_template("assets.html", view=view.build(assets_screen.SCREEN, data))
+    key = _period_key()
+    data = _build(assets.build, windows.period(key, _today()))
+    screen = view.build(assets_screen.SCREEN, data)
+    return render_template("assets.html", view=screen, period=key)
+
+
+admin.add_url_rule("/settings", "settings", settings.page)
+admin.add_url_rule(
+    "/settings/holidays", "add_holiday", settings.add_holiday, methods=["POST"]
+)
+admin.add_url_rule(
+    "/settings/holidays/<int:day>/delete",
+    "delete_holiday",
+    settings.delete_holiday,
+    methods=["POST"],
+)

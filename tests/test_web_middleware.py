@@ -64,7 +64,13 @@ def test_stylesheet_is_served_under_base_path(app_with_base_path, base_path):
     html = client.get(base_path + ADMIN + "/").get_data(as_text=True)
     hrefs = re.findall(r'<(?:link[^>]+href|script[^>]+src)="([^"]+)"', html)
     names = sorted(href.rsplit("/", 1)[-1] for href in hrefs)
-    assert names == ["app.js", "components.css", "layout.css", "tokens.css"]
+    assert names == [
+        "app.js",
+        "charts.css",
+        "components.css",
+        "layout.css",
+        "tokens.css",
+    ]
     for href in hrefs:
         assert href.startswith(base_path + ADMIN + "/static/"), (
             f"BASE_PATH が前置されていない: {href!r}"

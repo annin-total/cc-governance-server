@@ -46,6 +46,12 @@ FORMATS = {
     "pct": filters.pct,
     "day": filters.day,
     "md": filters.md,
+    "ym": filters.ym,
+    "mon": filters.mon,
+    "count": lambda v: filters.num(len(v)),
+    "asof": lambda v: (
+        labels.FC_NO_CSV if v is None else labels.FC_UNTIL.format(filters.md(v))
+    ),
     "weekday": _weekday,
     "signed": filters.signed,
     "signed1": lambda v: filters.signed(v, 1),

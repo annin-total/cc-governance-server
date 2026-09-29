@@ -1,5 +1,5 @@
 {# 下段の詳しい一覧。分段タブで 1 枚ずつ見せる。開いているタブは URL の # で保持する（#タブ:区分）。JS が無ければ全部並べる。 #}
-{% from "components/table.html" import table %}
+{% from "components/table.html" import filters, table %}
 {% from "components/charts.html" import tab_chart %}
 {% from "components/marks.html" import dot %}
 
@@ -11,10 +11,17 @@
       {%- for value in (true, false, none) %}<span class="dot-key">{{ dot(value) }} {{ L.DOT_LEGEND[value] }}</span>{% endfor %}
     {%- endif %}</p>
   </header>
+  {%- if t.na %}
+  <p class="na">{{ t.na }}</p>
+  {%- else %}
+  {#- グラフも区分で切り替わるタブ（data-when）は、区分をグラフの上に置く #}
+  {%- set switches = t.chart and t.chart.kind == "month" %}
+  {%- if switches %}{{ filters(t) }}{% endif %}
   {%- if t.chart %}
   <div class="p-chart">{{ tab_chart(t.chart) }}</div>
   {%- endif %}
-  {{ table(t) }}
+  {{ table(t, not switches) }}
+  {%- endif %}
   {%- if t.note %}
   <p class="note">{{ t.note }}</p>
   {%- endif %}

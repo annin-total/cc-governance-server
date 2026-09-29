@@ -17,6 +17,14 @@ _SQLITE_PATH_PREFIX = "sqlite:///"
 
 _TABLES = ("events", "policy_state", "cost_daily")
 
+# サーバ専用の表。契約の表ではないため、起動時の列の突き合わせ（`_required_columns`）には入れない
+_SERVER_DDL = (
+    (
+        "CREATE TABLE IF NOT EXISTS company_holidays"
+        " (day INTEGER PRIMARY KEY, name VARCHAR(255) NOT NULL)"
+    ),
+)
+
 # ロックの解放を待つ上限。端末の送信タイムアウト（`plugin/config.json` の `timeout_sec`）より短く保つ
 SQLITE_BUSY_TIMEOUT_SEC = 30
 
@@ -155,7 +163,7 @@ def init() -> None:
     conn = connect()
     try:
         cur = conn.cursor()
-        for statement in ddl():
+        for statement in ddl() + _SERVER_DDL:
             cur.execute(statement)
         _check_contract_columns(cur)
         _create_missing_indexes(cur)

@@ -2,7 +2,7 @@
 
 from ccgov.constants import STALE_DAYS
 from ccgov.metrics.windows import around, policy_window_start
-from ccgov.store import db, queries_events
+from ccgov.store import db, queries_cost
 
 _LATEST_VALUES_SQL = (
     "SELECT user_email, host, prev_value, day, ts FROM ("
@@ -14,8 +14,8 @@ _LATEST_VALUES_SQL = (
 
 
 def _cost_window_start(conn, today: int) -> int:
-    """`cost_daily` を数える集計期間の開始日。終了日は `queries_events.cost_window_end`（空なら `today`）。"""
-    end = queries_events.cost_window_end(conn, today)
+    """`cost_daily` を数える集計期間の開始日。終了日は `queries_cost.cost_window_end`（空なら `today`）。"""
+    end = queries_cost.cost_window_end(conn, today)
     return policy_window_start(today if end is None else end)
 
 

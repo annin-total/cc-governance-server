@@ -3,8 +3,9 @@
 from flask import Flask
 
 from ccgov.config import Config
+from ccgov.metrics import windows
 from ccgov.store import db
-from ccgov.web import admin, filters, ingest_api, labels, text
+from ccgov.web import admin, csrf, filters, ingest_api, labels, text
 from ccgov.web.middleware import strip_base_path
 
 
@@ -16,6 +17,7 @@ def create_app(config: Config) -> Flask:
         ADMIN_PASSWORD=config.admin_password,
         INGEST_TOKEN=config.ingest_token,
         CSV_DIR=config.csv_dir,
+        CSRF_TOKEN=csrf.new_token(),
     )
     for filter_name in ("day", "num", "usd", "usd_full", "tok", "pct", "rel"):
         app.add_template_filter(getattr(filters, filter_name), filter_name)
@@ -27,6 +29,9 @@ def create_app(config: Config) -> Flask:
     app.add_template_global(text.fill, "fill")
     app.add_template_global(text.term, "term")
     app.add_template_global(text.term_desc, "term_desc")
+    app.add_template_global(csrf.token, "csrf_token")
+    app.add_template_global(windows.DEFAULT, "PERIOD_DEFAULT")
+    app.add_template_global(admin.PERIOD_SCREENS, "PERIOD_SCREENS")
     app.add_url_rule("/ingest", view_func=ingest_api.ingest_endpoint, methods=["POST"])
     app.register_blueprint(admin.admin, url_prefix="/" + config.admin_path)
     app.wsgi_app = strip_base_path(app.wsgi_app, config.base_path)

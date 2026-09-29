@@ -6,9 +6,17 @@ POLICY_DAYS = 30
 STALE_DAYS = 14
 EVENT_STUDY_SPAN = 14
 
-# 概況のコストの小さな推移と、日ごとのコストの絞り込みの日数
-COST_SPARK_DAYS = 28
-COST_FILTER_DAYS = 30
+# 概況とスキル・コマンドの利用で切り替える期間。日数の期間は直近 N 日とその前の N 日を比べ、
+# 月数の期間は比べずに週ごとに並べる。最初の日数が既定
+PERIOD_DAYS = (RECENT_DAYS, 28)
+LONG_MONTHS = 12
+
+# 月末のコストの見込みを出すのに要る経過営業日の数（仮の基準）
+FORECAST_MIN_BUSINESS_DAYS = 3
+
+# 会社の休日を一度に追加できる日数と、名前の文字数の上限
+HOLIDAY_RANGE_MAX_DAYS = 31
+HOLIDAY_NAME_MAX = 64
 
 # スキル・コマンドの利用のカードに並べる名前の数
 ASSET_CARD_ROWS = 3

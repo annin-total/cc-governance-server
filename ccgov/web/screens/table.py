@@ -1,27 +1,64 @@
 """下段のタブの表示用の値を組み立てる。行は並べ替え済みで渡し、絞り込みの区分は行の `data-tags` にする。"""
 
-from typing import Any, Optional
+from typing import Any
 
-from ccgov import constants
-from ccgov.metrics import context, series
+from ccgov.metrics import series
 from ccgov.web import charts, filters, text
 from ccgov.web import labels as L
-from ccgov.web.screens import Col, Tab
+from ccgov.web.screens import Col, Tab, tab_charts
 from ccgov.web.screens import words as W
 
-SCALED = {"usd", "usd_strong", "tok"}
+SCALED = {"usd", "usd_strong", "usd_sub", "cum", "tok"}
 NUMERIC = {"num", "pct", "pct_strong", "measure", "measure_sub"} | SCALED
 NUMERIC |= {"diff", "last_day", "ratio", "count_of", "dash_num", "num_sub"}
-# グラフの棒と表の行を結ぶ行の値（グラフの種類ごと）
-CHART_KEY = {"trend": "day", "cost": "day", "hist": "bin"}
-TREND_CHART, COST_CHART = (540, 132), (1100, 180)
-HIST_CHART = (1100, 200, charts.STACK_PAD_LEFT, charts.STACK_PAD_BOTTOM)
 
 
 def _sort_key(value: Any) -> tuple:
     if isinstance(value, (list, tuple)):
         value = len(value)
     return (value is not None, value if value is not None else 0)
+
+
+def _filled(terms: Any, ctx: dict) -> Any:
+    """表示名の雛形（`直近 {period[days]} 日` など）を埋める。"""
+    if not isinstance(terms, dict):
+        return terms
+    return {
+        k: text.fill(v, ctx)
+        if isinstance(v, str)
+        else tuple(text.fill(x, ctx) for x in v)
+        if isinstance(v, tuple)
+        else v
+        for k, v in terms.items()
+    }
+
+
+def _head(tab: Tab, ctx: dict) -> dict:
+    words = W.TAB[tab.id]
+    return {
+        "id": tab.id,
+        "label": words["label"],
+        "hint": text.fill(words["hint"], ctx),
+        "title": words["title"],
+        "scope": text.fill(words["scope"], ctx),
+    }
+
+
+def unavailable(tab: Tab, ctx: dict) -> dict:
+    """12 か月で出せないタブ。同じ場所に残し、中身の代わりに注記を出す（集計していないので値を参照しない）。"""
+    words = W.TAB[tab.id]
+    return {
+        "id": tab.id,
+        "label": words["label"],
+        "hint": L.NOT_LONG,
+        "title": words["title"],
+        "scope": text.fill(W.LONG_SCOPE, ctx),
+        "na": L.NOT_LONG_PANEL,
+        "note": "",
+        "cols": [],
+        "rows": [],
+        "chart": None,
+    }
 
 
 def tab(tab: Tab, ctx: dict) -> dict:
@@ -34,27 +71,26 @@ def tab(tab: Tab, ctx: dict) -> dict:
         rows.sort(key=lambda r: _sort_key(r.get(key)), reverse=order == "desc")
     cols = [c for col in tab.cols for c in _columns(col, tab, rows, ctx)]
     chips, tags = _chips(tab, rows, words, ctx)
+    chart = tab_charts.build(tab, source, ctx)
     return {
-        "id": tab.id,
-        "label": words["label"],
-        "hint": text.fill(words["hint"], ctx),
-        "title": words["title"],
-        "scope": text.fill(words["scope"], ctx),
-        "note": text.fill(words.get("note", ""), ctx),
+        **_head(tab, ctx),
+        "note": text.fill(words.get("note", ""), ctx) + (chart or {}).get("note", ""),
         "search": words.get("search", "") if tab.search else "",
         "unit": words["unit"],
         "chips": chips,
+        "chips_all": tab.chips_all,
+        "total": len(rows) if tab.chips_all or not chips else chips[0]["count"],
         "cols": cols,
         "rows": [
             {
                 "tags": " ".join(tags(r)),
                 "q": text.fill(tab.search, r) if tab.search else "",
-                "key": r.get(CHART_KEY[tab.chart]) if tab.chart else None,
+                "key": r.get(tab_charts.KEY[tab.chart]) if tab.chart else None,
                 "cells": [_cell(c, r) for c in cols],
             }
             for r in rows
         ],
-        "chart": _chart(tab, words, source, ctx),
+        "chart": chart,
     }
 
 
@@ -63,11 +99,11 @@ def _columns(col: Col, tab: Tab, rows: list, ctx: dict) -> list:
         "key": col.key,
         "item": None,
         "kind": col.kind,
-        "label": "" if col.each else W.COL[col.label or col.key],
+        "label": "" if col.each else text.fill(W.COL[col.label or col.key], ctx),
         "sub": "",
         "num": col.kind in NUMERIC,
         "sort": None if col.sort is None else (col.sort or col.key),
-        "terms": col.terms,
+        "terms": _filled(col.terms, ctx),
         "by": col.by,
         "unit": L.UNIT.get(col.unit, ""),
         "den": col.den,
@@ -150,45 +186,10 @@ def _chips(tab: Tab, rows: list, words: dict, ctx: dict) -> tuple:
         {"id": i, "label": lb, "tone": t, "count": sum(i in tags(r) for r in rows)}
         for i, lb, t in options
     ]
-    return [
-        {"id": "all", "label": words.get("all", L.ALL), "tone": "", "count": len(rows)}
-    ] + counted, tags
-
-
-def _chart(tab: Tab, words: dict, rows: list, ctx: dict) -> Optional[dict]:
-    if tab.chart == "trend":
-        days = [filters.md(r["day"]) for r in rows]
-        return {
-            "kind": "trend",
-            "charts": [
-                (
-                    title,
-                    charts.bars(
-                        [r[k] for r in rows],
-                        days,
-                        [r["day"] for r in rows],
-                        constants.RECENT_DAYS,
-                        *TREND_CHART,
-                    ),
-                )
-                for title, k in zip(words["charts"], ("users", "sessions"))
-            ],
-        }
-    if tab.chart == "cost" and rows:
-        providers = text.lookup(ctx, "cost[providers]")
-        columns = [
-            (r["day"], [r["providers"].get(p, 0) for p in providers]) for r in rows
-        ]
-        geo = charts.stacked(columns, *COST_CHART)
-        return {
-            "kind": "cost",
-            "geo": geo,
-            "series": [text.term(L.PROVIDER, p) for p in providers],
-        }
-    if tab.chart == "hist" and rows:
-        return {
-            "kind": "hist",
-            "geo": charts.hist(rows, context.SIDES, *HIST_CHART),
-            "series": list(L.SIDE.values()),
-        }
-    return None
+    every = {
+        "id": "all",
+        "label": words.get("all", L.ALL),
+        "tone": "",
+        "count": len(rows),
+    }
+    return ([every] if tab.chips_all else []) + counted, tags
