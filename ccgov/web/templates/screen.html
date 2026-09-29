@@ -3,7 +3,6 @@
 {% from "components/card.html" import card_groups %}
 {% from "components/tabs.html" import detail %}
 {% block content %}
-{% block notices %}{% endblock %}
 {{ card_groups(view.groups) }}
 {{ detail(view.tabs) }}
 {% endblock %}

@@ -1,12 +1,9 @@
 """`/` 画面（概況）の組み立て。"""
 
-from ccgov.constants import (
-    BYPASS_MODE,
-    ERROR_COUNT_ELEVATED,
-)
+from ccgov.constants import BYPASS_MODE, ERROR_COUNT_ELEVATED, RECENT_DAYS
 from ccgov.metrics import health, rates, series, states
-from ccgov.metrics.windows import previous_window, recent_window
-from ccgov.reports import cost
+from ccgov.metrics.windows import Period, previous_window, recent_window
+from ccgov.reports import cost, cost_weeks, month
 from ccgov.store import queries_errors, queries_events
 
 USAGE_FIELDS = ("permission_mode", "effort_level", "source")
@@ -17,28 +14,32 @@ def _pair(recent, prev) -> dict:
     return {"recent": recent, "prev": prev, "delta": rates.delta(recent, prev)}
 
 
-def health_counts(conn, today: int) -> dict:
-    """直近／前 7 日のイベント件数・送信した利用者数・NULL 率を返す。"""
+def health_counts(conn, today: int, days: int = RECENT_DAYS) -> dict:
+    """直近と前の `days` 日のイベント件数・送信した利用者数・NULL 率を返す。"""
     return {
         window: {
             "events": counts["events"],
             "terminals": counts["terminals"],
             "null_rates": health.null_rates(counts["null_counts"]),
         }
-        for window, counts in queries_events.health_window_counts(conn, today).items()
+        for window, counts in queries_events.health_window_counts(
+            conn, today, days
+        ).items()
     }
 
 
-def reconciliation_rate(conn, today: int) -> list:
+def reconciliation_rate(conn, today: int, days: int = RECENT_DAYS) -> list:
     """突合率を `[(分子, 分母, 率)]` で返す。"""
-    return [rates.rate_row(*queries_events.reconciliation_counts(conn, today))]
+    counts = queries_events.reconciliation_counts(conn, today, days)
+    return [rates.rate_row(*counts)]
 
 
-def trend(conn, today: int) -> dict:
+def trend(conn, today: int, days: int = RECENT_DAYS) -> dict:
     """直近と前の期間の日ごとの利用者数・セッション数。記録の無い日は 0 で埋める。"""
-    start, _ = previous_window(today)
-    recent_start, end = recent_window(today)
-    found = {d: (u, s) for d, u, s in queries_events.user_session_trend(conn, today)}
+    start, _ = previous_window(today, days)
+    recent_start, end = recent_window(today, days)
+    raw = queries_events.user_session_trend(conn, today, days)
+    found = {d: (u, s) for d, u, s in raw}
     rows = [
         {
             "day": day,
@@ -62,11 +63,11 @@ def sessions_per_day(rows: list) -> dict:
     return {"recent": recent, "prev": prev, "delta": delta}
 
 
-def usage(conn, today: int) -> list:
+def usage(conn, today: int, days: int = RECENT_DAYS) -> list:
     """直近の権限モード・effort・セッションの開始の値ごとの件数と、区分の中での割合。"""
     rows = []
     for field in USAGE_FIELDS:
-        dist = queries_events.distribution(conn, today, field)
+        dist = queries_events.distribution(conn, today, field, days)
         total = sum(count for _, count in dist)
         rows += [
             {"field": field, "value": v, "count": n, "share": rates.rate(n, total)}
@@ -85,10 +86,10 @@ def bypass(usage_rows: list) -> dict:
     return {"numerator": numerator, "denominator": denominator, "rate": rate}
 
 
-def errors(conn, today: int) -> dict:
+def errors(conn, today: int, days: int = RECENT_DAYS) -> dict:
     rows = [
         dict(zip(("stage", "error_type", "count", "terminals", "version"), r))
-        for r in queries_errors.error_summary(conn, today)
+        for r in queries_errors.error_summary(conn, today, days)
     ]
     total = sum(r["count"] for r in rows)
     return {
@@ -123,24 +124,32 @@ def health_rows(
     return rows
 
 
-def build(conn, today: int) -> dict:
-    """`/` 画面の集計結果を返す（取込結果を除く）。"""
-    counts = health_counts(conn, today)
+def build(conn, period: Period) -> dict:
+    """`/` 画面の集計結果を返す（取込結果を除く）。12 か月は利用明細から数える項目だけ。"""
+    today, days = period.end, period.days
+    common = {
+        "period": period.as_dict(),
+        "cost": cost.build(conn, period),
+        "month": month.build(conn, today),
+    }
+    if period.long:
+        return {**common, "cost_users": cost_weeks.users(conn, period)}
+    counts = health_counts(conn, today, days)
     recent, prev = counts["recent"], counts["prev"]
     null_now, null_prev = recent["null_rates"], prev["null_rates"]
-    numerator, denominator, rate = reconciliation_rate(conn, today)[0]
+    numerator, denominator, rate = reconciliation_rate(conn, today, days)[0]
     reconciliation = {"numerator": numerator, "denominator": denominator, "rate": rate}
     worst_key, worst_rate = health.worst_null_rate(null_now)
-    usage_rows = usage(conn, today)
-    trend_days = trend(conn, today)
+    usage_rows = usage(conn, today, days)
+    trend_days = trend(conn, today, days)
     return {
+        **common,
         "users": _pair(recent["terminals"], prev["terminals"]),
         "events": _pair(recent["events"], prev["events"]),
         "sessions": sessions_per_day(trend_days["rows"]),
-        "cost": cost.build(conn, today),
         "bypass": bypass(usage_rows),
         "reconciliation": reconciliation,
-        "errors": errors(conn, today),
+        "errors": errors(conn, today, days),
         "nulls": {
             "key": worst_key,
             "rate": worst_rate,

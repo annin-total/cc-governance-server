@@ -11,12 +11,13 @@
     {%- for c in t.chips %}<button type="button" data-chip="{{ c.id }}" aria-pressed="{{ 'true' if loop.first else 'false' }}">{% if c.tone %}<i class="dot {{ c.tone }}"></i>{% endif %}{{ c.label }}<b>{{ c.count|num }}</b></button>{% endfor -%}
   </div>
   {%- endif %}
-  <span class="count"><b data-shown>{{ t.rows|length|num }}</b> / {{ t.rows|length|num }} {{ t.unit }}</span>
+  {#- 「すべて」の無い区分では、分母も選んだ区分の行の数にする（JS が書き換える） #}
+  <span class="count"><b data-shown>{{ t.total|num }}</b> / <span{% if not t.chips_all %} data-total{% endif %}>{{ t.total|num }}</span> {{ t.unit }}</span>
 </div>
 {%- endmacro %}
 
-{% macro table(t) -%}
-{{ filters(t) }}
+{% macro table(t, with_filters=true) -%}
+{%- if with_filters %}{{ filters(t) }}{% endif %}
 <div class="tscroll">
 <table data-testid="{{ t.id }}">
 <thead><tr>
@@ -26,10 +27,10 @@
 </tr></thead>
 <tbody>
 {%- for r in t.rows %}
-<tr data-tags="{{ r.tags }}" data-q="{{ r.q }}">{% for c in r.cells %}<td class="c-{{ c.col.kind }}{{ ' num' if c.col.num }}" data-v="{{ c.sort }}">{{ cell(c) }}</td>{% endfor %}</tr>
+<tr data-tags="{{ r.tags }}" data-q="{{ r.q }}"{% if r.key is not none %} data-link="{{ r.key }}"{% endif %}>{% for c in r.cells %}<td class="c-{{ c.col.kind }}{{ ' num' if c.col.num }}" data-v="{{ c.sort }}">{{ cell(c) }}</td>{% endfor %}</tr>
 {%- endfor %}
 </tbody>
 </table>
-<p class="empty" data-empty{% if t.rows %} hidden{% endif %}>{{ L.EMPTY }}</p>
+<p class="empty" data-empty{% if t.rows %} hidden{% endif %}>{{ t.empty or L.EMPTY }}</p>
 </div>
 {%- endmacro %}

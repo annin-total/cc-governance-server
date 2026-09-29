@@ -1,13 +1,4 @@
 {% set here = "admin.index" %}
 {% extends "screen.html" %}
-{% block head_actions %}
-<form class="head-act" method="post" action="{{ url_for('admin.import_endpoint') }}">
-  <span>{{ L.CSV_NOTE }}</span>
-  <button type="submit" class="btn">{{ L.CSV_BUTTON }}</button>
-</form>
-{% endblock %}
-{% block notices %}
-{%- for r in import_results or [] %}
-<p class="notice {{ 'ng' if r.error else 'ok' }}">{{ fill(L.CSV_FAILED if r.error else L.CSV_DONE, r) }}</p>
-{%- endfor %}
-{% endblock %}
+{% from "components/period.html" import switcher %}
+{% block head_actions %}<div class="head-act">{{ switcher(period, "admin.index") }}</div>{% endblock %}

@@ -1,6 +1,8 @@
 {# 表のセル。列の kind（screens の Col）ごとの見た目。計算はせず、値の書式と文言の対応だけを書く。 #}
 {% from "components/marks.html" import mark, dot %}
 {% from "components/charts.html" import hbar %}
+{% from "components/values.html" import exact %}
+
 
 {% macro sub(text) %}<span class="sub">{{ text }}</span>{% endmacro %}
 
@@ -38,6 +40,20 @@
 {%- elif k == "dash_num" -%}{% if v %}{{ v|num }}{% else %}{{ sub("—") }}{% endif %}
 {%- elif v is none -%}{{ sub(L.UNSET if k == "value" else "—") }}
 {%- elif k == "num" -%}{{ v|num }}{% if col.unit %} {{ col.unit }}{% endif %}
+{%- elif k == "day" -%}{{ v|day }}
+{%- elif k == "weekday" -%}{{ v|weekday }}
+{%- elif k == "week" -%}{% if row.partial %}{{ fill(L.WEEK_PARTIAL, row) }}{{ sub(fill(L.WEEK_DAYS, row)) }}{% else %}{{ fill(L.WEEK, row) }}{% endif %}
+{%- elif k == "mday" -%}{{ v|md }}{{ sub(fill(L.MDAY_WEEKDAY, row)) }}
+  {%- if row.from %}{{ sub(fill(L.BD_FROM, row)) }}{% endif %}{% if row.to %}{{ sub(fill(L.BD_TO, row)) }}{% endif %}
+  {%- if row.off %}{{ sub(fill(L.MDAY_OFF, row)) }}{% endif %}
+{%- elif k == "cum" -%}{% if row.actual %}<b>{{ exact(v|usd(col.scale), v|usd_full) }}</b>{% else %}{{ sub(L.FC_FORECAST.format(v|usd(col.scale))) }}{% endif %}
+{%- elif k == "usd_sub" -%}<span class="sub">{{ exact(v|usd(col.scale), v|usd_full) }}</span>
+{%- elif k == "delete" -%}<form method="post" action="{{ url_for('admin.delete_holiday', day=v) }}" data-confirm="{{ fill(L.HOLIDAY.confirm, row) }}">
+  <input type="hidden" name="csrf" value="{{ csrf_token() }}"><button type="submit" class="btn-quiet">{{ L.HOLIDAY.delete }}</button></form>
+{%- elif k == "delete_file" -%}<form method="post" action="{{ url_for('admin.delete_csv') }}" data-confirm="{{ fill(L.IMPORT.confirm if row.first is not none else L.IMPORT.confirm_file, row) }}">
+  <input type="hidden" name="csrf" value="{{ csrf_token() }}"><input type="hidden" name="file" value="{{ v }}"><button type="submit" class="btn-quiet">{{ L.IMPORT.delete }}</button></form>
+{%- elif k == "span" -%}{{ fill(L.SPAN, row) }}
+{%- elif k == "bytes" -%}{{ v|size }}
 {%- elif k == "bin" -%}{{ v|bin }}
 {%- elif k == "rel" -%}{{ v|rel }}
 {%- elif k == "num_sub" -%}{{ sub(v|num) }}
@@ -45,8 +61,9 @@
 {%- elif k == "tag" -%}{{ sub(term(col.terms, v)) }}
 {%- elif k == "term" -%}{%- set name, desc = term_desc(col.terms[row[col.by]] if col.by else col.terms, v) -%}{{ name }}{% if desc %} {{ sub(desc) }}{% endif %}
 {%- elif k == "stage" -%}{{ term(col.terms, v) }}{% if v in col.terms %}<span class="sub code"> {{ v }}</span>{% endif %}
-{%- elif k == "usd" -%}{{ v|usd }}
-{%- elif k == "usd_strong" -%}<b>{{ v|usd }}</b>
+{%- elif k == "usd" -%}{{ exact(v|usd(col.scale), v|usd_full) }}
+{%- elif k == "usd_strong" -%}<b>{{ exact(v|usd(col.scale), v|usd_full) }}</b>
+{%- elif k == "tok" -%}{{ exact(v|tok(col.scale), v|num) }}
 {%- elif k == "pct" -%}{{ v|pct }}
 {%- elif k == "pct_strong" -%}<b>{{ v|pct }}</b>
 {%- elif k == "diff" -%}{% if row.unit == "rate" %}{{ v|signed1 }} {{ L.UNIT.pt }}{% else %}{{ v|signed }}{% endif %}

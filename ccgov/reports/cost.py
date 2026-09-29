@@ -1,60 +1,74 @@
-"""概況の、利用明細（CSV）のコストの組み立て。"""
+"""概況の、利用明細（CSV）のコストの組み立て。窓は CSV の最終日で終わる。"""
 
-from ccgov.constants import COST_FILTER_DAYS, COST_SPARK_DAYS, RECENT_DAYS
 from ccgov.metrics import series
-from ccgov.metrics.windows import previous_window, recent_window
-from ccgov.store import queries_events
+from ccgov.metrics.windows import Period
+from ccgov.reports import cost_weeks
+from ccgov.store import queries_cost
 
-# 日ごとの表の絞り込みの区分: (id, 最終日から数えた日数)
-_TAGS = (("long", COST_FILTER_DAYS), ("short", RECENT_DAYS))
+_KEYS = (
+    "recent",
+    "prev",
+    "change",
+    "monthly",
+    "start",
+    "end",
+    "spark_start",
+    "last_end",
+)
+_LISTS = ("spark", "days", "weeks", "months", "providers")
 
 
-def build(conn, today: int) -> dict:
-    """利用明細の日ごと・提供元ごとのコストと、最終日で終わる直近・前の期間の合計。"""
-    by_day: dict = {}
-    for day, provider, amount in queries_events.daily_cost(conn):
-        by_day.setdefault(day, {})[provider] = amount
-    end = queries_events.cost_window_end(conn, today)
+def empty() -> dict:
+    return {**dict.fromkeys(_KEYS), **{k: [] for k in _LISTS}}
+
+
+def _by_day(conn, start: int, end: int) -> dict:
+    """`{day: {provider: 合計}}`。"""
+    found: dict = {}
+    for day, provider, amount in queries_cost.daily_cost(conn, start, end):
+        found.setdefault(day, {})[provider] = amount
+    return found
+
+
+def _providers(found: dict) -> list:
+    """提供元を合計の多い順に。"""
+    pairs = [(p, a) for amounts in found.values() for p, a in amounts.items()]
+    return [p for p, _ in series.group_totals(pairs)]
+
+
+def build(conn, period: Period) -> dict:
+    """7 日・28 日は日ごと（直近と前の期間）、12 か月は週ごと（`cost_weeks`）。CSV が無ければ値は None。"""
+    end = queries_cost.cost_window_end(conn, period.end)
     if end is None:
-        keys = (
-            "recent",
-            "prev",
-            "change",
-            "start",
-            "end",
-            "spark_start",
-            "first",
-            "last",
-        )
-        return {**dict.fromkeys(keys), "spark": [], "days": [], "providers": []}
-    totals = {day: sum(amounts.values()) for day, amounts in by_day.items()}
-    recent_start, _ = recent_window(end)
-    prev_start, prev_end = previous_window(end)
-    recent = series.total_between(totals, recent_start, end)
-    prev = series.total_between(totals, prev_start, prev_end)
-    spark_start = end - COST_SPARK_DAYS + 1
-    last = max(by_day)
-    providers = series.group_totals(
-        [(p, a) for amounts in by_day.values() for p, a in amounts.items()]
-    )
+        return empty()
+    window = period.ending(end)
+    if window.long:
+        found = _by_day(conn, window.start, end)
+        return {**empty(), **cost_weeks.cost(found, _providers(found), window)}
+    found = _by_day(conn, window.prev_start, end)
+    totals = {day: sum(amounts.values()) for day, amounts in found.items()}
+    recent = series.total_between(totals, window.start, end)
+    prev = series.total_between(totals, window.prev_start, window.prev_end)
     return {
+        **empty(),
         "recent": recent,
         "prev": prev,
         "change": series.change_pct(recent, prev),
-        "start": recent_start,
+        "start": window.start,
         "end": end,
-        "spark_start": spark_start,
-        "spark": [v for _, v in series.by_day(totals, spark_start, end)],
-        "first": min(by_day),
-        "last": last,
-        "providers": [p for p, _ in providers],
+        "spark_start": window.prev_start,
+        "spark": [
+            {"day": d, "total": v}
+            for d, v in series.by_day(totals, window.prev_start, end)
+        ],
+        "providers": _providers(found),
         "days": [
             {
                 "day": day,
-                "providers": by_day[day],
+                "providers": found[day],
                 "total": totals[day],
-                "tags": [tag for tag, n in _TAGS if day > last - n],
+                "period": "recent" if day >= window.start else "prev",
             }
-            for day in sorted(by_day)
+            for day in sorted(found)
         ],
     }

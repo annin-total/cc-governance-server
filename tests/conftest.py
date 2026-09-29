@@ -2,6 +2,7 @@
 
 import base64
 import importlib
+import io
 import os
 import re
 import sqlite3
@@ -111,6 +112,11 @@ def card_value(html: str, label: str) -> str:
     match = re.search(r'<span class="k-value">(.*?)<span class="u">', card(html, label))
     assert match, f"card label={label} に値が無い"
     return match.group(1)
+
+
+def csrf_form(client, data: dict) -> dict:
+    """状態を変える POST の本文に、アプリの CSRF トークンを足す。"""
+    return {**data, "csrf": client.application.config["CSRF_TOKEN"]}
 
 
 def admin_client(flask_app):
@@ -247,3 +253,41 @@ def today_app(known_db, monkeypatch):
 def today_client(today_app):
     """基準日を固定した `app` のテストクライアント（認証ヘッダ付き）を返す。"""
     return admin_client(today_app.app)
+
+
+@pytest.fixture
+def csv_dir(tmp_path):
+    """取り込み先（`CSV_DIR`）にする空のディレクトリ。外に置かれたファイルを見分けるため `tmp_path` の 1 段下にする。"""
+    path = tmp_path / "csv"
+    path.mkdir()
+    return path
+
+
+@pytest.fixture
+def csv_client(known_db, csv_dir):
+    """`CSV_DIR` を `csv_dir` に向けた `app` のテストクライアント（認証ヘッダ付き）。"""
+    import app as app_module
+
+    with env_var("CSV_DIR", str(csv_dir)):
+        importlib.reload(app_module)
+    yield admin_client(app_module.app)
+    importlib.reload(app_module)
+
+
+def csv_bytes(*rows) -> bytes:
+    """`(日付, 利用者, コスト)` の行から AI Gateway の CSV を組み立てる。"""
+    lines = [CSV_HEADER] + [
+        f"{d},w1,aws-bedrock,M,u1,{email},n1,{cost},USD,10,20,0,0,0,10"
+        for d, email, cost in rows
+    ]
+    return ("\r\n".join(lines) + "\r\n").encode("utf-8")
+
+
+def upload(client, name: str, body: bytes, csrf: bool = True):
+    """「データと設定」の取り込むのフォームから CSV を送る。"""
+    data = {"file": (io.BytesIO(body), name)}
+    return client.post(
+        ADMIN + "/settings/csv",
+        data=csrf_form(client, data) if csrf else data,
+        content_type="multipart/form-data",
+    )

@@ -42,9 +42,16 @@ FORMATS = {
     "dec1": filters.dec1,
     "usd": filters.usd,
     "usd0": filters.usd0,
+    "tok": filters.tok,
     "pct": filters.pct,
     "day": filters.day,
     "md": filters.md,
+    "ym": filters.ym,
+    "mon": filters.mon,
+    "count": lambda v: filters.num(len(v)),
+    "asof": lambda v: (
+        labels.FC_NO_CSV if v is None else labels.FC_UNTIL.format(filters.md(v))
+    ),
     "weekday": _weekday,
     "signed": filters.signed,
     "signed1": lambda v: filters.signed(v, 1),
@@ -60,6 +67,10 @@ FORMATS = {
 }
 
 
+# 丸める書式と、その正確な値の書式
+EXACT = {"usd": filters.usd_full, "dec1": filters.dec1_full, "tok": filters.num}
+
+
 class _Fill(string.Formatter):
     def format_field(self, value: Any, format_spec: str) -> str:
         if format_spec in FORMATS:
@@ -72,6 +83,23 @@ class _Fill(string.Formatter):
 def fill(template: str, data: dict) -> str:
     """`template` の `{名前:書式}` を `data` の値で埋める。値が None なら `EM_DASH`。"""
     return _Fill().vformat(template, (), data)
+
+
+def parts(template: str, data: dict) -> list:
+    """`fill` を `(表示, 正確な値)` の並びで返す。正確な値は丸めで失うものがあるときだけ入り、ほかは空文字。"""
+    formatter, result = _Fill(), []
+    for literal, name, spec, conversion in formatter.parse(template):
+        if literal:
+            result.append((literal, ""))
+        if name is None:
+            continue
+        value = formatter.convert_field(
+            formatter.get_field(name, (), data)[0], conversion
+        )
+        shown = formatter.format_field(value, spec or "")
+        full = EXACT[spec](value) if spec in EXACT and value is not None else shown
+        result.append((shown, "" if full == shown else full))
+    return result
 
 
 def lookup(data: dict, path: str) -> Any:

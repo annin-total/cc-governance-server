@@ -32,6 +32,10 @@
   --shadow-card: 0 1px 0 rgba(0, 0, 0, .04);
   --shadow-raised: 0 1px 2px rgba(0, 0, 0, .1);
   --tab-hover: rgba(255, 255, 255, .35);
+  --shadow-tip: 0 2px 8px rgba(0, 0, 0, .08);
+  /* グラフと表の連動で、当てていない棒を薄くする度合いと、途中の週の棒の薄さ */
+  --link-dim: .35;
+  --partial-opacity: .45;
 
   /* 文字 */
   --sans: "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic UI", "Yu Gothic", "Meiryo", system-ui, sans-serif;
@@ -83,4 +87,15 @@
   --cell-max: 320px;
   --search-w: 240px;
   --table-max-h: 560px;
+  --tip-max-w: 320px;
+  --fc-cum-h: 28px;
+  --ln-w: 18px;
+  --cum-line: 2px;
+  --cum-dash: 5 4;
+  --date-w: 150px;
+  --name-w: 240px;
+  --caret-h: 4px;
+  --caret-w: 5px;
+  --month-cols: minmax(0, 1fr) 9em 7em var(--col-bar) 7.5em;
+  --month-table-cols: 9.5em 6em minmax(0, 1fr);
 }
