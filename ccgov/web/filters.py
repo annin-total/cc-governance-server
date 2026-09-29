@@ -96,16 +96,20 @@ def tok_unit(top: float) -> str:
 
 
 def tok(value: Any, unit: Optional[str] = None) -> str:
-    """トークン数。`unit`（`tok_unit` の値）を省くと大きさで選ぶ。"""
+    """トークン数。`unit`（`tok_unit` の値）を省くと大きさで選ぶ。単位の解像度に満たない 0 でない値は `<1k` の形。"""
     n = _to_float(value)
     if n is None:
         return EM_DASH
     if unit is None:
         return _tok_auto(n)
     if unit == "M":
-        return f"{n / TOKEN_M:,.{_TOKEN_COL_M_DIGITS}f}M"
+        text = f"{n / TOKEN_M:,.{_TOKEN_COL_M_DIGITS}f}"
+        below = f"{10**-_TOKEN_COL_M_DIGITS:.{_TOKEN_COL_M_DIGITS}f}"
+        return f"<{below}M" if n and not float(text) else f"{text}M"
     if unit == "k":
-        return f"{_half_up(n / TOKEN_K):,}k"
+        return (
+            "<1k" if n and not _half_up(n / TOKEN_K) else f"{_half_up(n / TOKEN_K):,}k"
+        )
     return f"{_half_up(n):,}"
 
 

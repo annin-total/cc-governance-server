@@ -21,9 +21,9 @@
 </svg>
 {%- endmacro %}
 
-{# 下段のグラフの 1 本分。data-key で表の行と結び、当たり判定の透明な面を敷く（app.js が連動させる） #}
+{# 下段のグラフの 1 本分。data-link で表の行と結び、当たり判定の透明な面を敷く（app.js が連動させる） #}
 {% macro col(b, h) -%}
-<g class="col" data-key="{{ b.key }}"><rect class="hit" x="{{ b.hit_x }}" y="0" width="{{ b.hit_w }}" height="{{ h }}"/>{{ caller() }}</g>
+<g class="col" data-link="{{ b.key }}"><rect class="hit" x="{{ b.hit_x }}" y="0" width="{{ b.hit_w }}" height="{{ h }}"/>{{ caller() }}</g>
 {%- endmacro %}
 
 {% macro hist_segs(g, b) -%}

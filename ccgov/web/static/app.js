@@ -126,9 +126,9 @@
     placeTip(e);
   }
 
-  // 下段のグラフと表の連動: 同じ data-key の棒（svg の g）と行を強調する。
+  // 下段のグラフと表の連動: 同じ data-link の棒（svg の g）と行を強調する。
   // グラフから当てた行が表の枠の中で見えていなければ、枠の中だけを最小限動かす（ページは動かさない）
-  const LINKED = "svg g[data-key], tbody tr[data-key]";
+  const LINKED = "svg g[data-link], tbody tr[data-link]";
 
   function unlink(panel) {
     panel.classList.remove("is-linking");
@@ -150,7 +150,7 @@
   function link(el, panel) {
     unlink(panel);
     panel.classList.add("is-linking");
-    const same = all(panel, LINKED).filter((x) => x.dataset.key === el.dataset.key);
+    const same = all(panel, LINKED).filter((x) => x.dataset.link === el.dataset.link);
     for (const x of same) x.classList.add("is-hot");
     const row = same.find((x) => x.tagName === "TR");
     if (el.tagName !== "TR" && row && !row.hidden) reveal(row);

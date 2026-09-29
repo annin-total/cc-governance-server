@@ -20,7 +20,7 @@ def _html(client) -> str:
 
 
 def _exacts(fragment: str) -> list:
-    """丸めた値ごとの `(表示, 正確な値)`。札の文言は「正確な値」と正確な値の組であること。"""
+    """丸めた値ごとの `(表示, 正確な値)`。ツールチップの文言は「正確な値」と正確な値の組であること。"""
     found = []
     for tip, title, shown in _EXACT.findall(fragment):
         assert unescape(tip) == f"{labels.EXACT}  {unescape(title)}"
@@ -57,7 +57,7 @@ def test_small_values_are_not_wrapped(today_client):
 
 
 def test_effect_tokens_use_k_on_card_and_m_in_column(db_conn):
-    """トークンはカードが k、表の列は最大に合わせて全行 M。区間の幅も k で書く。"""
+    """トークンはカードが k、表の列は最大に合わせて全行 M（解像度未満は <0.01M）。区間の幅も k で書く。"""
     seed_effect_data(db_conn)
     insert_cost_daily(
         db_conn,
@@ -70,7 +70,8 @@ def test_effect_tokens_use_k_on_card_and_m_in_column(db_conn):
     db_conn.commit()
     html = effect_html()
     tokens = [r["cells"][3] for r in table_rows(html, "study")]
-    assert tokens and all(re.fullmatch(r"\d\.\d\dM", t) for t in tokens)
+    assert tokens and all(re.fullmatch(r"(<0\.01|\d\.\d\d)M", t) for t in tokens)
+    assert "<0.01M" in tokens and any(re.fullmatch(r"[1-9]\.\d\dM", t) for t in tokens)
     assert "区間の幅 20k トークン" in html
     [(shown, full)] = _exacts(card_value(html, "1 人 1 日あたりのトークン"))
     assert re.fullmatch(r"\d{3}k", shown) and re.fullmatch(r"\d{3},\d{3}", full)

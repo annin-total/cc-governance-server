@@ -100,6 +100,14 @@ class TestTok:
         assert filters.tok(1524127, "M") == "1.52M"
         assert filters.tok(835546, "k") == "836k"
         assert filters.tok(640, "k") == "1k"
+
+    def test_column_marks_values_below_unit_resolution(self):
+        """0 でなく単位の解像度に満たない値は「<1k」「<0.01M」。0 はそのまま。"""
+        assert filters.tok(499, "k") == "<1k"
+        assert filters.tok(0, "k") == "0k"
+        assert filters.tok(4999, "M") == "<0.01M"
+        assert filters.tok(5000, "M") == "0.01M"
+        assert filters.tok(0, "M") == "0.00M"
         assert filters.tok(640.4, "") == "640"
 
 

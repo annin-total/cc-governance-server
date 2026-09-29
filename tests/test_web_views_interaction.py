@@ -1,4 +1,4 @@
-"""カードの小さなグラフの札と、下段のグラフと表の連動の対応を、描画した画面で確かめる。"""
+"""カードの小さなグラフのツールチップと、下段のグラフと表の連動の対応を、描画した画面で確かめる。"""
 
 import re
 
@@ -12,7 +12,7 @@ def _html(client) -> str:
 
 
 def test_spark_points_carry_day_and_value(today_client):
-    """カードの折れ線の点ごとに、日付と値の札の文言がある（JS が無ければ SVG の title が同じ文言を出す）。"""
+    """カードの折れ線の点ごとに、日付と値のツールチップの文言がある（JS が無ければ SVG の title が同じ文言を出す）。"""
     html = _html(today_client)
     for label, suffix in (
         ("送信した利用者", " 人"),
@@ -32,7 +32,7 @@ def test_spark_points_carry_day_and_value(today_client):
 
 
 def _keys(fragment: str, tag: str) -> list:
-    return re.findall(rf'<{tag}\b[^>]*data-key="([^"]*)"', fragment)
+    return re.findall(rf'<{tag}\b[^>]*data-link="([^"]*)"', fragment)
 
 
 def _panel(html: str, tab: str) -> str:
@@ -40,7 +40,7 @@ def _panel(html: str, tab: str) -> str:
 
 
 def test_tab_charts_and_rows_share_keys(today_client):
-    """下段のグラフの棒と表の行が同じ data-key を持つ（連動の対応）。タブのグラフには札を付けない。"""
+    """下段のグラフの棒と表の行が同じ data-link を持つ（連動の対応）。タブのグラフにはツールチップを付けない。data-key は表を見分ける属性にだけ使う。"""
     html = _html(today_client)
     for tab in ("daily", "cost"):
         panel = _panel(html, tab)
@@ -48,6 +48,7 @@ def test_tab_charts_and_rows_share_keys(today_client):
         rows = _keys(table_body(html, tab), "tr")
         assert rows and sorted(set(_keys(chart, "g"))) == sorted(rows), tab
         assert "<title>" not in chart and "data-tip" not in chart
+        assert "data-key" not in panel
     assert _keys(table_body(html, "health"), "tr") == []
 
 
