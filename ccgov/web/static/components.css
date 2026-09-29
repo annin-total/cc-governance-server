@@ -131,4 +131,8 @@ th[aria-sort="descending"] .arrow::after { content: "↓"; opacity: 1; }
 .num-ng { color: var(--ng); }
 .empty { color: var(--muted); font-size: var(--fs-label); padding: var(--sp-l) 0; margin: 0; }
 .empty[hidden] { display: none; }
+
+/* 丸めた値: 当てると点線の下線と、正確な値の札 */
+.exact { cursor: help; text-decoration: underline dotted transparent; text-underline-offset: .2em; text-decoration-thickness: 1px; }
+.exact:hover { text-decoration-color: var(--muted); }
 @media (prefers-reduced-motion: reduce) { .card { transition: none; } }

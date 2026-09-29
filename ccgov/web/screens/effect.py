@@ -16,7 +16,7 @@ CARDS = (
     Card("stop", "work", "stop", "{stop[median][after]:bin}", wide=True, viz=Viz("hist", "stop[rows]", terms=L.SIDE)),
     Card("adopters", "spend", "study", "{adopters:num}"),
     Card("per_cost", "spend", "study", "{study[after][cost]:usd}", viz=Viz("pair", "study", "cost", terms=L.SIDE)),
-    Card("per_tokens", "spend", "study", "{study[after][tokens]:num}", viz=Viz("pair", "study", "tokens", terms=L.SIDE)),
+    Card("per_tokens", "spend", "study", "{study[after][tokens]:tok}", viz=Viz("pair", "study", "tokens", terms=L.SIDE)),
 )
 
 TABS = (
@@ -24,7 +24,7 @@ TABS = (
     Tab("stop", "stop[rows]", _HIST_COLS, chart="hist"),
     Tab("study", "study[rows]", (
         Col("day", "rel", label="rel_day"), Col("side", "tag", terms=L.SIDE), Col("people", "num", unit="person"),
-        Col("tokens", "num", label="per_tokens"), Col("cost", "usd", label="per_cost"), Col("cost", "bar", label="bar", sort=None),
+        Col("tokens", "tok", label="per_tokens"), Col("cost", "usd", label="per_cost"), Col("cost", "bar", label="bar", sort=None),
     ), chips_by="side", chips=tuple(Chip(k, v) for k, v in L.SIDE.items())),
 )
 # fmt: on

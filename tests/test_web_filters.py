@@ -8,6 +8,9 @@ _ALL_FILTERS = [
     filters.day,
     filters.num,
     filters.usd,
+    filters.usd_full,
+    filters.dec1,
+    filters.tok,
     filters.pct,
     filters.bin_range,
     filters.rel,
@@ -40,6 +43,58 @@ class TestUsd:
 
     def test_zero(self):
         assert filters.usd(0) == "$0.00"
+
+    def test_rounds_half_up_to_whole_from_threshold(self):
+        assert filters.usd(999.99) == "$999.99"
+        assert filters.usd(1000) == "$1,000"
+        assert filters.usd(2259.04) == "$2,259"
+        assert filters.usd(2258.5) == "$2,259"
+
+    def test_column_scale_overrides_threshold(self):
+        assert filters.usd(12.3, True) == "$12"
+        assert filters.usd(2259.04, False) == "$2,259.04"
+
+    def test_full_keeps_cents(self):
+        assert filters.usd_full(2259.04) == "$2,259.04"
+
+
+class TestDec1:
+    def test_whole_from_threshold(self):
+        assert filters.dec1(47.25) == "47.2"
+        assert filters.dec1(999.9) == "999.9"
+        assert filters.dec1(1234.5) == "1,235"
+        assert filters.dec1_full(1234.5) == "1,234.5"
+
+
+class TestTok:
+    @pytest.mark.parametrize(
+        ("value", "shown"),
+        [
+            (999, "999"),
+            (1000, "1k"),
+            (980629, "981k"),
+            (999499, "999k"),
+            (999500, "1.0M"),
+            (1234567, "1.2M"),
+            (9_940_000, "9.9M"),
+            (10_000_000, "10M"),
+            (12_345_678, "12M"),
+        ],
+    )
+    def test_card_scale_follows_size(self, value, shown):
+        assert filters.tok(value) == shown
+
+    def test_column_unit_from_largest_value(self):
+        assert filters.tok_unit(999) == ""
+        assert filters.tok_unit(1000) == "k"
+        assert filters.tok_unit(1_000_000) == "M"
+
+    def test_column_keeps_one_unit(self):
+        assert filters.tok(835546, "M") == "0.84M"
+        assert filters.tok(1524127, "M") == "1.52M"
+        assert filters.tok(835546, "k") == "836k"
+        assert filters.tok(640, "k") == "1k"
+        assert filters.tok(640.4, "") == "640"
 
 
 class TestPct:

@@ -48,16 +48,16 @@ CARD = {
     "core": {"label": "本体が最新版の端末", "unit": "台", "sub": "最新 {core[latest]} · 全 {core[total]:num} 台"},
     "precompact": {"label": "圧縮直前のコンテキスト（中央の区間）", "unit": "トークン",
                    "sub": "適用前 {precompact[median][before]:bin} · 記録 {precompact[total][before]:num} → {precompact[total][after]:num} 件",
-                   "cap": ("区間の幅 {CONTEXT_BIN:num} トークン · 縦は各期間の中の割合",)},
+                   "cap": ("区間の幅 {CONTEXT_BIN:tok} トークン · 縦は各期間の中の割合",)},
     "stop": {"label": "応答終了時のコンテキスト（中央の区間）", "unit": "トークン",
              "sub": "適用前 {stop[median][before]:bin} · 記録 {stop[total][before]:num} → {stop[total][after]:num} 件",
-             "cap": ("区間の幅 {CONTEXT_BIN:num} トークン · 縦は各期間の中の割合",)},
+             "cap": ("区間の幅 {CONTEXT_BIN:tok} トークン · 縦は各期間の中の割合",)},
     "adopters": {"label": "設定を守り始めた利用者", "unit": "人", "sub": "日ごとの対象者 {study[people_min]:num}〜{study[people_max]:num} 人",
                  "cap": ("その日が利用明細の期間に入る人だけを数える",)},
     "per_cost": {"label": "1 人 1 日あたりのコスト",
                  "sub": "適用前 {study[before][cost]:usd} · のべ {study[before][person_days]:num} → {study[after][person_days]:num} 人日",
                  "cap": ("0 日目（守り始めた当日）を除く",)},
-    "per_tokens": {"label": "1 人 1 日あたりのトークン", "unit": "トークン", "sub": "適用前 {study[before][tokens]:num}",
+    "per_tokens": {"label": "1 人 1 日あたりのトークン", "unit": "トークン", "sub": "適用前 {study[before][tokens]:tok}",
                    "cap": ("入力とキャッシュの読み書き（出力は含まない）",)},
     "skills": {"label": "スキルの呼び出し", "unit": "回", "sub": "前の {RECENT_DAYS} 日 {skills[prev]:num} 回 · {skills[kinds]:num} 種類",
                "cap": ("呼び出しの多い順 · 割合は直近 {RECENT_DAYS} 日の全呼び出しのうち",), "row": ("{calls:num} 回", "{share:pct}")},
@@ -68,7 +68,7 @@ CARD = {
               "cap": ("サブエージェントの中で起きた記録の割合",)},
 }
 PAIR = {"prev": PREV, "recent": RECENT}
-_HIST_SCOPE = " · 前後 {EVENT_STUDY_SPAN} 日 · 区間の幅 {CONTEXT_BIN:num} トークン · 割合は各期間の中の割合"
+_HIST_SCOPE = " · 前後 {EVENT_STUDY_SPAN} 日 · 区間の幅 {CONTEXT_BIN:tok} トークン · 割合は各期間の中の割合"
 _HIST_NOTE = "両方の期間で 0 件の区間は出しません。しきい値が効いていれば、適用後は小さい区間に寄ります。"
 _USAGE_NOTE = "差は直近から前の {RECENT_DAYS} 日を引いた値です。増えた・減ったは呼び出し回数の差で分けます。"
 # タブ: label・hint（タブの 2 行目）・title・scope・note・search（入力欄の案内）・all（全件の区分の名前）

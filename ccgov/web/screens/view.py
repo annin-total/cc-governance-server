@@ -73,7 +73,7 @@ def sources(screen: Screen) -> set:
 
 def _card(card: Card, ctx: dict) -> dict:
     words = W.CARD[card.id]
-    value = text.fill(card.value, ctx) if card.value else ""
+    value = text.parts(card.value, ctx) if card.value else []
     delta = text.fill(card.delta, ctx) if card.delta else ""
     state = text.lookup(ctx, card.state) if card.state else None
     return {
@@ -82,10 +82,10 @@ def _card(card: Card, ctx: dict) -> dict:
         "href": f"#{card.tab}" + (f":{card.chip}" if card.chip else ""),
         "label": words["label"],
         "value": value,
-        "unit": "" if value == filters.EM_DASH else words.get("unit", ""),
+        "unit": "" if value == [(filters.EM_DASH, "")] else words.get("unit", ""),
         "delta": "" if delta == filters.EM_DASH else delta,
         "up": delta.startswith("+"),
-        "sub": text.fill(words.get("sub", ""), ctx),
+        "sub": text.parts(words.get("sub", ""), ctx),
         "state": (state, L.STATE[state]) if state else None,
         "wide": card.wide,
         "caps": [text.fill(c, ctx) for c in words.get("cap", ())],
