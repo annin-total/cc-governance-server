@@ -120,7 +120,7 @@ svg text { font: var(--fs-xs) var(--sans); fill: var(--muted); font-variant-nume
 .m-item summary::-webkit-details-marker { display: none; }
 .m-item summary:hover .m-month { color: var(--accent); }
 .m-month { white-space: nowrap; }
-.m-month::before { content: ""; display: inline-block; margin: 0 var(--sp-xs) 1px 0; border-style: solid; border-width: 4px 0 4px 5px; border-color: transparent transparent transparent var(--muted); vertical-align: middle; transition: transform .15s; }
+.m-month::before { content: ""; display: inline-block; margin: 0 var(--sp-xs) 1px 0; border-style: solid; border-width: var(--caret-h) 0 var(--caret-h) var(--caret-w); border-color: transparent transparent transparent var(--muted); vertical-align: middle; transition: transform .15s; }
 .m-item[open] .m-month::before { transform: rotate(90deg); }
 .m-item[open] summary { font-weight: 600; border-bottom-style: dashed; }
 .m-item[open] summary .sub { font-weight: 400; }

@@ -181,7 +181,17 @@ def test_month_without_rows_is_400(export_client):
 
 
 @pytest.mark.parametrize(
-    "month", ["2026-13", "2026-00", "2026-8", "202608", "abcd-ef", "2026-08-01"]
+    "month",
+    [
+        "2026-13",
+        "2026-00",
+        "2026-8",
+        "202608",
+        "abcd-ef",
+        "2026-08-01",
+        "0000-01",
+        "２０２６-08",
+    ],
 )
 def test_malformed_month_is_400(export_client, month):
     response = export_client.get(ADMIN + f"/settings/export/{month}")

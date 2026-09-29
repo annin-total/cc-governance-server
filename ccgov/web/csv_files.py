@@ -42,8 +42,7 @@ def too_large(e):
 def delete():
     """一覧にある名前だけを受け付ける（任意のパスを消させない）。"""
     name = request.form.get("file", "")
-    listed = {f["source_file"] for f in settings.run(csv_files.build, "")["files"]}
-    if name not in listed:
+    if name not in settings.run(csv_files.names):
         return settings.render(
             400, imported=[_rejected(csv_upload.Rejected("unknown"))]
         )

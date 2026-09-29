@@ -20,6 +20,11 @@ def build(conn, csv_dir: str) -> dict:
     }
 
 
+def names(conn) -> set:
+    """一覧に出るファイル名（削除を受け付ける名前）。"""
+    return {name for name, _, _ in queries_cost.source_files(conn)}
+
+
 def _size(csv_dir: str, name: str) -> Optional[int]:
     """`CSV_DIR` にあるファイルの大きさ。`CSV_DIR` が未設定かファイルが無ければ None。"""
     path = os.path.join(csv_dir, name)
