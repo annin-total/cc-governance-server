@@ -1,6 +1,6 @@
 """`web/charts.py` の座標計算の単体検査。"""
 
-from ccgov.web import charts, filters, ticks
+from ccgov.web import charts, charts_hist, filters, ticks
 
 
 def test_pct_clamps_and_guards_zero():
@@ -31,7 +31,8 @@ def test_spark_hits_cover_width_around_each_point():
     ]
 
 
-def test_bars_mark_recent_and_label_every_other():
+def test_bars_mark_recent_and_label_by_day_ticks():
+    """目盛りは `day_ticks` が選ぶ位置（30px の棒では 1 日おき、最後の日から数える）。"""
     g = charts.bars([1, 2, 4], ["a", "b", "c"], [7, 8, 9], 1, 90, 100)
     assert [b["hi"] for b in g["bars"]] == [False, False, True]
     assert [(b["key"], b["hit_x"], b["hit_w"]) for b in g["bars"]] == [
@@ -39,7 +40,8 @@ def test_bars_mark_recent_and_label_every_other():
         (8, 30.0, 30.0),
         (9, 60.0, 30.0),
     ]
-    assert [b["label"] for b in g["bars"]] == ["", "b", ""]
+    assert [b["label"] for b in g["bars"]] == ["a", "", "c"]
+    assert g["values"] is True
     assert g["bars"][2]["y"] == charts.BAR_PAD_TOP
     assert g["bars"][2]["h"] == g["base"] - charts.BAR_PAD_TOP
 
@@ -98,6 +100,22 @@ def test_day_ticks_label_first_present_day_when_the_first_is_missing():
     assert [filters.day(days[i])[8:] for i in picked] == ["02"] * 13
 
 
+def test_narrow_bars_drop_the_values_above_them():
+    """28 日（56 本）を半分の幅に並べると、棒の上の値は重なるので書かない。目盛りは月曜。"""
+    days = list(range(20664, 20664 + 56))
+    g = charts.bars([1] * 56, [str(d) for d in days], days, 28, 540, 132)
+    assert g["values"] is False
+    labeled = [b["key"] for b in g["bars"] if b["label"]]
+    assert labeled and all((d + 3) % 7 == 0 for d in labeled)
+
+
+def test_stacked_can_leave_out_day_labels():
+    g = charts.stacked(
+        [(d, [1]) for d in range(20696, 20696 + 14)], 1100, 180, day_labels=False
+    )
+    assert not any(b["tick"] for b in g["bars"])
+
+
 def test_stacked_marks_ticks_from_width():
     g = charts.stacked([(d, [1]) for d in range(20696, 20696 + 14)], 1100, 180)
     assert all(b["tick"] for b in g["bars"])
@@ -109,7 +127,7 @@ def test_hist_puts_sides_side_by_side_from_zero():
         {"bin": 0, "before_share": 10.0, "after_share": 20.0},
         {"bin": 20000, "before_share": None, "after_share": 5.0},
     ]
-    g = charts.hist(rows, ("before", "after"), 200, 108, 0, 0)
+    g = charts_hist.hist(rows, ("before", "after"), 200, 108, 0, 0)
     (b0, a0), (b1, _) = [bar["segs"] for bar in g["bars"]]
     assert a0["h"] == 2 * b0["h"] > 0
     assert a0["y"] + a0["h"] == g["base"] == 108

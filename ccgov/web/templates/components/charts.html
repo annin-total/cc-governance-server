@@ -1,4 +1,5 @@
 {# 小さなグラフ。座標は charts.py が計算済み。色はクラスで指定し、直値を書かない。 #}
+{% from "components/values.html" import parts %}
 {% macro caps(parts) -%}
 <span class="cap">{% for p in parts %}<span>{{ p }}</span>{% endfor %}</span>
 {%- endmacro %}
@@ -23,15 +24,35 @@
 
 {# 下段のグラフの 1 本分。data-link で表の行と結び、当たり判定の透明な面を敷く（app.js が連動させる） #}
 {% macro col(b, h) -%}
-<g class="col" data-link="{{ b.key }}"><rect class="hit" x="{{ b.hit_x }}" y="0" width="{{ b.hit_w }}" height="{{ h }}"/>{{ caller() }}</g>
+<g class="col{{ ' is-partial' if b.dim }}" data-link="{{ b.key }}"><rect class="hit" x="{{ b.hit_x }}" y="0" width="{{ b.hit_w }}" height="{{ h }}"/>{{ caller() }}</g>
 {%- endmacro %}
 
 {% macro hist_segs(g, b) -%}
 {%- for s in b.segs %}<rect class="{{ 'bar-hi' if loop.last else 'bar-old' }}" x="{{ s.x }}" y="{{ s.y }}" width="{{ g.bw }}" height="{{ s.h }}"/>{% endfor -%}
 {%- endmacro %}
 
+{# 見込みのカード: 営業日あたりと 1 人 1 営業日あたり（前月と比べる）と、営業日を横軸にした低い累積の線 #}
+{% macro forecast(v) -%}
+<span class="fc-stats">
+{%- for s in v.stats %}<span class="fc-stat"><span class="fc-label">{{ s.label }}</span>
+<span class="fc-now">{{ parts(s.now) }}{% if s.change %}<span class="change{{ ' up' if s.up }}">{{ s.change }}</span>{% endif %}</span><span class="fc-prev">{{ s.prev }}</span></span>
+{%- endfor %}</span>
+{%- set g = v.geo %}
+<svg class="fc-cum" viewBox="0 0 {{ g.w }} {{ g.h }}" preserveAspectRatio="none" aria-hidden="true">
+  {%- if g.prev %}<polyline class="fc-cum-prev" points="{{ g.prev }}" vector-effect="non-scaling-stroke"/>{% endif %}
+  {%- if g.fc %}<polyline class="fc-cum-fc" points="{{ g.fc }}" vector-effect="non-scaling-stroke"/>{% endif %}
+  {%- if g.now %}<polyline class="fc-cum-now" points="{{ g.now }}" vector-effect="non-scaling-stroke"/>{% endif %}
+  {%- if g.last %}<circle class="spark-dot" cx="{{ g.last[0] }}" cy="{{ g.last[1] }}" r="2.5"/>{% endif %}
+  <line class="spark-guide" x1="0" x2="0" y1="0" y2="{{ g.h }}" vector-effect="non-scaling-stroke"/>
+  {%- for c in g.cols %}
+  <rect class="hit" x="{{ c.hit_x }}" y="0" width="{{ c.hit_w }}" height="{{ g.h }}" data-tip="{{ c.tip }}" data-gx="{{ c.cx }}"><title>{{ c.tip }}</title></rect>
+  {%- endfor %}
+</svg>
+{%- endmacro %}
+
 {% macro viz(v) -%}
 {%- if v.kind == "spark" -%}{{ spark(v.geo) }}
+{%- elif v.kind == "forecast" -%}{{ forecast(v) }}
 {%- elif v.kind == "meter" -%}<span class="meter {{ v.tone }}"><i style="width: {{ v.pct|round(1) }}%"></i></span>
 {%- elif v.kind == "pair" -%}
 {%- for label, pct, tone in v.rows %}<span class="pair"><span>{{ label }}</span>{{ hbar(pct, tone) }}</span>{% endfor -%}
@@ -52,11 +73,35 @@
 <svg viewBox="0 0 {{ g.w }} {{ g.h }}" aria-hidden="true">
 {%- for b in g.bars %}
   {% call col(b, g.base) %}<rect class="{{ 'bar-hi' if b.hi else 'bar-old' }}" x="{{ b.x }}" y="{{ b.y }}" width="{{ b.w }}" height="{{ b.h }}" rx="1.5"/>
-  <text x="{{ b.cx }}" y="{{ b.y - 4 }}" text-anchor="middle">{{ b.v|num }}</text>
+  {%- if g["values"] %}<text x="{{ b.cx }}" y="{{ b.y - 4 }}" text-anchor="middle">{{ b.v|num }}</text>{% endif %}
   {%- if b.label %}<text x="{{ b.cx }}" y="{{ g.h - 4 }}" text-anchor="middle">{{ b.label }}</text>{% endif %}{% endcall %}
 {%- endfor %}
   <line class="axis" x1="0" x2="{{ g.w }}" y1="{{ g.base }}" y2="{{ g.base }}"/>
 </svg></div>
+{%- endmacro %}
+
+{# 今月のコストの累積（今月の実績・月末までの見込みの破線・前月）。暦日では休みの日に薄い帯を敷く #}
+{% macro cum(m) -%}
+{%- set g = m.geo -%}
+<svg class="chart cum" viewBox="0 0 {{ g.w }} {{ g.h }}" aria-hidden="true">
+{%- for b in g.bands %}<rect class="off" x="{{ b.x }}" y="{{ g.top }}" width="{{ b.w }}" height="{{ g.base - g.top }}"/>{% endfor %}
+{%- for t in g.ticks %}
+  <line class="gridline" x1="{{ g.left }}" x2="{{ g.w }}" y1="{{ t.y }}" y2="{{ t.y }}"/>
+  <text x="{{ g.left - 8 }}" y="{{ t.y + 4 }}" text-anchor="end">{{ t.v|usd0 }}</text>
+{%- endfor %}
+  {%- if g.prev %}<polyline class="cum-prev" points="{{ g.prev }}"/>{% endif %}
+  {%- if g.fc %}<polyline class="cum-fc" points="{{ g.fc }}"/>{% endif %}
+  {%- if g.now %}<polyline class="cum-now" points="{{ g.now }}"/>{% endif %}
+{%- for c in g.cols %}
+  <g class="col" data-link="{{ c.key }}"><rect class="hit" x="{{ c.hit_x }}" y="0" width="{{ c.hit_w }}" height="{{ g.h }}"/>
+  <line class="guide" x1="{{ c.cx }}" x2="{{ c.cx }}" y1="{{ g.top }}" y2="{{ g.base }}"/>
+  {%- if c.prev_y is not none %}<circle class="dot-prev" cx="{{ c.cx }}" cy="{{ c.prev_y }}" r="3"/>{% endif %}
+  {%- if c.y is not none %}<circle class="{{ 'dot-now' if c.actual else 'dot-fc' }}" cx="{{ c.cx }}" cy="{{ c.y }}" r="3"/>{% endif %}
+  <text x="{{ c.cx }}" y="{{ g.h - 4 }}" text-anchor="middle">{{ c.label }}</text></g>
+{%- endfor %}
+</svg>
+<div class="legend cum-legend"><span><i class="ln now"></i>{{ m.legend[0] }}</span><span><i class="ln fc"></i>{{ m.legend[1] }}</span><span><i class="ln prev"></i>{{ m.legend[2] }}</span>
+{%- if m.off %}<span><i class="off"></i>{{ m.off }}</span>{% endif %}<span>{{ m.axis }}</span></div>
 {%- endmacro %}
 
 {% macro tab_chart(c) -%}
@@ -64,10 +109,18 @@
 <div class="two">{% for title, g in c.charts %}{{ bars(title, g) }}{% endfor %}</div>
 {%- elif c.kind == "cost" -%}
 {%- set g = c.geo -%}
-<svg viewBox="0 0 {{ g.w }} {{ g.h }}" aria-hidden="true">
+<svg class="chart" viewBox="0 0 {{ g.w }} {{ g.view_h or g.h }}" aria-hidden="true">
+{%- if g.shade_x is not none %}
+  <rect class="spark-shade" x="{{ g.shade_x }}" y="0" width="{{ g.w - g.shade_x }}" height="{{ g.base }}"/>
+{%- endif %}
 {%- for t in g.ticks %}
   <line class="gridline" x1="{{ g.left }}" x2="{{ g.w }}" y1="{{ t.y }}" y2="{{ t.y }}"/>
-  <text x="{{ g.left - 8 }}" y="{{ t.y + 4 }}" text-anchor="end">{{ t.v|usd0 }}</text>
+  <text x="{{ g.left - 8 }}" y="{{ t.y + 4 }}" text-anchor="end">{{ t.v|usd0 if c.fmt == "usd" else t.v|num }}</text>
+{%- endfor %}
+{%- for m in g.foot or [] %}
+  <line class="month-sep" x1="{{ m.x }}" x2="{{ m.x }}" y1="{{ g.base }}" y2="{{ m.sep_y }}"/>
+  <text class="month-name" x="{{ m.text_x }}" y="{{ m.name_y }}">{{ m.name }}</text>
+  <text class="month-total" x="{{ m.text_x }}" y="{{ m.value_y }}">{{ m.value }}</text>
 {%- endfor %}
 {%- for b in g.bars %}
   {% call col(b, g.base) %}
@@ -75,7 +128,12 @@
   {%- if b.tick %}<text x="{{ b.cx }}" y="{{ g.h - 4 }}" text-anchor="middle">{{ b.key|md }}</text>{% endif %}{% endcall %}
 {%- endfor %}
 </svg>
-<div class="legend">{% for name in c.series %}<span><i class="series-{{ loop.index0 }}"></i>{{ name }}</span>{% endfor %}</div>
+<div class="legend">{% for name in c.series %}<span><i class="series-{{ loop.index0 }}"></i>{{ name }}</span>{% endfor %}
+{%- for text in c.legend %}<span>{{ text }}</span>{% endfor %}</div>
+{%- elif c.kind == "month" -%}
+{%- for m in c.modes %}
+<div data-when="{{ m.id }}">{{ cum(m) }}</div>
+{%- endfor %}
 {%- elif c.kind == "hist" -%}
 {%- set g = c.geo -%}
 <svg viewBox="0 0 {{ g.w }} {{ g.h }}" aria-hidden="true">

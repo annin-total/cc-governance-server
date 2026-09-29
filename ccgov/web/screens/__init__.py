@@ -1,10 +1,14 @@
 """画面の定義の型。画面は「上段の要点のカード（群ごと）」と「下段のタブ（一覧）」でできている。
 
 文言は `words.py` にあり、定義は id で引く。値の場所は `users[recent]` の形（`str.format` と同じ）で書く。
+カードとタブの `long` は 12 か月での扱い: None は出さない（カードは群の注記に名前を出し、タブは「出しません」）、
+`SAME` はそのまま出す、`Card`・`Tab` はそれに差し替える（見出しの違うカードに差し替えたら、元の名前も注記に出す）。
 """
 
 from dataclasses import dataclass
-from typing import Optional
+from typing import Any, Optional
+
+SAME = "same"
 
 
 @dataclass(frozen=True)
@@ -26,7 +30,7 @@ class Viz:
 
 @dataclass(frozen=True)
 class Card:
-    """要点のカード 1 枚。文言は `words.CARD[id]`（label・unit・sub・cap・row）。"""
+    """要点のカード 1 枚。文言は `words.CARD[words or id]`（label・unit・sub・cap・row）。"""
 
     id: str
     group: str
@@ -37,6 +41,8 @@ class Card:
     chip: str = ""
     wide: bool = False
     viz: Optional[Viz] = None
+    long: Any = None
+    words: str = ""
 
 
 @dataclass(frozen=True)
@@ -77,6 +83,8 @@ class Tab:
     chip_terms: Optional[dict] = None
     search: str = ""
     chart: str = ""
+    chips_all: bool = True
+    long: Any = None
 
 
 @dataclass(frozen=True)

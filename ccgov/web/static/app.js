@@ -1,5 +1,5 @@
 "use strict";
-// 画面の操作だけを受け持つ（タブの切り替え・絞り込み・並べ替え・ツールチップ・グラフと表の連動）。中身はサーバが描画済みで、data-* 属性だけを見る。
+// 画面の操作だけを受け持つ（タブの切り替え・絞り込み・並べ替え・ツールチップ・グラフと表の連動・削除の確認）。中身はサーバが描画済みで、data-* 属性だけを見る。
 // 値を HTML として組み立てない（textContent と属性の切り替えだけを使う）。
 (() => {
   document.documentElement.classList.add("js");
@@ -19,6 +19,10 @@
     }
     const counter = panel.querySelector("[data-shown]");
     if (counter) counter.textContent = fmt(shown);
+    // 「すべて」の無い区分: 分母は選んだ区分の行の数、グラフ（data-when）も区分に合わせて切り替える
+    const total = panel.querySelector("[data-total]");
+    if (total) total.textContent = fmt(rows.filter((tr) => (tr.dataset.tags || "").split(" ").includes(state.chip)).length);
+    for (const el of all(panel, "[data-when]")) el.hidden = el.dataset.when !== state.chip;
     const empty = panel.querySelector("[data-empty]");
     if (empty) empty.hidden = shown > 0;
     for (const b of all(panel, "[data-chip]")) b.setAttribute("aria-pressed", String(b.dataset.chip === state.chip));
@@ -45,7 +49,8 @@
   function setup(section) {
     const tabs = all(section, "[data-tab]");
     const panels = all(section, "[data-panel]");
-    const states = new Map(panels.map((p) => [p.dataset.panel, { chip: "all", q: "" }]));
+    const firstChip = (p) => { const c = p.querySelector("[data-chip]"); return c ? c.dataset.chip : "all"; };
+    const states = new Map(panels.map((p) => [p.dataset.panel, { chip: firstChip(p), q: "" }]));
     const cards = all(document, "[data-open]");
 
     function open(id, chip, fromCard) {
@@ -173,6 +178,18 @@
     const linked = e.target.closest(LINKED);
     const panel = linked && linked.closest("[data-panel]");
     if (panel && !linked.contains(e.relatedTarget)) unlink(panel);
+  });
+
+  // 取り消せない操作（削除）は、送る前にブラウザの確認を出す。文言は data-confirm の属性値をそのまま使う
+  document.addEventListener("submit", (e) => {
+    const form = e.target.closest("form[data-confirm]");
+    if (form && !window.confirm(form.dataset.confirm)) e.preventDefault();
+  });
+
+  // 期間の切り替えは、開いているタブ（#タブ:区分）を持ち越す
+  document.addEventListener("click", (e) => {
+    const a = e.target.closest("a[data-period]");
+    if (a && location.hash) a.href = a.href.split("#")[0] + location.hash;
   });
 
   document.addEventListener("DOMContentLoaded", () => {

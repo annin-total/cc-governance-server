@@ -140,6 +140,18 @@ def md(value: Any) -> str:
     return text if text == EM_DASH else text[5:].replace("-", "/")
 
 
+def ym(value: Any) -> str:
+    """epoch 日を `YYYY-MM` にする。"""
+    text = day(value)
+    return text if text == EM_DASH else text[:7]
+
+
+def mon(value: Any) -> str:
+    """epoch 日の月の数（1〜12）。"""
+    text = day(value)
+    return text if text == EM_DASH else str(int(text[5:7]))
+
+
 def pct(value: Any) -> str:
     float_value = _to_float(value)
     if float_value is None:

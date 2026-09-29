@@ -6,10 +6,6 @@ POLICY_DAYS = 30
 STALE_DAYS = 14
 EVENT_STUDY_SPAN = 14
 
-# 概況のコストの小さな推移と、日ごとのコストの絞り込みの日数
-COST_SPARK_DAYS = 28
-COST_FILTER_DAYS = 30
-
 # 概況とスキル・コマンドの利用で切り替える期間。日数の期間は直近 N 日とその前の N 日を比べ、
 # 月数の期間は比べずに週ごとに並べる。最初の日数が既定
 PERIOD_DAYS = (RECENT_DAYS, 28)

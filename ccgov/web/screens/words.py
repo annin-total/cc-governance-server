@@ -5,30 +5,43 @@
 
 # fmt: off
 from ccgov.constants import REFERENCE_KEY
-from ccgov.web.labels import PREV, RECENT, SETTING, STALE_NOTE
+from ccgov.web.labels import HOLIDAY, PREV, RECENT, SETTING, STALE_NOTE
 
 # 群: id -> (見出し, 期間と母集団)
 GROUP = {
-    "use": ("利用", "直近 {RECENT_DAYS} 日と、その前の {RECENT_DAYS} 日"),
-    "data": ("データの届き具合", "直近 {RECENT_DAYS} 日と、その前の {RECENT_DAYS} 日（照合率は利用明細の最終日までの {RECENT_DAYS} 日）"),
+    "use": ("利用", "直近 {period[days]} 日と、その前の {period[days]} 日"),
+    "data": ("データの届き具合", "直近 {period[days]} 日と、その前の {period[days]} 日（照合率は利用明細の最終日までの {period[days]} 日）"),
     "who": ("利用者", "直近 {POLICY_DAYS} 日 · 対象は{basis:basis} {denominator:num} 人"),
     "set": ("設定と更新", "直近 {POLICY_DAYS} 日 · 端末ごとに最新の報告 1 件"),
     "work": ("設定は働いているか", "{REFERENCE_KEY:setting}を {REFERENCE_VALUE} にした前後 {EVENT_STUDY_SPAN} 日 · 前後の境は各利用者が守り始めた日"),
-    "calls": ("呼び出し", "直近 {RECENT_DAYS} 日と、その前の {RECENT_DAYS} 日"),
-    "agent": ("サブエージェント", "直近 {RECENT_DAYS} 日 · 分母は全記録"),
+    "calls": ("呼び出し", "直近 {period[days]} 日と、その前の {period[days]} 日"),
+    "agent": ("サブエージェント", "直近 {period[days]} 日 · 分母は全記録"),
     "spend": ("コストの前後差", "1 人 1 日あたり · {EFFECT_PROVIDER:provider} · 時期の変動を含むため、前後差を施策の効果と読まない"),
 }
+# 群の 12 か月での期間と母集団（無ければ `LONG_SCOPE`）
+LONG_SCOPE = "直近 {period[months]} か月"
+GROUP_LONG = {"use": "直近 {period[months]} か月（{cost[start]:day}〜{cost[end]:day}）· 週ごと · 利用明細の項目だけ"}
+_WEEKS_CAP = ("{cost[start]:ym}", "完了した週ごと")
 # カード: label・unit・sub（値の下の 1 行）・cap（グラフの下の注記）・row（rates の行の右端）
 CARD = {
-    "users": {"label": "送信した利用者", "unit": "人", "sub": "前の {RECENT_DAYS} 日 {users[prev]:num} 人",
-              "cap": ("{trend[start]:md}", "濃い部分が直近 {RECENT_DAYS} 日", "{trend[end]:md}")},
-    "sessions": {"label": "1 日あたりのセッション", "unit": "件", "sub": "前の {RECENT_DAYS} 日 {sessions[prev]:dec1} 件",
-                 "cap": ("{trend[start]:md}", "濃い部分が直近 {RECENT_DAYS} 日", "{trend[end]:md}")},
-    "cost": {"label": "コスト（利用明細）", "sub": "前の {RECENT_DAYS} 日 {cost[prev]:usd}",
+    "users": {"label": "送信した利用者", "unit": "人", "sub": "前の {period[days]} 日 {users[prev]:num} 人",
+              "cap": ("{trend[start]:md}", "濃い部分が直近 {period[days]} 日", "{trend[end]:md}")},
+    "sessions": {"label": "1 日あたりのセッション", "unit": "件", "sub": "前の {period[days]} 日 {sessions[prev]:dec1} 件",
+                 "cap": ("{trend[start]:md}", "濃い部分が直近 {period[days]} 日", "{trend[end]:md}")},
+    "cost": {"label": "コスト（利用明細）", "sub": "前の {period[days]} 日 {cost[prev]:usd}",
              "cap": ("{cost[spark_start]:md}", "{cost[start]:md}〜{cost[end]:md} の合計", "{cost[end]:md}")},
+    "cost_year": {"label": "コスト（利用明細）", "sub": "月平均 {cost[monthly]:usd} · 前の期間と比べない",
+                  "cap": (*_WEEKS_CAP, "{cost[last_end]:md}")},
+    "cost_users": {"label": "利用明細にいた利用者", "unit": "人",
+                   "sub": "直近の週（{cost_users[last_start]:md}〜{cost_users[last_end]:md}）{cost_users[last_users]:num} 人",
+                   "cap": (*_WEEKS_CAP, "{cost_users[last_end]:md}")},
+    "forecast": {"label": "月末のコスト見込み（{month[month]:mon} 月）",
+                 "cap": ("実績 {month[actual]:usd} · {month[elapsed]:num} / {month[business_days]:num} 営業日", "{month[as_of]:asof}"),
+                 "stats": (("営業日あたり", "per_bd"), ("1 人 1 営業日あたり", "per_user")),
+                 "empty": "month[as_of]", "cap_empty": ("今月（{month[month]:mon} 月）の利用明細はまだありません",)},
     "bypass": {"label": "確認なしモードの記録", "unit": "%", "sub": "{bypass[numerator]:num} 件 / 全 {bypass[denominator]:num} 件",
                "cap": ("権限モード「確認なし」の割合",)},
-    "events": {"label": "受信した記録", "unit": "件", "sub": "前の {RECENT_DAYS} 日 {events[prev]:num} 件"},
+    "events": {"label": "受信した記録", "unit": "件", "sub": "前の {period[days]} 日 {events[prev]:num} 件"},
     "reconciliation": {"label": "CSV との照合率", "unit": "%",
                        "sub": "CSV にもいた {reconciliation[numerator]:num} 人 / 送信した {reconciliation[denominator]:num} 人",
                        "cap": ("前との比較なし",)},
@@ -59,10 +72,10 @@ CARD = {
                  "cap": ("0 日目（守り始めた当日）を除く",)},
     "per_tokens": {"label": "1 人 1 日あたりのトークン", "unit": "トークン", "sub": "適用前 {study[before][tokens]:tok}",
                    "cap": ("入力とキャッシュの読み書き（出力は含まない）",)},
-    "skills": {"label": "スキルの呼び出し", "unit": "回", "sub": "前の {RECENT_DAYS} 日 {skills[prev]:num} 回 · {skills[kinds]:num} 種類",
-               "cap": ("呼び出しの多い順 · 割合は直近 {RECENT_DAYS} 日の全呼び出しのうち",), "row": ("{calls:num} 回", "{share:pct}")},
-    "commands": {"label": "コマンドの呼び出し", "unit": "回", "sub": "前の {RECENT_DAYS} 日 {commands[prev]:num} 回 · {commands[kinds]:num} 種類",
-                 "cap": ("呼び出しの多い順（定義元をまたいで合計）· 割合は直近 {RECENT_DAYS} 日の全呼び出しのうち",),
+    "skills": {"label": "スキルの呼び出し", "unit": "回", "sub": "前の {period[days]} 日 {skills[prev]:num} 回 · {skills[kinds]:num} 種類",
+               "cap": ("呼び出しの多い順 · 割合は直近 {period[days]} 日の全呼び出しのうち",), "row": ("{calls:num} 回", "{share:pct}")},
+    "commands": {"label": "コマンドの呼び出し", "unit": "回", "sub": "前の {period[days]} 日 {commands[prev]:num} 回 · {commands[kinds]:num} 種類",
+                 "cap": ("呼び出しの多い順（定義元をまたいで合計）· 割合は直近 {period[days]} 日の全呼び出しのうち",),
                  "row": ("{calls:num} 回", "{share:pct}")},
     "agent": {"label": "サブエージェントの中の記録", "unit": "%", "sub": "{agent[numerator]:num} 件 / 全 {agent[denominator]:num} 件",
               "cap": ("サブエージェントの中で起きた記録の割合",)},
@@ -70,22 +83,43 @@ CARD = {
 PAIR = {"prev": PREV, "recent": RECENT}
 _HIST_SCOPE = " · 前後 {EVENT_STUDY_SPAN} 日 · 区間の幅 {CONTEXT_BIN:tok} トークン · 割合は各期間の中の割合"
 _HIST_NOTE = "両方の期間で 0 件の区間は出しません。しきい値が効いていれば、適用後は小さい区間に寄ります。"
-_USAGE_NOTE = "差は直近から前の {RECENT_DAYS} 日を引いた値です。増えた・減ったは呼び出し回数の差で分けます。"
+_USAGE_NOTE = "差は直近から前の {period[days]} 日を引いた値です。増えた・減ったは呼び出し回数の差で分けます。"
 # タブ: label・hint（タブの 2 行目）・title・scope・note・search（入力欄の案内）・all（全件の区分の名前）
 TAB = {
-    "daily": {"label": "日ごとの利用", "hint": "直近 {TREND_DAYS} 日", "title": "日ごとの利用者数とセッション数",
-              "scope": "直近 {TREND_DAYS} 日 · 日ごと · 濃い色が直近 {RECENT_DAYS} 日", "unit": "日",
+    "daily": {"label": "日ごとの利用", "hint": "直近 {period[span]} 日", "title": "日ごとの利用者数とセッション数",
+              "scope": "直近 {period[span]} 日 · 日ごと · 濃い色が直近 {period[days]} 日", "unit": "日",
               "charts": ("利用者数", "セッション数")},
-    "cost": {"label": "日ごとのコスト", "hint": "利用明細の全期間", "title": "日ごとのコスト", "all": "全期間", "unit": "日",
-             "scope": "利用明細（CSV）の全期間 {cost[first]:day}〜{cost[last]:day} · 日 × 提供元（USD）",
+    "cost": {"label": "日ごとのコスト", "hint": "直近 {period[span]} 日 · 利用明細", "title": "日ごとのコスト", "unit": "日",
+             "scope": "利用明細（CSV）{cost[spark_start]:md}〜{cost[end]:md} · 日 × 提供元（USD）· 濃い地が直近 {period[days]} 日",
              "search": "日付（例: 09-2）"},
-    "modes": {"label": "使われ方", "hint": "直近 {RECENT_DAYS} 日 · 記録", "title": "使われ方", "unit": "行",
-              "scope": "直近 {RECENT_DAYS} 日 · 記録の件数（開始のしかたはセッション開始の記録）· 割合は区分の中での割合"},
-    "health": {"label": "受信と項目の欠け", "hint": "直近 {RECENT_DAYS} 日と前の {RECENT_DAYS} 日", "title": "受信と項目の欠け",
-               "scope": "直近 {RECENT_DAYS} 日と前の {RECENT_DAYS} 日 · 欠けの分母は、その項目が送られるはずの記録", "unit": "行",
+    "weeks_users": {"label": "週ごとの利用者", "hint": "{cost_users[weeks]:count} 週 · 利用明細", "title": "週ごとの利用者数（利用明細）",
+                    "unit": "週", "legend": ("軸の下の行は暦月の利用者数（月の中の重複なし）",),
+                    "scope": "{cost_users[start]:day}〜{cost_users[end]:day} · 月曜始まりの週 · セッション数は記録から数えるため出しません",
+                    "note": "週の人数は、その週に利用明細にコストがあった人数です。月の人数は週の人数の合計ではありません。"},
+    "weeks_cost": {"label": "週ごとのコスト", "hint": "{cost[weeks]:count} 週 · 利用明細", "title": "週ごとのコスト", "unit": "週",
+                   "scope": "利用明細（CSV）{cost[start]:day}〜{cost[end]:day} · 週 × 提供元（USD）",
+                   "legend": ("薄い棒は途中の週 · 軸の下の行は暦月の合計",),
+                   "note": "月の合計は暦月で数えるため、週の区切りとは合いません。"},
+    "month": {"label": "今月のコスト", "hint": "{month[month]:mon} 月 · {month[elapsed]:num} / {month[business_days]:num} 営業日",
+              "title": "今月のコストの累積と月末の見込み", "unit": "日",
+              "scope": "{month[month]:ym} · 利用明細（CSV）· {month[as_of]:asof}",
+              "legend": ("今月の実績 {month[actual]:usd}", "月末までの見込み {month[forecast]:usd}",
+                         "前月（{month[prev_month]:mon} 月）{month[prev_actual]:usd}"),
+              "axis": {"bd": "横軸は営業日（休日の分は次の営業日に含める）", "cal": "横軸は暦日（前月は同じ日付に重ねる）"},
+              "off": "{month[month]:mon} 月の週末・祝日・会社の休日",
+              "note": "見込みは実績 × 月の営業日数 ÷ 経過した営業日数です（{month[actual]:usd} × {month[business_days]:num} ÷ {month[elapsed]:num}）。"
+                      "営業日は平日から国民の祝日と会社の休日を除いた日です。見込みの累積は残りの営業日に置いています。"
+                      "1 人 1 営業日あたりは、営業日あたりをその月に利用明細でコストがあった利用者"
+                      "（{month[month]:mon} 月 {month[users]:num} 人・{month[prev_month]:mon} 月 {month[prev_users]:num} 人）で割った値です。"
+                      "経過が {FORECAST_MIN_BUSINESS_DAYS} 営業日未満のあいだは見込みを出しません（仮の基準）。"},
+    "holidays": {"label": HOLIDAY["title"], "hint": "", "title": HOLIDAY["title"], "scope": "", "unit": "日"},
+    "modes": {"label": "使われ方", "hint": "直近 {period[days]} 日 · 記録", "title": "使われ方", "unit": "行",
+              "scope": "直近 {period[days]} 日 · 記録の件数（開始のしかたはセッション開始の記録）· 割合は区分の中での割合"},
+    "health": {"label": "受信と項目の欠け", "hint": "直近 {period[days]} 日と前の {period[days]} 日", "title": "受信と項目の欠け",
+               "scope": "直近 {period[days]} 日と前の {period[days]} 日 · 欠けの分母は、その項目が送られるはずの記録", "unit": "行",
                "note": "欠けは {NULL_RATE_ELEVATED}% 以下を正常、{NULL_RATE_ELEVATED}% 超を注意、{NULL_RATE_HIGH}% 超を要確認とします（仮の基準）。100% に跳ねたら上流の仕様変更を疑います。"},
-    "errors": {"label": "プラグインのエラー", "hint": "直近 {RECENT_DAYS} 日 · {errors[total]:num} 件", "title": "プラグインのエラー",
-               "scope": "直近 {RECENT_DAYS} 日 · 端末 = 利用者とホスト名の組 · 失った記録は戻りません", "unit": "行",
+    "errors": {"label": "プラグインのエラー", "hint": "直近 {period[days]} 日 · {errors[total]:num} 件", "title": "プラグインのエラー",
+               "scope": "直近 {period[days]} 日 · 端末 = 利用者とホスト名の組 · 失った記録は戻りません", "unit": "行",
                "search": "エラーの種類・版"},
     "users": {"label": "利用者ごと", "hint": "{denominator:num} 人", "title": "利用者ごとの適用状況", "unit": "人",
               "scope": "対象 {denominator:num} 人", "search": "利用者で絞り込み",
@@ -109,13 +143,13 @@ TAB = {
               "note": "0 日目（守り始めた当日）は前後が混ざるため除いています。その日が利用明細（CSV）の期間に入る人だけを数えるため、日ごとに人数が変わります。"
                       "時期による変動（繁忙・モデルの切り替えなど）を差し引いていないため、前後差を施策の効果と読まないでください。"},
     "skills": {"label": "スキル", "hint": "{skills[kinds]:num} 種類 · {skills[recent]:num} 回", "title": "スキルごとの呼び出し回数と利用者数",
-               "unit": "行", "scope": "直近 {RECENT_DAYS} 日と前の {RECENT_DAYS} 日 · スキルの呼び出しの記録", "search": "スキル名で絞り込み",
+               "unit": "行", "scope": "直近 {period[days]} 日と前の {period[days]} 日 · スキルの呼び出しの記録", "search": "スキル名で絞り込み",
                "note": _USAGE_NOTE},
     "commands": {"label": "コマンド", "hint": "{commands[kinds]:num} 種類 · {commands[recent]:num} 回", "title": "コマンドごとの呼び出し回数と利用者数",
-                 "unit": "行", "scope": "直近 {RECENT_DAYS} 日と前の {RECENT_DAYS} 日 · コマンドの呼び出しの記録 · 定義元は記録された値のまま",
+                 "unit": "行", "scope": "直近 {period[days]} 日と前の {period[days]} 日 · コマンドの呼び出しの記録 · 定義元は記録された値のまま",
                  "search": "コマンド名・定義元で絞り込み", "note": "同じコマンドでも定義元が違えば別の行です。" + _USAGE_NOTE},
-    "agent": {"label": "サブエージェント", "hint": "直近 {RECENT_DAYS} 日 · {agent[rate]:pct}", "title": "サブエージェントの利用", "unit": "行",
-              "scope": "直近 {RECENT_DAYS} 日 · 分母は全記録 {agent[denominator]:num} 件",
+    "agent": {"label": "サブエージェント", "hint": "直近 {period[days]} 日 · {agent[rate]:pct}", "title": "サブエージェントの利用", "unit": "行",
+              "scope": "直近 {period[days]} 日 · 分母は全記録 {agent[denominator]:num} 件",
               "note": "サブエージェントの中で起きた記録にだけ、サブエージェントの識別子が付きます。"},
 }
 COL = {
@@ -131,7 +165,9 @@ COL = {
     "per_cost": "1 人あたりコスト", "per_tokens": "1 人あたりトークン",
     "skill": "スキル", "command": "コマンド", "source": "定義元", "recent_calls": "呼び出し回数", "prev_calls": PREV,
     "calls_diff": "差", "recent_users": "利用者数", "users_diff": "利用者の差", "record": "記録",
+    "week": "週の始まり", "month_day": "日付", "n": "営業日", "cost": "その日のコスト", "cum": "今月の累積",
+    "prev_cum": "前月（{month[prev_month]:mon} 月）の累積", "weekday": "曜日", "name": "名前", "delete": "",
 }
 COL_EACH_SUB = "{numerator:num} / {denominator:num} 人"
-COST_CHIPS = {"long": "最後の {COST_FILTER_DAYS} 日", "short": "最後の {RECENT_DAYS} 日"}
+MONTH_CHIPS = {"bd": "営業日", "cal": "暦日"}
 # fmt: on

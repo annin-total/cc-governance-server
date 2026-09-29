@@ -1,16 +1,23 @@
 """概況の定義。カードを足すなら `CARDS` に、タブを足すなら `TABS` に 1 要素足す（文言は `words.py`）。"""
 
 from ccgov.web import labels as L
-from ccgov.web.screens import Card, Chip, Col, Screen, Tab, Viz
+from ccgov.web.screens import SAME, Card, Chip, Col, Screen, Tab, Viz
 from ccgov.web.screens import words as W
 
 GROUPS = ("use", "data")
 
 # fmt: off
+_WEEK = Col("day", "week", label="week")
+_PROVIDERS = Col("providers", "usd", each="cost[providers]", terms=L.PROVIDER)
+_COST_SPARK = Viz("spark", "cost[spark]", "total", fmt="usd")
+
 CARDS = (
-    Card("users", "use", "daily", "{users[recent]:num}", "{users[delta]:signed}", viz=Viz("spark", "trend[rows]", "users")),
+    Card("users", "use", "daily", "{users[recent]:num}", "{users[delta]:signed}", viz=Viz("spark", "trend[rows]", "users"),
+         long=Card("cost_users", "use", "weeks_users", "{cost_users[total]:num}", viz=Viz("spark", "cost_users[spark]", "users"))),
     Card("sessions", "use", "daily", "{sessions[recent]:dec1}", "{sessions[delta]:signed1}", viz=Viz("spark", "trend[rows]", "sessions")),
-    Card("cost", "use", "cost", "{cost[recent]:usd}", "{cost[change]:signed_pct}", viz=Viz("spark", "cost[spark]", "total", fmt="usd")),
+    Card("cost", "use", "cost", "{cost[recent]:usd}", "{cost[change]:signed_pct}", viz=_COST_SPARK,
+         long=Card("cost", "use", "weeks_cost", "{cost[recent]:usd}", viz=_COST_SPARK, words="cost_year")),
+    Card("forecast", "use", "month", "{month[forecast]:usd}", viz=Viz("forecast", "month"), long=SAME),
     Card("bypass", "use", "modes", "{bypass[rate]:dec1}", viz=Viz("meter", "bypass[numerator]", den="bypass[denominator]")),
     Card("events", "data", "health", "{events[recent]:num}", "{events[delta]:signed}", viz=Viz("pair", "events", terms=W.PAIR)),
     Card("reconciliation", "data", "health", "{reconciliation[rate]:dec1}",
@@ -25,12 +32,21 @@ TABS = (
     Tab("daily", "trend[rows]", (
         Col("day", "date"), Col("period", "tag", terms=L.PERIOD), Col("users", "num", unit="person"),
         Col("sessions", "num", unit="item"), Col("sessions", "bar", label="sessions_bar", sort=None),
-    ), sort=("day", "desc"), chips_by="period", chips=(Chip("recent", L.RECENT), Chip("prev", L.PREV)), chart="trend"),
+    ), sort=("day", "desc"), chips_by="period", chips=(Chip("recent", L.RECENT), Chip("prev", L.PREV)), chart="trend",
+        long=Tab("weeks_users", "cost_users[weeks]", (
+            _WEEK, Col("users", "num", unit="person"), Col("users", "bar", label="bar", sort=None),
+        ), sort=("day", "desc"), chart="weeks_users")),
     Tab("cost", "cost[days]", (
-        Col("day", "date"), Col("providers", "usd", each="cost[providers]", terms=L.PROVIDER),
-        Col("total", "usd_strong"), Col("total", "bar", label="bar", sort=None),
-    ), sort=("day", "desc"), chips_by="tags", chips=tuple(Chip(k, v) for k, v in W.COST_CHIPS.items()),
-        search="{day:day}", chart="cost"),
+        Col("day", "date"), _PROVIDERS, Col("total", "usd_strong"), Col("total", "bar", label="bar", sort=None),
+    ), sort=("day", "desc"), chips_by="period", chips=(Chip("recent", L.RECENT), Chip("prev", L.PREV)),
+        search="{day:day}", chart="cost",
+        long=Tab("weeks_cost", "cost[weeks]", (
+            _WEEK, _PROVIDERS, Col("total", "usd_strong"), Col("total", "bar", label="bar", sort=None),
+        ), sort=("day", "desc"), chart="weeks_cost")),
+    Tab("month", "month[rows]", (
+        Col("day", "mday", label="month_day", sort=None), Col("n", "num", sort=None), Col("cost", "usd", sort=None),
+        Col("cost", "bar", label="bar", sort=None, den="top"), Col("cum", "cum", sort=None), Col("prev", "usd_sub", label="prev_cum", sort=None),
+    ), chips_by="mode", chips=tuple(Chip(k, v) for k, v in W.MONTH_CHIPS.items()), chips_all=False, chart="month", long=SAME),
     Tab("modes", "usage", (
         Col("field", "tag", terms=L.USAGE_FIELD), Col("value", "term", terms=L.USAGE_VALUE, by="field"),
         Col("count", "num"), Col("share", "pct"), Col("share", "bar", label="bar", sort=None, den="100"),

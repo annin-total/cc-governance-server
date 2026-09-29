@@ -7,8 +7,9 @@ from ccgov.web.ticks import day_ticks
 
 SPARK_W, SPARK_H, SPARK_PAD = 300, 48, 4
 BAR_PAD_TOP, BAR_PAD_BOTTOM, BAR_FILL = 16, 20, 0.62
+# 棒の上に値を書くのに要る 1 本の幅（これより狭いと数字が重なる）
+BAR_VALUE_MIN_PITCH = 24
 STACK_PAD_TOP, STACK_PAD_BOTTOM, STACK_PAD_LEFT, STACK_FILL = 8, 22, 44, 0.7
-HIST_FILL, HIST_GAP = 0.76, 1
 _TICKS = 5
 
 
@@ -53,11 +54,15 @@ def spark(values: list, hi_last: int) -> Optional[dict]:
 
 
 def bars(values: list, labels: list, keys: list, hi_last: int, w: int, h: int) -> dict:
-    """縦棒。末尾 `hi_last` 本を直近として塗り分け、ラベルは 1 本おきに付ける。`keys` は表の行と結ぶ。"""
+    """縦棒。末尾 `hi_last` 本を直近として塗り分け、目盛りは `day_ticks` で付ける。`keys`（epoch 日）は表の行と結ぶ。
+
+    棒が細く数字が重なるときは、棒の上の値を書かない。
+    """
     top = max(values, default=0) or 1
     step = w / max(len(values), 1)
     bw = step * BAR_FILL
     base = h - BAR_PAD_BOTTOM
+    labeled = set(day_ticks(keys, step)) if keys else set()
     result = []
     for i, v in enumerate(values):
         y = BAR_PAD_TOP + (base - BAR_PAD_TOP) * (1 - v / top)
@@ -70,13 +75,19 @@ def bars(values: list, labels: list, keys: list, hi_last: int, w: int, h: int) -
                 "cx": round(i * step + step / 2, 1),
                 "v": v,
                 "hi": i >= len(values) - hi_last,
-                "label": labels[i] if i % 2 == 1 else "",
+                "label": labels[i] if i in labeled else "",
                 "key": keys[i],
                 "hit_x": round(i * step, 1),
                 "hit_w": round(step, 1),
             }
         )
-    return {"w": w, "h": h, "base": base, "bars": result}
+    return {
+        "w": w,
+        "h": h,
+        "base": base,
+        "bars": result,
+        "values": step >= BAR_VALUE_MIN_PITCH,
+    }
 
 
 def nice_step(top: float) -> float:
@@ -88,8 +99,11 @@ def nice_step(top: float) -> float:
     return next(m * magnitude for m in (1, 2, 5, 10) if m * magnitude >= raw)
 
 
-def stacked(columns: list, w: int, h: int) -> dict:
-    """積み上げの縦棒。`columns` は `(epoch 日, [値…])`。値の並び順が系列の順になり、目盛りは `day_ticks` で付ける。"""
+def stacked(columns: list, w: int, h: int, day_labels: bool = True) -> dict:
+    """積み上げの縦棒。`columns` は `(epoch 日, [値…])`。値の並び順が系列の順になる。
+
+    `day_labels` が真なら `day_ticks` で日付の目盛りを付ける（週ごとの棒は付けず、月の行を別に描く）。
+    """
     totals = [sum(vals) for _, vals in columns]
     step_v = nice_step(max(totals, default=0))
     top = math.ceil(max(totals, default=0) / step_v) * step_v or step_v
@@ -103,7 +117,7 @@ def stacked(columns: list, w: int, h: int) -> dict:
     ticks = [
         {"y": y(i * step_v), "v": i * step_v} for i in range(int(top / step_v) + 1)
     ]
-    labeled = set(day_ticks([key for key, _ in columns], step))
+    labeled = set(day_ticks([key for key, _ in columns], step)) if day_labels else set()
     result = []
     for i, (key, vals) in enumerate(columns):
         acc, segs = 0.0, []
@@ -138,50 +152,5 @@ def stacked(columns: list, w: int, h: int) -> dict:
         "base": base,
         "ticks": ticks,
         "bars": result,
-    }
-
-
-def hist(rows: list, sides: tuple, w: int, h: int, left: int, bottom: int) -> dict:
-    """区間ごとに、`sides` の各期間の割合（行の `<期間>_share`、百分率）を横に並べた棒。縦軸は 0 から。
-
-    `left`・`bottom` は目盛りと区間の名前の余白（0 なら付けない）。
-    """
-    shares = [[r[f"{s}_share"] or 0 for s in sides] for r in rows]
-    peak = max((v for vals in shares for v in vals), default=0)
-    step_v = nice_step(peak)
-    top = (math.ceil(peak / step_v) or 1) * step_v
-    base = h - bottom
-
-    def y(v: float) -> float:
-        return round(STACK_PAD_TOP + (base - STACK_PAD_TOP) * (1 - v / top), 1)
-
-    step = (w - left) / max(len(rows), 1)
-    bw = round(step * HIST_FILL / len(sides), 1)
-    result = []
-    for i, (row, vals) in enumerate(zip(rows, shares)):
-        x0 = left + i * step + (step - bw * len(sides)) / 2
-        segs = [
-            {"x": round(x0 + j * bw, 1), "y": y(v), "h": round(base - y(v), 1), "v": v}
-            for j, v in enumerate(vals)
-        ]
-        result.append(
-            {
-                "key": row["bin"],
-                "cx": round(x0 + bw * len(sides) / 2, 1),
-                "hit_x": round(left + i * step, 1),
-                "hit_w": round(step, 1),
-                "segs": segs,
-            }
-        )
-    ticks = [
-        {"y": y(i * step_v), "v": i * step_v} for i in range(int(top / step_v) + 1)
-    ]
-    return {
-        "w": w,
-        "h": h,
-        "left": left,
-        "base": base,
-        "bw": bw - HIST_GAP,
-        "ticks": ticks,
-        "bars": result,
+        "shade_x": None,
     }

@@ -1,7 +1,7 @@
 {# 上段の要点のカード。群ごとに見出しと期間・母集団を付ける。カードを押すと、対応するタブ（と区分）が開く。 #}
 {% from "components/marks.html" import mark %}
 {% from "components/charts.html" import viz, caps %}
-{% from "components/cells.html" import parts %}
+{% from "components/values.html" import parts %}
 
 {% macro card(c) -%}
 <a class="card{{ ' wide' if c.wide }}" href="#{{ c.tab }}" data-open="{{ c.href[1:] }}">
@@ -19,7 +19,12 @@
 {%- for g in groups %}
   <section class="group" aria-label="{{ g.label }}">
     <h2 class="glabel">{{ g.label }}<span>{{ g.scope }}</span></h2>
+    {%- if g.cards %}
     <div class="cards">{% for c in g.cards %}{{ card(c) }}{% endfor %}</div>
+    {%- endif %}
+    {%- if g.note %}
+    <p class="gnote">{{ g.note }}</p>
+    {%- endif %}
   </section>
 {%- endfor %}
 </div>

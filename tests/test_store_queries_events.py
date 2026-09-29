@@ -14,7 +14,7 @@ from known_data import (
 )
 
 from ccgov.reports import assets
-from ccgov.store import queries_events
+from ccgov.store import queries_cost, queries_events
 
 
 def test_skill_usage_returns_two_rows_ordered_by_recent_calls(known_db):
@@ -138,7 +138,7 @@ def test_daily_cost_by_provider(known_db):
 
     `day` で絞らないため、集計期間より前の u20（day=19970）の行も現れる。
     """
-    rows = queries_events.daily_cost(known_db)
+    rows = queries_cost.daily_cost(known_db)
     assert list(rows) == [
         (19970, "aws-bedrock", 1.0),
         (20000, "aws-bedrock", 1.0),
@@ -153,7 +153,7 @@ def test_daily_cost_by_provider(known_db):
 def test_daily_cost_doubles_after_duplicate_injection(known_db):
     """`cost_daily` は `event_id` を持たないため、重複注入で合計が 2 倍になる（重複排除の対象外）。"""
     duplicate_cost_daily(known_db)
-    rows = {(r[0], r[1]): r[2] for r in queries_events.daily_cost(known_db)}
+    rows = {(r[0], r[1]): r[2] for r in queries_cost.daily_cost(known_db)}
     assert rows[(20000, "aws-bedrock")] == 2.0
     assert rows[(20004, "openai")] == 1.0
 
@@ -168,7 +168,7 @@ def test_daily_cost_survives_null_cost_row(known_db):
         cost=None,
         input_tokens=None,
     )
-    rows = {(r[0], r[1]): r[2] for r in queries_events.daily_cost(known_db)}
+    rows = {(r[0], r[1]): r[2] for r in queries_cost.daily_cost(known_db)}
     assert rows[(20006, "openai")] == 0.0
 
 

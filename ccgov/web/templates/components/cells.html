@@ -1,14 +1,8 @@
 {# 表のセル。列の kind（screens の Col）ごとの見た目。計算はせず、値の書式と文言の対応だけを書く。 #}
 {% from "components/marks.html" import mark, dot %}
 {% from "components/charts.html" import hbar %}
+{% from "components/values.html" import exact %}
 
-{# 丸めた値。当てると正確な値のツールチップを出す（JS が無ければ title）。丸めで失うものが無ければ包まない #}
-{% macro exact(shown, full) -%}
-{%- if full and full != shown -%}<span class="exact" data-tip="{{ L.EXACT }}  {{ full }}" title="{{ full }}">{{ shown }}</span>
-{%- else -%}{{ shown }}{%- endif -%}
-{%- endmacro %}
-
-{% macro parts(ps) %}{% for shown, full in ps %}{{ exact(shown, full) }}{% endfor %}{% endmacro %}
 
 {% macro sub(text) %}<span class="sub">{{ text }}</span>{% endmacro %}
 
@@ -46,6 +40,16 @@
 {%- elif k == "dash_num" -%}{% if v %}{{ v|num }}{% else %}{{ sub("—") }}{% endif %}
 {%- elif v is none -%}{{ sub(L.UNSET if k == "value" else "—") }}
 {%- elif k == "num" -%}{{ v|num }}{% if col.unit %} {{ col.unit }}{% endif %}
+{%- elif k == "day" -%}{{ v|day }}
+{%- elif k == "weekday" -%}{{ v|weekday }}
+{%- elif k == "week" -%}{% if row.partial %}{{ fill(L.WEEK_PARTIAL, row) }}{{ sub(fill(L.WEEK_DAYS, row)) }}{% else %}{{ fill(L.WEEK, row) }}{% endif %}
+{%- elif k == "mday" -%}{{ v|md }}{{ sub(fill(L.MDAY_WEEKDAY, row)) }}
+  {%- if row.from %}{{ sub(fill(L.BD_FROM, row)) }}{% endif %}{% if row.to %}{{ sub(fill(L.BD_TO, row)) }}{% endif %}
+  {%- if row.off %}{{ sub(fill(L.MDAY_OFF, row)) }}{% endif %}
+{%- elif k == "cum" -%}{% if row.actual %}<b>{{ exact(v|usd(col.scale), v|usd_full) }}</b>{% else %}{{ sub(L.FC_FORECAST.format(v|usd(col.scale))) }}{% endif %}
+{%- elif k == "usd_sub" -%}<span class="sub">{{ exact(v|usd(col.scale), v|usd_full) }}</span>
+{%- elif k == "delete" -%}<form method="post" action="{{ url_for('admin.delete_holiday', day=v) }}" data-confirm="{{ fill(L.HOLIDAY.confirm, row) }}">
+  <input type="hidden" name="csrf" value="{{ csrf_token() }}"><button type="submit" class="btn-quiet">{{ L.HOLIDAY.delete }}</button></form>
 {%- elif k == "bin" -%}{{ v|bin }}
 {%- elif k == "rel" -%}{{ v|rel }}
 {%- elif k == "num_sub" -%}{{ sub(v|num) }}

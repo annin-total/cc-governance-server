@@ -113,6 +113,11 @@ def card_value(html: str, label: str) -> str:
     return match.group(1)
 
 
+def csrf_form(client, data: dict) -> dict:
+    """状態を変える POST の本文に、アプリの CSRF トークンを足す。"""
+    return {**data, "csrf": client.application.config["CSRF_TOKEN"]}
+
+
 def admin_client(flask_app):
     """正しいパスワードを常に送るテストクライアントを返す。"""
     client = flask_app.test_client()
