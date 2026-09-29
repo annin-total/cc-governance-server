@@ -1,5 +1,5 @@
 "use strict";
-// 画面の操作だけを受け持つ（タブの切り替え・絞り込み・並べ替え・札・グラフと表の連動）。中身はサーバが描画済みで、data-* 属性だけを見る。
+// 画面の操作だけを受け持つ（タブの切り替え・絞り込み・並べ替え・ツールチップ・グラフと表の連動）。中身はサーバが描画済みで、data-* 属性だけを見る。
 // 値を HTML として組み立てない（textContent と属性の切り替えだけを使う）。
 (() => {
   document.documentElement.classList.add("js");
@@ -94,8 +94,8 @@
     open(id, chip, Boolean(chip));
   }
 
-  // 浮いた札: カードの小さなグラフの点と丸めた値（data-tip）。文言は「見出し  値」で、2 つの空白の前を薄く、後ろを濃く出す。
-  // JS が無ければ同じ文言の title が出る。札を出すときは title を外し、二重に出さない
+  // ツールチップ: カードの小さなグラフの点と丸めた値（data-tip）。文言は「見出し  値」で、2 つの空白の前を薄く、後ろを濃く出す。
+  // JS が無ければ同じ文言の title が出る。ツールチップを出すときは title を外し、二重に出さない
   const TIP_OFFSET = 14;
   const TIP_MARGIN = 4;
   const tip = Object.assign(document.createElement("div"), { className: "tip", hidden: true });

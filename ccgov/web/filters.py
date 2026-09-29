@@ -55,7 +55,7 @@ def _half_up(value: float) -> int:
 def _scaled(value: float, digits: int, whole: Optional[bool]) -> str:
     """`whole` を省くと `WHOLE_FROM` 以上だけ四捨五入して整数にする。"""
     if whole is None:
-        whole = abs(value) >= WHOLE_FROM
+        whole = abs(round(value, digits)) >= WHOLE_FROM
     return f"{_half_up(value):,}" if whole else f"{value:,.{digits}f}"
 
 
@@ -89,8 +89,10 @@ def dec1_full(value: Any) -> str:
 
 
 def tok_unit(top: float) -> str:
-    """表のトークンの列の単位。列の最大から 1 つに決める。"""
-    return "M" if top >= TOKEN_M else "k" if top >= TOKEN_K else ""
+    """表のトークンの列の単位。列の最大から 1 つに決める（k で 1,000 に達するなら M）。"""
+    if _half_up(top / TOKEN_K) >= TOKEN_K:
+        return "M"
+    return "k" if top >= TOKEN_K else ""
 
 
 def tok(value: Any, unit: Optional[str] = None) -> str:
@@ -113,7 +115,8 @@ def _tok_auto(n: float) -> str:
         return tok(n, "")
     if _half_up(n / TOKEN_K) < TOKEN_K:
         return tok(n, "k")
-    return f"{n / TOKEN_M:,.{0 if n >= TOKEN_M_WHOLE_FROM else 1}f}M"
+    whole = round(n / TOKEN_M, 1) >= TOKEN_M_WHOLE_FROM / TOKEN_M
+    return f"{n / TOKEN_M:,.{0 if whole else 1}f}M"
 
 
 def signed(value: Any, digits: int = 0) -> str:

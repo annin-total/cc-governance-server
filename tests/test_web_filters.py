@@ -50,6 +50,10 @@ class TestUsd:
         assert filters.usd(2259.04) == "$2,259"
         assert filters.usd(2258.5) == "$2,259"
 
+    def test_threshold_uses_the_rounded_value(self):
+        assert filters.usd(999.995) == "$1,000"
+        assert filters.dec1(999.96) == "1,000"
+
     def test_column_scale_overrides_threshold(self):
         assert filters.usd(12.3, True) == "$12"
         assert filters.usd(2259.04, False) == "$2,259.04"
@@ -77,6 +81,7 @@ class TestTok:
             (999500, "1.0M"),
             (1234567, "1.2M"),
             (9_940_000, "9.9M"),
+            (9_999_999, "10M"),
             (10_000_000, "10M"),
             (12_345_678, "12M"),
         ],
@@ -88,6 +93,7 @@ class TestTok:
         assert filters.tok_unit(999) == ""
         assert filters.tok_unit(1000) == "k"
         assert filters.tok_unit(1_000_000) == "M"
+        assert filters.tok_unit(999_500) == "M"
 
     def test_column_keeps_one_unit(self):
         assert filters.tok(835546, "M") == "0.84M"

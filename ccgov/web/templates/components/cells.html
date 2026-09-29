@@ -2,7 +2,7 @@
 {% from "components/marks.html" import mark, dot %}
 {% from "components/charts.html" import hbar %}
 
-{# 丸めた値。当てると正確な値の札を出す（JS が無ければ title）。丸めで失うものが無ければ包まない #}
+{# 丸めた値。当てると正確な値のツールチップを出す（JS が無ければ title）。丸めで失うものが無ければ包まない #}
 {% macro exact(shown, full) -%}
 {%- if full and full != shown -%}<span class="exact" data-tip="{{ L.EXACT }}  {{ full }}" title="{{ full }}">{{ shown }}</span>
 {%- else -%}{{ shown }}{%- endif -%}
