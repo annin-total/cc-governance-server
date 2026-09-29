@@ -73,7 +73,7 @@ def sources(screen: Screen) -> set:
 
 def _card(card: Card, ctx: dict) -> dict:
     words = W.CARD[card.id]
-    value = text.fill(card.value, ctx) if card.value else ""
+    value = text.parts(card.value, ctx) if card.value else []
     delta = text.fill(card.delta, ctx) if card.delta else ""
     state = text.lookup(ctx, card.state) if card.state else None
     return {
@@ -82,10 +82,10 @@ def _card(card: Card, ctx: dict) -> dict:
         "href": f"#{card.tab}" + (f":{card.chip}" if card.chip else ""),
         "label": words["label"],
         "value": value,
-        "unit": "" if value == filters.EM_DASH else words.get("unit", ""),
+        "unit": "" if value == [(filters.EM_DASH, "")] else words.get("unit", ""),
         "delta": "" if delta == filters.EM_DASH else delta,
         "up": delta.startswith("+"),
-        "sub": text.fill(words.get("sub", ""), ctx),
+        "sub": text.parts(words.get("sub", ""), ctx),
         "state": (state, L.STATE[state]) if state else None,
         "wide": card.wide,
         "caps": [text.fill(c, ctx) for c in words.get("cap", ())],
@@ -93,13 +93,22 @@ def _card(card: Card, ctx: dict) -> dict:
     }
 
 
+def _tip(day: int, value: float, fmt: str, words: dict) -> str:
+    unit = words.get("unit", "")
+    shown = text.FORMATS[fmt](value) + (f" {unit}" if unit else "")
+    return text.fill(L.SPARK_TIP, {"day": day, "value": shown})
+
+
 def _viz(card: Card, words: dict, ctx: dict) -> Optional[dict]:
     viz = card.viz
     src = text.lookup(ctx, viz.src)
     if viz.kind == "spark":
-        values = [r[viz.field] for r in src] if viz.field else src
-        geo = charts.spark(values, constants.RECENT_DAYS)
-        return {"kind": "spark", "geo": geo} if geo else None
+        geo = charts.spark([r[viz.field] for r in src], constants.RECENT_DAYS)
+        if not geo:
+            return None
+        tips = [_tip(r["day"], r[viz.field], viz.fmt, words) for r in src]
+        geo["hits"] = [{**h, "tip": t} for h, t in zip(geo["hits"], tips)]
+        return {"kind": "spark", "geo": geo}
     if viz.kind == "meter":
         whole = text.lookup(ctx, viz.den)
         return {"kind": "meter", "pct": charts.pct(src, whole), "tone": viz.tone}

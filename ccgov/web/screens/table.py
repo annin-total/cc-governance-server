@@ -9,9 +9,12 @@ from ccgov.web import labels as L
 from ccgov.web.screens import Col, Tab
 from ccgov.web.screens import words as W
 
-NUMERIC = {"num", "usd", "usd_strong", "pct", "pct_strong", "measure", "measure_sub"}
+SCALED = {"usd", "usd_strong", "tok"}
+NUMERIC = {"num", "pct", "pct_strong", "measure", "measure_sub"} | SCALED
 NUMERIC |= {"diff", "last_day", "ratio", "count_of", "dash_num", "num_sub"}
-TREND_CHART, COST_CHART, COST_TICK_EVERY = (540, 132), (1100, 180), 7
+# グラフの棒と表の行を結ぶ行の値（グラフの種類ごと）
+CHART_KEY = {"trend": "day", "cost": "day", "hist": "bin"}
+TREND_CHART, COST_CHART = (540, 132), (1100, 180)
 HIST_CHART = (1100, 200, charts.STACK_PAD_LEFT, charts.STACK_PAD_BOTTOM)
 
 
@@ -46,6 +49,7 @@ def tab(tab: Tab, ctx: dict) -> dict:
             {
                 "tags": " ".join(tags(r)),
                 "q": text.fill(tab.search, r) if tab.search else "",
+                "key": r.get(CHART_KEY[tab.chart]) if tab.chart else None,
                 "cells": [_cell(c, r) for c in cols],
             }
             for r in rows
@@ -73,8 +77,11 @@ def _columns(col: Col, tab: Tab, rows: list, ctx: dict) -> list:
     }
     if tab.sort and view["sort"] == tab.sort[0]:
         view["aria"] = "descending" if tab.sort[1] == "desc" else "ascending"
-    if not col.each:
-        return [view]
+    views = _each(view, col, ctx) if col.each else [view]
+    return [{**v, "scale": _scale(v, rows)} for v in views]
+
+
+def _each(view: dict, col: Col, ctx: dict) -> list:
     result = []
     for item in text.lookup(ctx, col.each):
         ident = item["key"] if isinstance(item, dict) else item
@@ -85,10 +92,21 @@ def _columns(col: Col, tab: Tab, rows: list, ctx: dict) -> list:
     return result
 
 
-def _cell(col: dict, row: dict) -> dict:
+def _value(col: dict, row: dict) -> Any:
     value = row.get(col["key"])
-    if col["item"] is not None:
-        value = (value or {}).get(col["item"])
+    return (value or {}).get(col["item"]) if col["item"] is not None else value
+
+
+def _scale(col: dict, rows: list) -> Any:
+    """列の中で書式を 1 つにそろえる桁。列の最大から、金額は整数にするか、トークンは単位を決める。"""
+    if col["kind"] not in SCALED:
+        return None
+    top = max((abs(v) for v in (_value(col, r) for r in rows) if v), default=0)
+    return filters.tok_unit(top) if col["kind"] == "tok" else top >= filters.WHOLE_FROM
+
+
+def _cell(col: dict, row: dict) -> dict:
+    value = _value(col, row)
     sort = value if col["item"] is not None or not col["sort"] else row.get(col["sort"])
     if col["kind"] == "bar":
         whole = (
@@ -146,7 +164,11 @@ def _chart(tab: Tab, words: dict, rows: list, ctx: dict) -> Optional[dict]:
                 (
                     title,
                     charts.bars(
-                        [r[k] for r in rows], days, constants.RECENT_DAYS, *TREND_CHART
+                        [r[k] for r in rows],
+                        days,
+                        [r["day"] for r in rows],
+                        constants.RECENT_DAYS,
+                        *TREND_CHART,
                     ),
                 )
                 for title, k in zip(words["charts"], ("users", "sessions"))
@@ -157,7 +179,7 @@ def _chart(tab: Tab, words: dict, rows: list, ctx: dict) -> Optional[dict]:
         columns = [
             (r["day"], [r["providers"].get(p, 0) for p in providers]) for r in rows
         ]
-        geo = charts.stacked(columns, *COST_CHART, COST_TICK_EVERY)
+        geo = charts.stacked(columns, *COST_CHART)
         return {
             "kind": "cost",
             "geo": geo,

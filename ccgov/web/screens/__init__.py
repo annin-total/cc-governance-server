@@ -12,6 +12,7 @@ class Viz:
     """カードの小さなグラフ。`kind` は spark・meter・pair・stack・rates・hist。
 
     pair は `terms` の順に 2 本の棒を並べ、最初を薄くする（`field` があれば `src[キー][field]` を比べる）。
+    spark は `src` の行の `day` と `field` を点にし、ツールチップの値を `fmt`（`text.FORMATS` の名前）で書く。
     """
 
     kind: str
@@ -20,6 +21,7 @@ class Viz:
     den: str = ""
     tone: str = ""
     terms: Optional[dict] = None
+    fmt: str = "num"
 
 
 @dataclass(frozen=True)

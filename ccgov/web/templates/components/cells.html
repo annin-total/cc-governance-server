@@ -2,6 +2,14 @@
 {% from "components/marks.html" import mark, dot %}
 {% from "components/charts.html" import hbar %}
 
+{# 丸めた値。当てると正確な値のツールチップを出す（JS が無ければ title）。丸めで失うものが無ければ包まない #}
+{% macro exact(shown, full) -%}
+{%- if full and full != shown -%}<span class="exact" data-tip="{{ L.EXACT }}  {{ full }}" title="{{ full }}">{{ shown }}</span>
+{%- else -%}{{ shown }}{%- endif -%}
+{%- endmacro %}
+
+{% macro parts(ps) %}{% for shown, full in ps %}{{ exact(shown, full) }}{% endfor %}{% endmacro %}
+
 {% macro sub(text) %}<span class="sub">{{ text }}</span>{% endmacro %}
 
 {% macro measure(v, row) -%}
@@ -45,8 +53,9 @@
 {%- elif k == "tag" -%}{{ sub(term(col.terms, v)) }}
 {%- elif k == "term" -%}{%- set name, desc = term_desc(col.terms[row[col.by]] if col.by else col.terms, v) -%}{{ name }}{% if desc %} {{ sub(desc) }}{% endif %}
 {%- elif k == "stage" -%}{{ term(col.terms, v) }}{% if v in col.terms %}<span class="sub code"> {{ v }}</span>{% endif %}
-{%- elif k == "usd" -%}{{ v|usd }}
-{%- elif k == "usd_strong" -%}<b>{{ v|usd }}</b>
+{%- elif k == "usd" -%}{{ exact(v|usd(col.scale), v|usd_full) }}
+{%- elif k == "usd_strong" -%}<b>{{ exact(v|usd(col.scale), v|usd_full) }}</b>
+{%- elif k == "tok" -%}{{ exact(v|tok(col.scale), v|num) }}
 {%- elif k == "pct" -%}{{ v|pct }}
 {%- elif k == "pct_strong" -%}<b>{{ v|pct }}</b>
 {%- elif k == "diff" -%}{% if row.unit == "rate" %}{{ v|signed1 }} {{ L.UNIT.pt }}{% else %}{{ v|signed }}{% endif %}

@@ -17,7 +17,7 @@ def create_app(config: Config) -> Flask:
         INGEST_TOKEN=config.ingest_token,
         CSV_DIR=config.csv_dir,
     )
-    for filter_name in ("day", "num", "usd", "pct", "rel"):
+    for filter_name in ("day", "num", "usd", "usd_full", "tok", "pct", "rel"):
         app.add_template_filter(getattr(filters, filter_name), filter_name)
     app.add_template_filter(filters.bin_range, "bin")
     for name in ("usd0", "md", "weekday", "signed", "signed1"):

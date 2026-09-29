@@ -1,12 +1,16 @@
 """表示用の整形関数。変換できない入力には例外を投げず `EM_DASH` を返す。"""
 
 import datetime
+import math
 from typing import Any, Optional
 
 from ccgov.constants import CONTEXT_BIN
 
 EM_DASH = "—"
 _SECONDS_PER_DAY = 86400
+WHOLE_FROM = 1_000
+TOKEN_K, TOKEN_M, TOKEN_M_WHOLE_FROM = 1_000, 1_000_000, 10_000_000
+_TOKEN_COL_M_DIGITS = 2
 
 
 def _to_int(value: Any) -> Optional[int]:
@@ -44,11 +48,26 @@ def num(value: Any) -> str:
     return f"{int_value:,}"
 
 
-def usd(value: Any) -> str:
+def _half_up(value: float) -> int:
+    return int(math.copysign(math.floor(abs(value) + 0.5), value))
+
+
+def _scaled(value: float, digits: int, whole: Optional[bool]) -> str:
+    """`whole` を省くと `WHOLE_FROM` 以上だけ四捨五入して整数にする。"""
+    if whole is None:
+        whole = abs(round(value, digits)) >= WHOLE_FROM
+    return f"{_half_up(value):,}" if whole else f"{value:,.{digits}f}"
+
+
+def usd(value: Any, whole: Optional[bool] = None) -> str:
     float_value = _to_float(value)
     if float_value is None:
         return EM_DASH
-    return f"${float_value:,.2f}"
+    return "$" + _scaled(float_value, 2, whole)
+
+
+def usd_full(value: Any) -> str:
+    return usd(value, False)
 
 
 def usd0(value: Any) -> str:
@@ -58,11 +77,50 @@ def usd0(value: Any) -> str:
     return f"${float_value:,.0f}"
 
 
-def dec1(value: Any) -> str:
+def dec1(value: Any, whole: Optional[bool] = None) -> str:
     float_value = _to_float(value)
     if float_value is None:
         return EM_DASH
-    return f"{float_value:,.1f}"
+    return _scaled(float_value, 1, whole)
+
+
+def dec1_full(value: Any) -> str:
+    return dec1(value, False)
+
+
+def tok_unit(top: float) -> str:
+    """表のトークンの列の単位。列の最大から 1 つに決める（k で 1,000 に達するなら M）。"""
+    if _half_up(top / TOKEN_K) >= TOKEN_K:
+        return "M"
+    return "k" if top >= TOKEN_K else ""
+
+
+def tok(value: Any, unit: Optional[str] = None) -> str:
+    """トークン数。`unit`（`tok_unit` の値）を省くと大きさで選ぶ。単位の解像度に満たない 0 でない値は `<1k` の形。"""
+    n = _to_float(value)
+    if n is None:
+        return EM_DASH
+    if unit is None:
+        return _tok_auto(n)
+    if unit == "M":
+        text = f"{n / TOKEN_M:,.{_TOKEN_COL_M_DIGITS}f}"
+        below = f"{10**-_TOKEN_COL_M_DIGITS:.{_TOKEN_COL_M_DIGITS}f}"
+        return f"<{below}M" if n and not float(text) else f"{text}M"
+    if unit == "k":
+        return (
+            "<1k" if n and not _half_up(n / TOKEN_K) else f"{_half_up(n / TOKEN_K):,}k"
+        )
+    return f"{_half_up(n):,}"
+
+
+def _tok_auto(n: float) -> str:
+    """k は整数、M は小数 1 桁（`TOKEN_M_WHOLE_FROM` 以上は整数）。k で 1,000 に達する値は M にする。"""
+    if n < TOKEN_K:
+        return tok(n, "")
+    if _half_up(n / TOKEN_K) < TOKEN_K:
+        return tok(n, "k")
+    whole = round(n / TOKEN_M, 1) >= TOKEN_M_WHOLE_FROM / TOKEN_M
+    return f"{n / TOKEN_M:,.{0 if whole else 1}f}M"
 
 
 def signed(value: Any, digits: int = 0) -> str:

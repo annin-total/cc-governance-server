@@ -3,6 +3,8 @@
 import math
 from typing import Optional
 
+from ccgov.web.ticks import day_ticks
+
 SPARK_W, SPARK_H, SPARK_PAD = 300, 48, 4
 BAR_PAD_TOP, BAR_PAD_BOTTOM, BAR_FILL = 16, 20, 0.62
 STACK_PAD_TOP, STACK_PAD_BOTTOM, STACK_PAD_LEFT, STACK_FILL = 8, 22, 44, 0.7
@@ -32,6 +34,7 @@ def spark(values: list, hi_last: int) -> Optional[dict]:
 
     points = [f"{x(i)},{y(v)}" for i, v in enumerate(values)]
     cut = max(1, len(values) - hi_last)
+    edges = [0.0] + [(x(i) + x(i + 1)) / 2 for i in range(len(values) - 1)] + [SPARK_W]
     return {
         "w": SPARK_W,
         "h": SPARK_H,
@@ -42,11 +45,15 @@ def spark(values: list, hi_last: int) -> Optional[dict]:
         + " L".join(points[cut - 1 :])
         + f" L{SPARK_W},{SPARK_H} Z",
         "last": (x(len(values) - 1), y(values[-1])),
+        "hits": [
+            {"x": edges[i], "w": round(edges[i + 1] - edges[i], 1), "gx": x(i)}
+            for i in range(len(values))
+        ],
     }
 
 
-def bars(values: list, labels: list, hi_last: int, w: int, h: int) -> dict:
-    """縦棒。末尾 `hi_last` 本を直近として塗り分け、ラベルは 1 本おきに付ける。"""
+def bars(values: list, labels: list, keys: list, hi_last: int, w: int, h: int) -> dict:
+    """縦棒。末尾 `hi_last` 本を直近として塗り分け、ラベルは 1 本おきに付ける。`keys` は表の行と結ぶ。"""
     top = max(values, default=0) or 1
     step = w / max(len(values), 1)
     bw = step * BAR_FILL
@@ -64,6 +71,9 @@ def bars(values: list, labels: list, hi_last: int, w: int, h: int) -> dict:
                 "v": v,
                 "hi": i >= len(values) - hi_last,
                 "label": labels[i] if i % 2 == 1 else "",
+                "key": keys[i],
+                "hit_x": round(i * step, 1),
+                "hit_w": round(step, 1),
             }
         )
     return {"w": w, "h": h, "base": base, "bars": result}
@@ -78,8 +88,8 @@ def nice_step(top: float) -> float:
     return next(m * magnitude for m in (1, 2, 5, 10) if m * magnitude >= raw)
 
 
-def stacked(columns: list, w: int, h: int, every: int) -> dict:
-    """積み上げの縦棒。`columns` は `(キー, [値…])`。値の並び順が系列の順になり、`every` 本ごとに目盛りを付ける。"""
+def stacked(columns: list, w: int, h: int) -> dict:
+    """積み上げの縦棒。`columns` は `(epoch 日, [値…])`。値の並び順が系列の順になり、目盛りは `day_ticks` で付ける。"""
     totals = [sum(vals) for _, vals in columns]
     step_v = nice_step(max(totals, default=0))
     top = math.ceil(max(totals, default=0) / step_v) * step_v or step_v
@@ -93,6 +103,7 @@ def stacked(columns: list, w: int, h: int, every: int) -> dict:
     ticks = [
         {"y": y(i * step_v), "v": i * step_v} for i in range(int(top / step_v) + 1)
     ]
+    labeled = set(day_ticks([key for key, _ in columns], step))
     result = []
     for i, (key, vals) in enumerate(columns):
         acc, segs = 0.0, []
@@ -114,7 +125,9 @@ def stacked(columns: list, w: int, h: int, every: int) -> dict:
                 "cx": round(x + bw / 2, 1),
                 "w": bw,
                 "key": key,
-                "tick": i % every == 0,
+                "hit_x": round(STACK_PAD_LEFT + i * step, 1),
+                "hit_w": round(step, 1),
+                "tick": i in labeled,
                 "segs": segs,
             }
         )
@@ -152,7 +165,13 @@ def hist(rows: list, sides: tuple, w: int, h: int, left: int, bottom: int) -> di
             for j, v in enumerate(vals)
         ]
         result.append(
-            {"key": row["bin"], "cx": round(x0 + bw * len(sides) / 2, 1), "segs": segs}
+            {
+                "key": row["bin"],
+                "cx": round(x0 + bw * len(sides) / 2, 1),
+                "hit_x": round(left + i * step, 1),
+                "hit_w": round(step, 1),
+                "segs": segs,
+            }
         )
     ticks = [
         {"y": y(i * step_v), "v": i * step_v} for i in range(int(top / step_v) + 1)

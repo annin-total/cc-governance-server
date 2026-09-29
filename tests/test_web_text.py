@@ -6,7 +6,24 @@ from ccgov.web import filters, text
 def test_fill_formats_nested_values():
     data = {"u": {"prev": 1234}, "c": 2259.04, "d": -1.64, "x": None}
     got = text.fill("{u[prev]:num} / {c:usd} / {d:signed1} / {x:pct} / {x}", data)
-    assert got == "1,234 / $2,259.04 / −1.6 / — / —"
+    assert got == "1,234 / $2,259 / −1.6 / — / —"
+
+
+def test_parts_pair_rounded_values_with_exact():
+    """丸めた値だけが正確な値と組になる。丸めで何も失わない値と地の文は空文字と組む。"""
+    data = {"c": 2259.04, "s": 12.5, "t": 980629, "n": 1234}
+    got = text.parts("前 {c:usd} · {s:usd} · {t:tok} · {n:num}", data)
+    assert got == [
+        ("前 ", ""),
+        ("$2,259", "$2,259.04"),
+        (" · ", ""),
+        ("$12.50", ""),
+        (" · ", ""),
+        ("981k", "980,629"),
+        (" · ", ""),
+        ("1,234", ""),
+    ]
+    assert text.parts("{x:usd}", {"x": None}) == [("—", "")]
 
 
 def test_fill_maps_terms():
@@ -37,4 +54,4 @@ def test_signed_md_and_weekday():
     assert filters.signed(1.25, 1) == "+1.2"
     assert filters.md(20724) == "09/28"
     assert text.FORMATS["weekday"](20724) == "月"
-    assert filters.usd(1234.5) == "$1,234.50"
+    assert filters.usd(1234.5) == "$1,235"

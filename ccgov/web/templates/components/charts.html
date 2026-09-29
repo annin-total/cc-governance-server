@@ -14,11 +14,20 @@
   <polyline class="spark-old" points="{{ g.old }}" vector-effect="non-scaling-stroke"/>
   <polyline class="spark-new" points="{{ g.new }}" vector-effect="non-scaling-stroke"/>
   <circle class="spark-dot" cx="{{ g.last[0] }}" cy="{{ g.last[1] }}" r="3"/>
+  <line class="spark-guide" x1="0" x2="0" y1="0" y2="{{ g.h }}" vector-effect="non-scaling-stroke"/>
+  {%- for h in g.hits %}
+  <rect class="hit" x="{{ h.x }}" y="0" width="{{ h.w }}" height="{{ g.h }}" data-tip="{{ h.tip }}" data-gx="{{ h.gx }}"><title>{{ h.tip }}</title></rect>
+  {%- endfor %}
 </svg>
 {%- endmacro %}
 
-{% macro hist_bars(g) -%}
-{%- for b in g.bars %}{% for s in b.segs %}<rect class="{{ 'bar-hi' if loop.last else 'bar-old' }}" x="{{ s.x }}" y="{{ s.y }}" width="{{ g.bw }}" height="{{ s.h }}"/>{% endfor %}{% endfor -%}
+{# 下段のグラフの 1 本分。data-link で表の行と結び、当たり判定の透明な面を敷く（app.js が連動させる） #}
+{% macro col(b, h) -%}
+<g class="col" data-link="{{ b.key }}"><rect class="hit" x="{{ b.hit_x }}" y="0" width="{{ b.hit_w }}" height="{{ h }}"/>{{ caller() }}</g>
+{%- endmacro %}
+
+{% macro hist_segs(g, b) -%}
+{%- for s in b.segs %}<rect class="{{ 'bar-hi' if loop.last else 'bar-old' }}" x="{{ s.x }}" y="{{ s.y }}" width="{{ g.bw }}" height="{{ s.h }}"/>{% endfor -%}
 {%- endmacro %}
 
 {% macro viz(v) -%}
@@ -30,7 +39,7 @@
 <span class="stack">{% for p in v.parts %}<i class="{{ p.cls }}" style="flex: {{ p.value }}"></i>{% endfor %}</span>
 <span class="legend">{% for p in v.parts %}<span><i class="{{ p.cls }}"></i>{{ p.label }} {{ p.value|num }}</span>{% endfor %}</span>
 {%- elif v.kind == "hist" -%}
-<svg class="spark" viewBox="0 0 {{ v.geo.w }} {{ v.geo.h }}" preserveAspectRatio="none" aria-hidden="true">{{ hist_bars(v.geo) }}</svg>
+<svg class="spark" viewBox="0 0 {{ v.geo.w }} {{ v.geo.h }}" preserveAspectRatio="none" aria-hidden="true">{% for b in v.geo.bars %}{{ hist_segs(v.geo, b) }}{% endfor %}</svg>
 <span class="legend">{% for name in v.terms.values() %}<span><i class="{{ 'bar-hi' if loop.last else 'bar-old' }}"></i>{{ name }}</span>{% endfor %}</span>
 {%- elif v.kind == "rates" -%}
 <span class="rates{{ ' wide' if v.wide }}">{% for r in v.rows %}<span class="rate"><span>{{ r.label }}</span>{{ hbar(r.pct) }}
@@ -42,9 +51,9 @@
 <div><h3>{{ title }}</h3>
 <svg viewBox="0 0 {{ g.w }} {{ g.h }}" aria-hidden="true">
 {%- for b in g.bars %}
-  <rect class="{{ 'bar-hi' if b.hi else 'bar-old' }}" x="{{ b.x }}" y="{{ b.y }}" width="{{ b.w }}" height="{{ b.h }}" rx="1.5"/>
+  {% call col(b, g.base) %}<rect class="{{ 'bar-hi' if b.hi else 'bar-old' }}" x="{{ b.x }}" y="{{ b.y }}" width="{{ b.w }}" height="{{ b.h }}" rx="1.5"/>
   <text x="{{ b.cx }}" y="{{ b.y - 4 }}" text-anchor="middle">{{ b.v|num }}</text>
-  {%- if b.label %}<text x="{{ b.cx }}" y="{{ g.h - 4 }}" text-anchor="middle">{{ b.label }}</text>{% endif %}
+  {%- if b.label %}<text x="{{ b.cx }}" y="{{ g.h - 4 }}" text-anchor="middle">{{ b.label }}</text>{% endif %}{% endcall %}
 {%- endfor %}
   <line class="axis" x1="0" x2="{{ g.w }}" y1="{{ g.base }}" y2="{{ g.base }}"/>
 </svg></div>
@@ -55,16 +64,15 @@
 <div class="two">{% for title, g in c.charts %}{{ bars(title, g) }}{% endfor %}</div>
 {%- elif c.kind == "cost" -%}
 {%- set g = c.geo -%}
-<svg viewBox="0 0 {{ g.w }} {{ g.h }}" role="img" aria-label="{{ c.title }}">
+<svg viewBox="0 0 {{ g.w }} {{ g.h }}" aria-hidden="true">
 {%- for t in g.ticks %}
   <line class="gridline" x1="{{ g.left }}" x2="{{ g.w }}" y1="{{ t.y }}" y2="{{ t.y }}"/>
   <text x="{{ g.left - 8 }}" y="{{ t.y + 4 }}" text-anchor="end">{{ t.v|usd0 }}</text>
 {%- endfor %}
 {%- for b in g.bars %}
-  {%- for s in b.segs %}
-  <rect class="series-{{ s.series }}" x="{{ b.x }}" y="{{ s.y }}" width="{{ b.w }}" height="{{ s.h }}"><title>{{ b.key|day }} {{ c.series[s.series] }} {{ s.v|usd }}</title></rect>
-  {%- endfor %}
-  {%- if b.tick %}<text x="{{ b.cx }}" y="{{ g.h - 4 }}" text-anchor="middle">{{ b.key|md }}</text>{% endif %}
+  {% call col(b, g.base) %}
+  {%- for s in b.segs %}<rect class="series-{{ s.series }}" x="{{ b.x }}" y="{{ s.y }}" width="{{ b.w }}" height="{{ s.h }}"/>{% endfor %}
+  {%- if b.tick %}<text x="{{ b.cx }}" y="{{ g.h - 4 }}" text-anchor="middle">{{ b.key|md }}</text>{% endif %}{% endcall %}
 {%- endfor %}
 </svg>
 <div class="legend">{% for name in c.series %}<span><i class="series-{{ loop.index0 }}"></i>{{ name }}</span>{% endfor %}</div>
@@ -75,9 +83,8 @@
   <line class="gridline" x1="{{ g.left }}" x2="{{ g.w }}" y1="{{ t.y }}" y2="{{ t.y }}"/>
   <text x="{{ g.left - 8 }}" y="{{ t.y + 4 }}" text-anchor="end">{{ t.v|round|int }}%</text>
 {%- endfor %}
-  {{ hist_bars(g) }}
 {%- for b in g.bars %}
-  <text x="{{ b.cx }}" y="{{ g.h - 4 }}" text-anchor="middle">{{ b.key|bin }}</text>
+  {% call col(b, g.base) %}{{ hist_segs(g, b) }}<text x="{{ b.cx }}" y="{{ g.h - 4 }}" text-anchor="middle">{{ b.key|bin }}</text>{% endcall %}
 {%- endfor %}
 </svg>
 <div class="legend">{% for name in c.series %}<span><i class="{{ 'bar-hi' if loop.last else 'bar-old' }}"></i>{{ name }}</span>{% endfor %}</div>

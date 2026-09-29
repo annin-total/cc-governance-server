@@ -17,5 +17,5 @@ def test_pair_compares_field_in_terms_order_and_fades_the_first():
     }
     built = view.build(Screen(("spend",), (card,), ()), data)
     [shown] = built["groups"][0]["cards"]
-    assert shown["value"] == "50"
+    assert shown["value"] == [("50", "")]
     assert shown["viz"]["rows"] == [("前", 100.0, "ghost"), ("後", 25.0, "")]
