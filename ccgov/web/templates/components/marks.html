@@ -1,0 +1,9 @@
+{# 状態の印（点＋語）と、適用の有無の点。tone は ok・warn・ng・neutral のどれか。 #}
+{% macro mark(tone, label) -%}
+<span class="mark {{ tone }}">{{ label }}</span>
+{%- endmacro %}
+
+{% macro dot(value) -%}
+{%- set cls = "none" if value is none else ("yes" if value else "no") -%}
+<span class="on {{ cls }}" role="img" aria-label="{{ L.DOT[value] }}"></span>
+{%- endmacro %}

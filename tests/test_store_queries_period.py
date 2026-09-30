@@ -1,0 +1,67 @@
+"""期間の日数を受け取るクエリと、利用明細（`cost_daily`）のクエリの検証。
+
+基準日は 20005。28 日の直近は `19978..20005`（既知データの `events` はすべて入る）、前は `19950..19977`。
+"""
+
+from known_data import TODAY, insert_cost_daily
+
+from ccgov.reports import assets, overview
+from ccgov.store import queries_cost, queries_errors, queries_events
+
+
+def test_usage_queries_follow_the_period_days(known_db):
+    """28 日では、7 日の前の期間にあった呼び出し（e14・e15）も直近に入り、前の期間は空になる。"""
+    rows = {r[0]: r[1:] for r in queries_events.skill_usage(known_db, TODAY, 28)}
+    assert rows["pdf"] == (4, 2, 0, 0)
+    assert rows["xlsx"] == (2, 2, 0, 0)
+    assert queries_events.subagent_counts(known_db, TODAY, 28) == (2, 17)
+
+
+def test_trend_and_distribution_follow_the_period_days(known_db):
+    trend = queries_events.user_session_trend(known_db, TODAY, 28)
+    assert trend[0][0] == 19988 and len(trend) == 8
+    dist = dict(queries_events.distribution(known_db, TODAY, "permission_mode", 28))
+    assert dist == {"default": 15, "plan": 1, "acceptEdits": 1}
+
+
+def test_health_counts_follow_the_period_days(known_db):
+    counts = overview.health_counts(known_db, TODAY, 28)
+    assert (counts["recent"]["events"], counts["prev"]["events"]) == (17, 0)
+    [(_, denominator, _)] = assets.subagent_ratio(known_db, TODAY, 28)
+    assert denominator == 17
+
+
+def test_reconciliation_and_errors_follow_the_period_days(known_db):
+    """照合は CSV の最終日（20004）で終わる 28 日。u9・u10 は送信したが CSV にいない。"""
+    assert queries_events.reconciliation_counts(known_db, TODAY, 28) == (3, 6)
+    assert queries_errors.error_summary(known_db, TODAY, 28) == []
+
+
+def test_daily_cost_can_be_limited_to_a_range(known_db):
+    rows = queries_cost.daily_cost(known_db, 20003, 20004)
+    assert list(rows) == [
+        (20003, "aws-bedrock", 4.0),
+        (20004, "aws-bedrock", 5.0),
+        (20004, "openai", 0.5),
+    ]
+
+
+def test_cost_users_are_people_with_positive_cost(known_db):
+    """コストがあった利用者: 日ごとの (day, 利用者)。コストが 0 や空の行だけの人は入らない。"""
+    insert_cost_daily(known_db, day=20003, user_email="u0", provider="openai", cost=0.0)
+    insert_cost_daily(
+        known_db, day=20003, user_email="u6", provider="openai", cost=None
+    )
+    insert_cost_daily(
+        known_db, day=20004, user_email="u1", provider="aws-bedrock", cost=2.0
+    )
+    got = sorted(queries_cost.cost_user_days(known_db, 20000, 20004))
+    assert got == [
+        (20000, "u1"),
+        (20001, "u2"),
+        (20002, "u3"),
+        (20003, "u4"),
+        (20004, "u1"),
+        (20004, "u5"),
+    ]
+    assert queries_cost.cost_user_count(known_db, 20003, 20004) == 3

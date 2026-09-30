@@ -10,6 +10,7 @@ from known_data import (
 )
 
 from ccgov.constants import REFERENCE_KEY
+from ccgov.reports import policy
 from ccgov.store import db, queries_policy
 
 
@@ -81,9 +82,7 @@ def test_latest_values_picks_max_ts_not_max_day(known_db):
 
 def test_compliance_rate_k(known_db):
     """項目 K: 分母 5・分子 1（u3 は h3b が未準拠のため入らない）・率 20.0%。"""
-    [(numerator, denominator, rate)] = queries_policy.compliance_rate(
-        known_db, TODAY, K, "60"
-    )
+    [(numerator, denominator, rate)] = policy.compliance_rate(known_db, TODAY, K, "60")
     assert denominator == 5
     assert numerator == 1
     assert rate == 20.0
@@ -91,7 +90,7 @@ def test_compliance_rate_k(known_db):
 
 def test_compliance_rate_a(known_db):
     """項目 A: 分子 4（u4 は policy_state に行が無いため入らない）・率 80.0%。"""
-    [(numerator, denominator, rate)] = queries_policy.compliance_rate(
+    [(numerator, denominator, rate)] = policy.compliance_rate(
         known_db, TODAY, A, "true"
     )
     assert denominator == 5
@@ -103,7 +102,7 @@ def test_compliance_rate_k_unchanged_after_duplicate_injection(known_db):
     """重複行を注入しても K の準拠率は 20.0% のまま。100% を超える経路も無い。"""
 
     def compute():
-        return queries_policy.compliance_rate(known_db, TODAY, K, "60")
+        return policy.compliance_rate(known_db, TODAY, K, "60")
 
     assert_invariant_under_duplication(known_db, compute)
 
@@ -112,7 +111,7 @@ def test_compliance_rate_a_unchanged_after_duplicate_injection(known_db):
     """重複行を注入しても A の準拠率は 80.0% のまま。"""
 
     def compute():
-        return queries_policy.compliance_rate(known_db, TODAY, A, "true")
+        return policy.compliance_rate(known_db, TODAY, A, "true")
 
     assert_invariant_under_duplication(known_db, compute)
 
@@ -125,7 +124,7 @@ def test_compliance_rate_without_user_folding_would_differ(known_db):
     assert naive_numerator == 2
     assert round(naive_numerator / 5 * 100, 1) == 40.0
 
-    [(folded_numerator, _, folded_rate)] = queries_policy.compliance_rate(
+    [(folded_numerator, _, folded_rate)] = policy.compliance_rate(
         known_db, TODAY, K, "60"
     )
     assert folded_numerator == 1
@@ -133,7 +132,7 @@ def test_compliance_rate_without_user_folding_would_differ(known_db):
 
 
 def test_non_compliant_k(known_db):
-    rows = sorted(queries_policy.non_compliant(known_db, TODAY, K, "60"))
+    rows = sorted(policy.non_compliant(known_db, TODAY, K, "60"))
     assert rows == [
         ("u2", "h2", "80", 20001),
         ("u3", "h3b", "80", 20003),
@@ -143,7 +142,7 @@ def test_non_compliant_k(known_db):
 
 def test_non_compliant_a_is_empty(known_db):
     """項目 A の未準拠者一覧は 0 行。空の一覧がエラーにならないこと。"""
-    rows = queries_policy.non_compliant(known_db, TODAY, A, "true")
+    rows = policy.non_compliant(known_db, TODAY, A, "true")
     assert rows == []
 
 
@@ -222,11 +221,9 @@ def test_all_numbers_survive_full_duplication_at_once(known_db):
 
     def compute():
         return {
-            "rate_k": queries_policy.compliance_rate(known_db, TODAY, K, "60"),
-            "rate_a": queries_policy.compliance_rate(known_db, TODAY, A, "true"),
-            "non_compliant_k": sorted(
-                queries_policy.non_compliant(known_db, TODAY, K, "60")
-            ),
+            "rate_k": policy.compliance_rate(known_db, TODAY, K, "60"),
+            "rate_a": policy.compliance_rate(known_db, TODAY, A, "true"),
+            "non_compliant_k": sorted(policy.non_compliant(known_db, TODAY, K, "60")),
             "not_introduced": sorted(queries_policy.not_introduced(known_db, TODAY)),
             "stale": sorted(queries_policy.stale_terminals(known_db, TODAY)),
             "versions": sorted(
@@ -243,13 +240,13 @@ def test_all_numbers_survive_full_duplication_at_once(known_db):
 
 def test_compliance_rate_is_none_without_cost_users(db_conn):
     """`cost_daily` も `policy_state` も空なら、準拠率は None。"""
-    assert queries_policy.compliance_rate(db_conn, TODAY, K, "60") == [(0, 0, None)]
+    assert policy.compliance_rate(db_conn, TODAY, K, "60") == [(0, 0, None)]
 
 
 def test_cost_window_ends_at_last_csv_day(known_db):
     """CSV の取込が 30 日以上空いても、`cost_daily` 側の集計期間は最終日で終わる（`policy_state` 側は今日）。"""
     later = TODAY + 40
-    assert queries_policy.compliance_rate(known_db, later, K, "60") == [(0, 5, 0.0)]
+    assert policy.compliance_rate(known_db, later, K, "60") == [(0, 5, 0.0)]
     rows = queries_policy.not_introduced(known_db, later)
     assert [r[0] for r in rows] == ["u1", "u2", "u3", "u4", "u5"]
 

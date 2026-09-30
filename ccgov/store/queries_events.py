@@ -1,9 +1,9 @@
 """`/` `/assets` 画面の集計クエリ。"""
 
-from typing import Optional
-
 from ccgov.constants import RECENT_DAYS
+from ccgov.metrics.windows import previous_window, recent_window
 from ccgov.store import db
+from ccgov.store.queries_cost import cost_window_end
 
 # 列 -> NULL 率の分母に入れるイベント。全イベントを分母にすると平常時から高止まりする
 _HEALTH_NULL_SCOPES = {
@@ -15,31 +15,15 @@ _HEALTH_NULL_SCOPES = {
 _DISTRIBUTION_COLUMNS = ("permission_mode", "effort_level", "source")
 
 
-def _rate(numerator: int, denominator: int) -> Optional[float]:
-    """百分率を小数 1 桁で返す。分母が 0 なら None（0.0% と出すと良好に見える）。"""
-    return round(numerator / denominator * 100, 1) if denominator else None
-
-
-def _recent_window(today: int) -> tuple:
-    """直近 `RECENT_DAYS` 日の開始日（含む）と終了日（`today` そのもの）を返す。"""
-    return today - RECENT_DAYS + 1, today
-
-
-def _previous_window(today: int) -> tuple:
-    """直近の 1 つ前の `RECENT_DAYS` 日の開始日・終了日を返す。"""
-    recent_start, _ = _recent_window(today)
-    return recent_start - RECENT_DAYS, recent_start - 1
-
-
 def _usage_with_trend(
-    conn, today: int, filter_column: str, group_columns: tuple
+    conn, today: int, days: int, filter_column: str, group_columns: tuple
 ) -> list:
     """`group_columns` の各値に続けて (直近呼出, 直近利用者, 前呼出, 前利用者) を返す。
 
     条件付き集約 1 本で書く。CTE + LEFT JOIN だと NULL を取りうる結合キーの行が落ちる。
     """
-    recent_start, recent_end = _recent_window(today)
-    prev_start, prev_end = _previous_window(today)
+    recent_start, recent_end = recent_window(today, days)
+    prev_start, prev_end = previous_window(today, days)
     cols = ", ".join(group_columns)
     recent_calls_col = len(group_columns) + 1
     sql = (
@@ -72,23 +56,23 @@ def _usage_with_trend(
     return cur.fetchall()
 
 
-def skill_usage(conn, today: int) -> list:
-    return _usage_with_trend(conn, today, "skill_name", ("skill_name",))
+def skill_usage(conn, today: int, days: int = RECENT_DAYS) -> list:
+    return _usage_with_trend(conn, today, days, "skill_name", ("skill_name",))
 
 
-def command_usage(conn, today: int) -> list:
+def command_usage(conn, today: int, days: int = RECENT_DAYS) -> list:
     """生値のまま。"""
     return _usage_with_trend(
-        conn, today, "command_name", ("command_name", "command_source")
+        conn, today, days, "command_name", ("command_name", "command_source")
     )
 
 
-def subagent_ratio(conn, today: int) -> list:
-    """直近のイベントのうち `agent_id` が非 NULL の割合を `[(分子, 分母, 率)]` で返す。
+def subagent_counts(conn, today: int, days: int = RECENT_DAYS) -> tuple:
+    """直近のイベントのうち `agent_id` が非 NULL の件数と、全件数を `(分子, 分母)` で返す。
 
     `agent_id` はサブエージェント内のツール呼出にだけ付く。
     """
-    recent_start, recent_end = _recent_window(today)
+    recent_start, recent_end = recent_window(today, days)
     cur = conn.cursor()
     cur.execute(
         db.q(
@@ -99,25 +83,13 @@ def subagent_ratio(conn, today: int) -> list:
         (recent_start, recent_end),
     )
     denominator, numerator = cur.fetchone()
-    return [(numerator, denominator, _rate(numerator, denominator))]
+    return numerator, denominator
 
 
-def daily_cost(conn) -> list:
-    """集計済みの小さい表なので `day` で絞らない。"""
-    cur = conn.cursor()
-    cur.execute(
-        db.q(
-            "SELECT day, provider, COALESCE(SUM(cost), 0) FROM cost_daily"
-            " GROUP BY day, provider ORDER BY day, provider"
-        )
-    )
-    return cur.fetchall()
-
-
-def user_session_trend(conn, today: int) -> list:
-    """`day` 別の利用者数・セッション数を、直近／前 7 日の集計期間で返す（`day` の昇順）。"""
-    window_start, _ = _previous_window(today)
-    _, window_end = _recent_window(today)
+def user_session_trend(conn, today: int, days: int = RECENT_DAYS) -> list:
+    """`day` 別の利用者数・セッション数を、直近と前の `days` 日の集計期間で返す（`day` の昇順）。"""
+    window_start, _ = previous_window(today, days)
+    _, window_end = recent_window(today, days)
     cur = conn.cursor()
     cur.execute(
         db.q(
@@ -129,11 +101,11 @@ def user_session_trend(conn, today: int) -> list:
     return cur.fetchall()
 
 
-def distribution(conn, today: int, column: str) -> list:
+def distribution(conn, today: int, column: str, days: int = RECENT_DAYS) -> list:
     """`column` 別の直近の件数（生値）。`column` は SQL に埋め込むため `_DISTRIBUTION_COLUMNS` で検査する。"""
     if column not in _DISTRIBUTION_COLUMNS:
         raise ValueError(f"未対応の列: {column}")
-    recent_start, recent_end = _recent_window(today)
+    recent_start, recent_end = recent_window(today, days)
     cur = conn.cursor()
     cur.execute(
         db.q(
@@ -147,7 +119,7 @@ def distribution(conn, today: int, column: str) -> list:
 
 
 def _health_window_stats(conn, start: int, end: int) -> dict:
-    """1 つの集計期間のイベント件数・送信した利用者数・列ごとの NULL 率を返す。"""
+    """1 つの集計期間のイベント件数・送信した利用者数・列ごとの (分母, NULL) の件数を返す。"""
     scope_sql = ", ".join(
         f"COUNT(DISTINCT CASE WHEN {scope} THEN event_id END),"
         f" COUNT(DISTINCT CASE WHEN {scope} AND {col} IS NULL THEN event_id END)"
@@ -162,40 +134,29 @@ def _health_window_stats(conn, start: int, end: int) -> dict:
         (start, end),
     )
     events, terminals, *counts = cur.fetchone()
-    null_rates = {
-        col: _rate(counts[2 * i + 1], counts[2 * i])
+    null_counts = {
+        col: (counts[2 * i], counts[2 * i + 1])
         for i, col in enumerate(_HEALTH_NULL_SCOPES)
     }
-    return {"events": events, "terminals": terminals, "null_rates": null_rates}
+    return {"events": events, "terminals": terminals, "null_counts": null_counts}
 
 
-def health_counts(conn, today: int) -> dict:
-    """直近／前 7 日のイベント件数・送信した利用者数・NULL 率を返す。"""
-    recent_start, recent_end = _recent_window(today)
-    prev_start, prev_end = _previous_window(today)
+def health_window_counts(conn, today: int, days: int = RECENT_DAYS) -> dict:
+    """直近と前の `days` 日の `_health_window_stats` を返す。"""
+    recent_start, recent_end = recent_window(today, days)
+    prev_start, prev_end = previous_window(today, days)
     return {
         "recent": _health_window_stats(conn, recent_start, recent_end),
         "prev": _health_window_stats(conn, prev_start, prev_end),
     }
 
 
-def cost_window_end(conn, today: int) -> Optional[int]:
-    """`cost_daily` を数える集計期間の終了日。`today` と CSV の最終日の早いほう（空なら None）。
-
-    CSV は 1〜2 週ごとに取り込むため、今日で終えると CSV の無い日が集計期間に入り、コストの記録がある日が減る。
-    """
-    cur = conn.cursor()
-    cur.execute(db.q("SELECT MAX(day) FROM cost_daily"))
-    (last_day,) = cur.fetchone()
-    return None if last_day is None else min(today, last_day)
-
-
-def reconciliation_rate(conn, today: int) -> list:
-    """`cost_window_end` で終わる直近 `RECENT_DAYS` 日に `events` を送った利用者のうち、同じ期間の `cost_daily` にも現れる割合。"""
+def reconciliation_counts(conn, today: int, days: int = RECENT_DAYS) -> tuple:
+    """`cost_window_end` で終わる直近 `days` 日に `events` を送った利用者（分母）と、うち同じ期間の `cost_daily` にも現れる利用者（分子）の数。"""
     end = cost_window_end(conn, today)
     if end is None:
-        return [(0, 0, None)]
-    recent_start, recent_end = _recent_window(end)
+        return 0, 0
+    recent_start, recent_end = recent_window(end, days)
     cur = conn.cursor()
     cur.execute(
         db.q(
@@ -210,4 +171,4 @@ def reconciliation_rate(conn, today: int) -> list:
         (recent_start, recent_end, recent_start, recent_end, recent_start, recent_end),
     )
     denominator, numerator = cur.fetchone()
-    return [(numerator, denominator, _rate(numerator, denominator))]
+    return numerator, denominator

@@ -13,7 +13,8 @@ from known_data import (
     insert_event,
 )
 
-from ccgov.store import queries_events
+from ccgov.reports import assets
+from ccgov.store import queries_cost, queries_events
 
 
 def test_skill_usage_returns_two_rows_ordered_by_recent_calls(known_db):
@@ -107,7 +108,7 @@ def test_command_usage_counts_null_command_source(known_db):
 
 def test_subagent_ratio(known_db):
     """分母 13（直近 7 日の全イベント）・分子 2（e9, e10）・割合 15.4%。"""
-    [(numerator, denominator, rate)] = queries_events.subagent_ratio(known_db, TODAY)
+    [(numerator, denominator, rate)] = assets.subagent_ratio(known_db, TODAY)
     assert denominator == 13
     assert numerator == 2
     assert rate == 15.4
@@ -117,7 +118,7 @@ def test_subagent_ratio_unchanged_after_duplicate_injection(known_db):
     """重複行を注入しても割合は 15.4% のまま。"""
 
     def compute():
-        return queries_events.subagent_ratio(known_db, TODAY)
+        return assets.subagent_ratio(known_db, TODAY)
 
     assert_invariant_under_duplication(known_db, compute)
 
@@ -128,7 +129,7 @@ def test_subagent_ratio_count_star_would_differ(known_db):
     cur = known_db.cursor()
     cur.execute("SELECT COUNT(*) FROM events WHERE day >= 19999")
     assert cur.fetchone()[0] == 26
-    [(_, denominator, _)] = queries_events.subagent_ratio(known_db, TODAY)
+    [(_, denominator, _)] = assets.subagent_ratio(known_db, TODAY)
     assert denominator == 13
 
 
@@ -137,7 +138,7 @@ def test_daily_cost_by_provider(known_db):
 
     `day` で絞らないため、集計期間より前の u20（day=19970）の行も現れる。
     """
-    rows = queries_events.daily_cost(known_db)
+    rows = queries_cost.daily_cost(known_db)
     assert list(rows) == [
         (19970, "aws-bedrock", 1.0),
         (20000, "aws-bedrock", 1.0),
@@ -152,7 +153,7 @@ def test_daily_cost_by_provider(known_db):
 def test_daily_cost_doubles_after_duplicate_injection(known_db):
     """`cost_daily` は `event_id` を持たないため、重複注入で合計が 2 倍になる（重複排除の対象外）。"""
     duplicate_cost_daily(known_db)
-    rows = {(r[0], r[1]): r[2] for r in queries_events.daily_cost(known_db)}
+    rows = {(r[0], r[1]): r[2] for r in queries_cost.daily_cost(known_db)}
     assert rows[(20000, "aws-bedrock")] == 2.0
     assert rows[(20004, "openai")] == 1.0
 
@@ -167,7 +168,7 @@ def test_daily_cost_survives_null_cost_row(known_db):
         cost=None,
         input_tokens=None,
     )
-    rows = {(r[0], r[1]): r[2] for r in queries_events.daily_cost(known_db)}
+    rows = {(r[0], r[1]): r[2] for r in queries_cost.daily_cost(known_db)}
     assert rows[(20006, "openai")] == 0.0
 
 

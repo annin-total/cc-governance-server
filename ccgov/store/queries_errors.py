@@ -1,17 +1,18 @@
 """概況画面の健全性に出す `errors` の集計。"""
 
 from ccgov.constants import RECENT_DAYS
+from ccgov.metrics.windows import recent_window
 from ccgov.store import db
 
 _WINDOW = " FROM errors WHERE day BETWEEN ? AND ?"
 
 
-def error_summary(conn, today: int) -> list:
-    """直近 7 日の (stage, error_type, 件数, 端末数, 最新の plugin_version) を件数の降順で返す。
+def error_summary(conn, today: int, days: int = RECENT_DAYS) -> list:
+    """直近 `days` 日の (stage, error_type, 件数, 端末数, 最新の plugin_version) を件数の降順で返す。
 
     最新の版は ts が最新の行の値（`MAX(plugin_version)` は文字列比較で誤る）。
     """
-    window = (today - RECENT_DAYS + 1, today)
+    window = recent_window(today, days)
     cur = conn.cursor()
     cur.execute(
         db.q(

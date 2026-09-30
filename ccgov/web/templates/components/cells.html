@@ -1,0 +1,77 @@
+{# 表のセル。列の kind（screens の Col）ごとの見た目。計算はせず、値の書式と文言の対応だけを書く。 #}
+{% from "components/marks.html" import mark, dot %}
+{% from "components/charts.html" import hbar %}
+{% from "components/values.html" import exact %}
+
+
+{% macro sub(text) %}<span class="sub">{{ text }}</span>{% endmacro %}
+
+{% macro measure(v, row) -%}
+{%- if v is none -%}{{ sub("—") }}
+{%- elif row.unit == "rate" -%}{{ v|pct }}
+{%- else -%}{{ v|num }} {{ L.UNIT[row.unit] }}
+{%- endif -%}
+{%- endmacro %}
+
+{% macro last_day(v, row) -%}
+{%- if v is none -%}{{ sub(L.NO_REPORT) }}
+{%- else -%}{{ v|day }}<span class="sub{{ ' late' if row.late }}"> {{ L.TODAY if row.ago == 0 else L.DAYS_AGO.format(row.ago) }}</span>
+{%- endif -%}
+{%- endmacro %}
+
+{% macro user(v) -%}
+{%- if v is none -%}{{ sub("—") }}
+{%- else -%}{%- set local, at, domain = v.partition("@") -%}<b class="u-id">{{ local }}</b>{% if at %}<span class="sub">@{{ domain }}</span>{% endif %}
+{%- endif -%}
+{%- endmacro %}
+
+{% macro cell(c) -%}
+{%- set v, row, col, k = c.v, c.row, c.col, c.col.kind -%}
+{%- if k == "measure" -%}{{ measure(v, row) }}{% if row.ratio %} {{ sub(row.ratio.numerator|num ~ " / " ~ row.ratio.denominator|num ~ " " ~ L.UNIT.person) }}{% endif %}
+{%- elif k == "measure_sub" -%}<span class="sub">{{ measure(v, row) }}</span>
+{%- elif k == "last_day" -%}{{ last_day(v, row) }}
+{%- elif k == "user" -%}{{ user(v) }}
+{%- elif k == "dot" -%}{{ dot(v) }}
+{%- elif k == "bar" -%}{{ hbar(v) }}
+{%- elif k == "state" -%}{% if v %}{{ mark(v, L.STATE[v]) }}{% else %}{{ sub("—") }}{% endif %}
+{%- elif k == "user_state" -%}{{ mark(L.USER_STATE[v][0], L.OFF_ITEMS.format(row.off) if row.off else L.USER_STATE[v][1]) }}
+{%- elif k == "terminal_state" -%}{{ mark(*L.TERMINAL_STATE[v]) }}{% if row.stale and v != "stale" %} {{ mark(*L.TERMINAL_STATE.stale) }}{% endif %}
+{%- elif k == "off_keys" -%}{% if v %}<b class="num-ng">{{ v|length }}</b> {{ sub(v|map("short", col.terms or L.SETTING)|join("、")) }}{% else %}{{ sub("—") }}{% endif %}
+{%- elif k == "dash_num" -%}{% if v %}{{ v|num }}{% else %}{{ sub("—") }}{% endif %}
+{%- elif v is none -%}{{ sub(L.UNSET if k == "value" else "—") }}
+{%- elif k == "num" -%}{{ v|num }}{% if col.unit %} {{ col.unit }}{% endif %}
+{%- elif k == "day" -%}{{ v|day }}
+{%- elif k == "weekday" -%}{{ v|weekday }}
+{%- elif k == "week" -%}{% if row.partial %}{{ fill(L.WEEK_PARTIAL, row) }}{{ sub(fill(L.WEEK_DAYS, row)) }}{% else %}{{ fill(L.WEEK, row) }}{% endif %}
+{%- elif k == "mday" -%}{{ v|md }}{{ sub(fill(L.MDAY_WEEKDAY, row)) }}
+  {%- if row.from %}{{ sub(fill(L.BD_FROM, row)) }}{% endif %}{% if row.to %}{{ sub(fill(L.BD_TO, row)) }}{% endif %}
+  {%- if row.off %}{{ sub(fill(L.MDAY_OFF, row)) }}{% endif %}
+{%- elif k == "cum" -%}{% if row.actual %}<b>{{ exact(v|usd(col.scale), v|usd_full) }}</b>{% else %}{{ sub(L.FC_FORECAST.format(v|usd(col.scale))) }}{% endif %}
+{%- elif k == "usd_sub" -%}<span class="sub">{{ exact(v|usd(col.scale), v|usd_full) }}</span>
+{%- elif k == "delete" -%}<form method="post" action="{{ url_for('admin.delete_holiday', day=v) }}" data-confirm="{{ fill(L.HOLIDAY.confirm, row) }}">
+  <input type="hidden" name="csrf" value="{{ csrf_token() }}"><button type="submit" class="btn-quiet">{{ L.HOLIDAY.delete }}</button></form>
+{%- elif k == "delete_file" -%}<form method="post" action="{{ url_for('admin.delete_csv') }}" data-confirm="{{ fill(L.IMPORT.confirm if row.first is not none else L.IMPORT.confirm_file, row) }}">
+  <input type="hidden" name="csrf" value="{{ csrf_token() }}"><input type="hidden" name="file" value="{{ v }}"><button type="submit" class="btn-quiet">{{ L.IMPORT.delete }}</button></form>
+{%- elif k == "span" -%}{{ fill(L.SPAN, row) }}
+{%- elif k == "bytes" -%}{{ v|size }}
+{%- elif k == "bin" -%}{{ v|bin }}
+{%- elif k == "rel" -%}{{ v|rel }}
+{%- elif k == "num_sub" -%}{{ sub(v|num) }}
+{%- elif k == "date" -%}{{ v|day }}{{ sub("（" ~ v|weekday ~ "）") }}
+{%- elif k == "tag" -%}{{ sub(term(col.terms, v)) }}
+{%- elif k == "term" -%}{%- set name, desc = term_desc(col.terms[row[col.by]] if col.by else col.terms, v) -%}{{ name }}{% if desc %} {{ sub(desc) }}{% endif %}
+{%- elif k == "stage" -%}{{ term(col.terms, v) }}{% if v in col.terms %}<span class="sub code"> {{ v }}</span>{% endif %}
+{%- elif k == "usd" -%}{{ exact(v|usd(col.scale), v|usd_full) }}
+{%- elif k == "usd_strong" -%}<b>{{ exact(v|usd(col.scale), v|usd_full) }}</b>
+{%- elif k == "tok" -%}{{ exact(v|tok(col.scale), v|num) }}
+{%- elif k == "pct" -%}{{ v|pct }}
+{%- elif k == "pct_strong" -%}<b>{{ v|pct }}</b>
+{%- elif k == "diff" -%}{% if row.unit == "rate" %}{{ v|signed1 }} {{ L.UNIT.pt }}{% else %}{{ v|signed }}{% endif %}
+{%- elif k == "code" -%}<span class="code">{{ v }}</span>
+{%- elif k == "setting" -%}{{ term(col.terms, v) }} <span class="sub code key">{{ v }}</span>
+{%- elif k == "ratio" -%}{{ v|num }} {{ sub("/ " ~ row.denominator|num ~ " " ~ L.UNIT.person) }}
+{%- elif k == "version" -%}<span class="code">{{ v }}</span>{% if row.latest %} {{ mark("ok", L.LATEST) }}{% endif %}
+{%- elif k == "count_of" -%}{{ v|num }} {{ sub("/ " ~ row.total|num ~ " " ~ L.UNIT.terminal) }}
+{%- else -%}{{ v }}
+{%- endif -%}
+{%- endmacro %}

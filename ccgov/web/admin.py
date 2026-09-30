@@ -1,52 +1,43 @@
-"""管理画面の Blueprint。Basic 認証と 4 画面（概況・policy・effect・assets）を持つ。"""
+"""管理画面の Blueprint。Basic 認証・CSRF の検証・取込の大きさの上限と、4 画面（概況・policy・effect・assets）・データと設定を持つ。"""
 
 import hmac
 import time
+from typing import Callable
 
 from flask import Blueprint, Response, current_app, render_template, request
 
-from ccgov.constants import (
-    CONTEXT_BIN,
-    EFFECT_PROVIDER,
-    EVENT_STUDY_SPAN,
-    REFERENCE_KEY,
-    REFERENCE_VALUE,
-)
-from ccgov.ingestion import csv_import
-from ccgov.store import db, queries_errors, queries_events, queries_policy
-from ccgov.vendor import contract, policy
+from ccgov.constants import CSV_UPLOAD_MAX_BYTES
+from ccgov.metrics import windows
+from ccgov.reports import assets, effect, overview, policy
+from ccgov.store import db
+from ccgov.vendor import contract
+from ccgov.web import csrf, csv_files, export, labels, settings
+from ccgov.web.screens import assets as assets_screen
+from ccgov.web.screens import effect as effect_screen
+from ccgov.web.screens import overview as overview_screen
+from ccgov.web.screens import policy as policy_screen
+from ccgov.web.screens import view
 
 # CSS を認証つきで配るため、静的配信はアプリ直下ではなくこの Blueprint が持つ。
 admin = Blueprint("admin", __name__, static_folder="static")
+# 期間を切り替える画面。ナビのリンクに選んだ期間を引き継ぐ
+PERIOD_SCREENS = ("admin.index", "admin.assets_view")
 
 
-def _overview_context() -> dict:
-    """`/` 画面の集計結果を返す（取込結果を除く）。"""
-    today = _today()
+def _build(build: Callable, *args) -> dict:
+    """接続を開いて `build(conn, *args)` を呼び、閉じてから結果を返す。"""
     conn = db.connect()
     try:
-        reconciliation = queries_events.reconciliation_rate(conn, today)[0]
-        return {
-            "health": queries_events.health_counts(conn, today),
-            "error_summary": queries_errors.error_summary(conn, today),
-            "reconciliation_numerator": reconciliation[0],
-            "reconciliation_denominator": reconciliation[1],
-            "reconciliation_rate": reconciliation[2],
-            "plugin_versions": queries_policy.plugin_version_distribution(
-                conn, today, REFERENCE_KEY
-            ),
-            "daily_cost": queries_events.daily_cost(conn),
-            "user_session_trend": queries_events.user_session_trend(conn, today),
-            "permission_mode_distribution": queries_events.distribution(
-                conn, today, "permission_mode"
-            ),
-            "effort_level_distribution": queries_events.distribution(
-                conn, today, "effort_level"
-            ),
-            "source_distribution": queries_events.distribution(conn, today, "source"),
-        }
+        return build(conn, *args)
     finally:
         conn.close()
+
+
+@admin.before_request
+def _limit_upload() -> None:
+    """取込の経路にだけ本文の大きさの上限を掛ける。CSRF の照合が本文を読む前に決めるため、認証より先に登録する。"""
+    if request.endpoint == csv_files.ENDPOINT:
+        request.max_content_length = CSV_UPLOAD_MAX_BYTES
 
 
 @admin.before_request
@@ -60,29 +51,31 @@ def _require_admin_password():
             status=401,
             headers={"WWW-Authenticate": 'Basic realm="admin", charset="UTF-8"'},
         )
+    if request.method == "POST" and not csrf.valid(request.form.get(csrf.FIELD)):
+        return Response(labels.CSRF_FAILED, status=403, mimetype="text/plain")
     return None
+
+
+@admin.context_processor
+def _asof() -> dict:
+    return {"asof": _today()}
+
+
+def _period_key() -> str:
+    """`?period=` の値。知らない値は既定の期間にする。"""
+    key = request.args.get("period", windows.DEFAULT)
+    return key if key in windows.KEYS else windows.DEFAULT
+
+
+def _overview_view(key: str) -> dict:
+    period = windows.period(key, _today())
+    return view.build(overview_screen.SCREEN, _build(overview.build, period))
 
 
 @admin.route("/", strict_slashes=False)
 def index() -> str:
-    return render_template("overview.html", **_overview_context())
-
-
-@admin.route("/import", methods=["POST"])
-def import_endpoint() -> str:
-    """CSV_DIR の全ファイルを取り込み、結果を概況画面に表示する。"""
-    csv_dir = current_app.config["CSV_DIR"]
-    if not csv_dir:
-        results = [{"file": "CSV_DIR", "error": "未設定のため取り込まなかった"}]
-    else:
-        conn = db.connect()
-        try:
-            results = csv_import.import_all(csv_dir, conn)
-        finally:
-            conn.close()
-    return render_template(
-        "overview.html", import_results=results, **_overview_context()
-    )
+    key = _period_key()
+    return render_template("overview.html", view=_overview_view(key), period=key)
 
 
 def _today() -> int:
@@ -91,97 +84,38 @@ def _today() -> int:
 
 @admin.route("/policy")
 def policy_view() -> str:
-    today = _today()
-    rk = REFERENCE_KEY
-    conn = db.connect()
-    try:
-        items = []
-        # 準拠率の対象は SET のスカラ値だけ。dict・list は prev_value が NULL で届き（`coerce`）、
-        # None（キーを消す設定）は prev_value の一致では判定できない。
-        # ADD/REMOVE/ONCE は key_name に接頭辞が付く別物として扱い、対象にしない。
-        for key_name, policy_value in policy.SET.items():
-            if policy_value is None or isinstance(policy_value, (dict, list)):
-                continue
-            expected_value = contract.policy_text(policy_value)
-            numerator, denominator, rate = queries_policy.compliance_rate(
-                conn, today, key_name, expected_value
-            )[0]
-            items.append(
-                {
-                    "key_name": key_name,
-                    "numerator": numerator,
-                    "denominator": denominator,
-                    "rate": rate,
-                    "non_compliant": queries_policy.non_compliant(
-                        conn, today, key_name, expected_value
-                    ),
-                }
-            )
-        csv_imported = queries_policy.csv_imported(conn)
-        latest_values = queries_policy.latest_values(conn, today, rk)
-        not_introduced = queries_policy.not_introduced(conn, today)
-        stale = queries_policy.stale_terminals(conn, today)
-        plugin_versions = queries_policy.plugin_version_distribution(conn, today, rk)
-        claude_code_versions = queries_policy.claude_code_version_distribution(
-            conn, today
-        )
-    finally:
-        conn.close()
-    return render_template(
-        "policy.html",
-        items=items,
-        csv_imported=csv_imported,
-        reference_key=rk,
-        latest_values=latest_values,
-        not_introduced=not_introduced,
-        stale=stale,
-        plugin_versions=plugin_versions,
-        claude_code_versions=claude_code_versions,
-    )
+    data = _build(policy.build, _today())
+    return render_template("policy.html", view=view.build(policy_screen.SCREEN, data))
 
 
 @admin.route("/effect")
 def effect_view() -> str:
     """相対日は準拠開始日が基準のため、基準日（`_today()`）を使わない。"""
-    rk, rv = REFERENCE_KEY, REFERENCE_VALUE
-    conn = db.connect()
-    try:
-        study = queries_policy.event_study(conn, rk, rv, EFFECT_PROVIDER)
-        start_dates = queries_policy.compliance_start_dates(conn, rk, rv)
-        context_pre_compact = queries_policy.context_distribution(
-            conn, "PreCompact", start_dates
-        )
-        context_stop = queries_policy.context_distribution(conn, "Stop", start_dates)
-    finally:
-        conn.close()
-    return render_template(
-        "effect.html",
-        reference_key=rk,
-        reference_value=rv,
-        provider=EFFECT_PROVIDER,
-        span=EVENT_STUDY_SPAN,
-        context_bin=CONTEXT_BIN,
-        study=study,
-        context_pre_compact=context_pre_compact,
-        context_stop=context_stop,
-    )
+    data = _build(effect.build)
+    return render_template("effect.html", view=view.build(effect_screen.SCREEN, data))
 
 
 @admin.route("/assets")
 def assets_view() -> str:
-    today = _today()
-    conn = db.connect()
-    try:
-        skills = queries_events.skill_usage(conn, today)
-        commands = queries_events.command_usage(conn, today)
-        numerator, denominator, rate = queries_events.subagent_ratio(conn, today)[0]
-    finally:
-        conn.close()
-    return render_template(
-        "assets.html",
-        skills=skills,
-        commands=commands,
-        subagent_numerator=numerator,
-        subagent_denominator=denominator,
-        subagent_rate=rate,
-    )
+    key = _period_key()
+    data = _build(assets.build, windows.period(key, _today()))
+    screen = view.build(assets_screen.SCREEN, data)
+    return render_template("assets.html", view=screen, period=key)
+
+
+admin.add_url_rule("/settings", "settings", settings.page)
+admin.add_url_rule(
+    "/settings/holidays", "add_holiday", settings.add_holiday, methods=["POST"]
+)
+admin.add_url_rule(
+    "/settings/holidays/<int:day>/delete",
+    "delete_holiday",
+    settings.delete_holiday,
+    methods=["POST"],
+)
+admin.add_url_rule("/settings/csv", "upload_csv", csv_files.upload, methods=["POST"])
+admin.add_url_rule(
+    "/settings/csv/delete", "delete_csv", csv_files.delete, methods=["POST"]
+)
+admin.add_url_rule("/settings/export/<month>", "export_month", export.download)
+admin.register_error_handler(413, csv_files.too_large)

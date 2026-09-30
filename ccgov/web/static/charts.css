@@ -1,0 +1,35 @@
+/* 見込みのカード・累積のグラフ・週ごとの棒の月の行。値は tokens.css の変数だけを使う */
+
+/* 見込みのカード: 営業日あたりと 1 人 1 営業日あたりを 2 列に並べ、下端に低い累積の線 */
+.fc-stats { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-m); }
+.fc-stat { display: grid; min-width: 0; line-height: 1.5; font-variant-numeric: tabular-nums; }
+.fc-label, .fc-prev { font-size: var(--fs-sm); color: var(--muted); white-space: nowrap; }
+.fc-now { display: flex; align-items: center; gap: var(--sp-xs); font-family: var(--fig); font-size: var(--fs-label); font-weight: 600; color: var(--ink); white-space: nowrap; }
+.fc-now .change { margin-right: 0; font-family: var(--sans); font-size: var(--fs-sm); }
+.fc-cum { height: var(--fc-cum-h); margin-top: var(--sp-xs); }
+.fc-cum polyline, .cum polyline { fill: none; stroke-linejoin: round; }
+.fc-cum polyline { stroke-width: 1.5; }
+.fc-cum-now, .cum .cum-now { stroke: var(--accent); }
+.fc-cum-fc, .cum .cum-fc { stroke: var(--accent); stroke-dasharray: var(--cum-dash); }
+.fc-cum-prev, .cum .cum-prev { stroke: var(--ghost); }
+
+/* 今月のコストの累積: 今月の実績・見込みの破線・前月と、休みの日の帯 */
+.cum polyline { stroke-width: var(--cum-line); }
+.cum .dot-now { fill: var(--accent); }
+.cum .dot-fc { fill: var(--card); stroke: var(--accent); stroke-width: 1.5; }
+.cum .dot-prev { fill: var(--ghost); visibility: hidden; }
+.cum .guide { stroke: var(--muted); stroke-width: 1; visibility: hidden; }
+.cum g.col.is-hot .guide, .cum g.col.is-hot .dot-prev { visibility: visible; }
+.cum g.col.is-hot circle { r: 4.5; }
+.cum .off, .legend i.off { fill: var(--chip); background: var(--chip); }
+.legend i.off { width: var(--sp-m); height: var(--sp-m); vertical-align: -1px; }
+.legend .ln { width: var(--ln-w); height: 0; border-radius: 0; vertical-align: middle; border-top: var(--cum-line) solid var(--accent); }
+.legend .ln.fc { border-top-style: dashed; }
+.legend .ln.prev { border-top-color: var(--ghost); }
+.js [data-when][hidden] { display: none; }
+
+/* 週ごとの棒: 途中の週は薄く、軸の下に暦月の名前と合計 */
+.chart .is-partial rect:not(.hit) { opacity: var(--partial-opacity); }
+.chart .month-sep { stroke: var(--rule); }
+.chart .month-name { fill: var(--muted); }
+.chart .month-total { fill: var(--ink-2); font-weight: 600; }

@@ -56,14 +56,22 @@ def test_non_basic_authorization_is_401(client):
 
 def test_stylesheet_requires_credentials(client):
     """管理画面の CSS も認証の内側にある。"""
-    path = ADMIN + "/static/app.css"
+    path = ADMIN + "/static/tokens.css"
     assert client.get(path).status_code == 401
     assert client.get(path, headers=basic_auth("pw")).status_code == 200
 
 
-def test_import_requires_credentials(client):
-    """`POST /import` も認証が要る。"""
-    assert client.post(ADMIN + "/import").status_code == 401
+@pytest.mark.parametrize(
+    ("method", "path"),
+    [
+        ("post", "/settings/csv"),
+        ("post", "/settings/csv/delete"),
+        ("get", "/settings/export/2026-08"),
+    ],
+)
+def test_import_and_export_require_credentials(client, method, path):
+    """CSV の取り込み・削除と書き出しも認証が要る。"""
+    assert getattr(client, method)(ADMIN + path).status_code == 401
 
 
 @pytest.mark.parametrize(
@@ -74,7 +82,7 @@ def test_import_requires_credentials(client):
         ("get", "/effect"),
         ("get", "/assets"),
         ("post", "/import"),
-        ("get", "/static/app.css"),
+        ("get", "/static/tokens.css"),
     ],
 )
 def test_legacy_paths_are_404_even_with_credentials(client, method, path):

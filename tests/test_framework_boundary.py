@@ -21,7 +21,12 @@ def test_framework_import_appears_only_in_web_package():
     """`ccgov/web/` を除く `*.py` にフレームワーク名の import が現れない。"""
     paths = [*_SERVER_DIR.glob("*.py"), *(_SERVER_DIR / "ccgov").rglob("*.py")]
     scanned = {path.relative_to(_SERVER_DIR).as_posix() for path in paths}
-    assert {"ccgov/ingestion/csv_import.py", "ccgov/store/db.py"} <= scanned
+    assert {
+        "ccgov/ingestion/csv_import.py",
+        "ccgov/store/db.py",
+        "ccgov/metrics/rates.py",
+        "ccgov/reports/overview.py",
+    } <= scanned
     offenders = {}
     for path in paths:
         if _WEB_DIR in path.parents:

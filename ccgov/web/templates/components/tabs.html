@@ -1,0 +1,41 @@
+{# 下段の詳しい一覧。分段タブで 1 枚ずつ見せる。開いているタブは URL の # で保持する（#タブ:区分）。JS が無ければ全部並べる。 #}
+{% from "components/table.html" import filters, table %}
+{% from "components/charts.html" import tab_chart %}
+{% from "components/marks.html" import dot %}
+
+{% macro panel(t) -%}
+<div class="panel" role="tabpanel" id="{{ t.id }}" aria-labelledby="tab-{{ t.id }}" data-panel="{{ t.id }}">
+  <header class="p-head"><h2>{{ t.title }}</h2>
+    <p class="scope">{{ t.scope }}
+    {%- if t.cols|selectattr("kind", "equalto", "dot")|list %}
+      {%- for value in (true, false, none) %}<span class="dot-key">{{ dot(value) }} {{ L.DOT_LEGEND[value] }}</span>{% endfor %}
+    {%- endif %}</p>
+  </header>
+  {%- if t.na %}
+  <p class="na">{{ t.na }}</p>
+  {%- else %}
+  {#- グラフも区分で切り替わるタブ（data-when）は、区分をグラフの上に置く #}
+  {%- set switches = t.chart and t.chart.kind == "month" %}
+  {%- if switches %}{{ filters(t) }}{% endif %}
+  {%- if t.chart %}
+  <div class="p-chart">{{ tab_chart(t.chart) }}</div>
+  {%- endif %}
+  {{ table(t, not switches) }}
+  {%- endif %}
+  {%- if t.note %}
+  <p class="note">{{ t.note }}</p>
+  {%- endif %}
+</div>
+{%- endmacro %}
+
+{% macro detail(tabs) -%}
+<section class="detail" id="detail" aria-label="{{ L.DETAIL }}" data-tabs>
+  <h2 class="glabel">{{ L.DETAIL }}<span>{{ L.DETAIL_HINT }}</span></h2>
+  <div class="tabs" role="tablist">
+    {%- for t in tabs %}<a role="tab" id="tab-{{ t.id }}" href="#{{ t.id }}" aria-controls="{{ t.id }}" data-tab="{{ t.id }}"><b>{{ t.label }}</b><span>{{ t.hint }}</span></a>{% endfor -%}
+  </div>
+  {%- for t in tabs %}
+  {{ panel(t) }}
+  {%- endfor %}
+</section>
+{%- endmacro %}
