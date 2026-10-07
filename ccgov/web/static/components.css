@@ -48,7 +48,6 @@ svg text { font: var(--fs-xs) var(--sans); fill: var(--muted); font-variant-nume
 .meter.ok i { background: var(--ok); }
 .meter.warn i { background: var(--warn); }
 .meter.ng i { background: var(--ng); }
-.meter.neutral i { background: var(--neutral); }
 .hbar.ghost i { background: var(--ghost); }
 .stack { display: flex; gap: var(--sp-3xs); height: var(--meter-h); border-radius: var(--r-xs); overflow: hidden; }
 .stack i { display: block; }

@@ -5,7 +5,6 @@ from typing import Optional
 OK = "ok"
 WARN = "warn"
 NG = "ng"
-NEUTRAL = "neutral"
 
 
 def at_least(value: Optional[float], threshold: float, tone: str) -> Optional[str]:
