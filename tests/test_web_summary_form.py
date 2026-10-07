@@ -5,10 +5,19 @@ import re
 import pytest
 from conftest import ADMIN
 from known_data import TODAY
-from summary_data import DEFAULT_TITLE, LAST, V, field, html_of, make, save, textarea
+from summary_data import (
+    DEFAULT_TITLE,
+    LAST,
+    V,
+    field,
+    html_of,
+    make,
+    save,
+    stored,
+    textarea,
+)
 
 from ccgov.constants import SUMMARY_BODY_MAX, SUMMARY_TITLE_MAX
-from ccgov.reports import summary
 
 
 def test_new_form_defaults_to_the_last_day_and_the_weekly_title(today_client):
@@ -43,7 +52,7 @@ def test_save_stores_the_row_dated_today_and_returns_to_the_list(
     response = save(today_client, asof="2024-10-03", title="題", body="a\r\nb\rc")
     assert response.status_code == 303
     assert response.headers["Location"].endswith(ADMIN + "/summary")
-    [row] = summary.rows(known_db)
+    [row] = stored(known_db)
     assert {k: row[k] for k in ("asof", "title", "body", "created", "updated")} == {
         "asof": 19999,
         "title": "題",
@@ -54,7 +63,7 @@ def test_save_stores_the_row_dated_today_and_returns_to_the_list(
 
 
 @pytest.mark.parametrize(
-    "title, stored",
+    "title, expected",
     [
         ("", "週次サマリー（09/27〜10/03）"),
         ("   ", "週次サマリー（09/27〜10/03）"),
@@ -63,10 +72,10 @@ def test_save_stores_the_row_dated_today_and_returns_to_the_list(
     ],
 )
 def test_blank_or_default_shaped_title_follows_the_asof(
-    today_client, known_db, title, stored
+    today_client, known_db, title, expected
 ):
     save(today_client, asof="2024-10-03", title=title, body="本文")
-    assert summary.rows(known_db)[0]["title"] == stored
+    assert stored(known_db)[0]["title"] == expected
 
 
 @pytest.mark.parametrize(
@@ -76,7 +85,7 @@ def test_asof_out_of_range_or_malformed_falls_back_to_the_default(
     today_client, known_db, raw
 ):
     save(today_client, asof=raw, title="", body="本文")
-    row = summary.rows(known_db)[0]
+    row = stored(known_db)[0]
     assert (row["asof"], row["title"]) == (LAST, DEFAULT_TITLE)
 
 
@@ -105,7 +114,7 @@ def test_too_long_or_empty_input_is_400_and_keeps_the_form(
     assert message in html and 'role="alert"' in html
     assert field(html, "asof")["value"] == "2024-10-03"
     assert field(html, "title")["value"] == title.strip()
-    assert summary.rows(known_db) == []
+    assert stored(known_db) == []
 
 
 def test_longest_title_and_body_are_accepted(today_client, known_db):
@@ -113,7 +122,7 @@ def test_longest_title_and_body_are_accepted(today_client, known_db):
         today_client, title="あ" * SUMMARY_TITLE_MAX, body="い" * SUMMARY_BODY_MAX
     )
     assert response.status_code == 303
-    assert len(summary.rows(known_db)[0]["body"]) == SUMMARY_BODY_MAX
+    assert len(stored(known_db)[0]["body"]) == SUMMARY_BODY_MAX
 
 
 def test_edit_form_shows_the_row_and_saving_updates_it(today_client, known_db):
@@ -131,7 +140,7 @@ def test_edit_form_shows_the_row_and_saving_updates_it(today_client, known_db):
         body="新",
     )
     assert response.status_code == 303
-    row = summary.get(known_db, sid)
+    [row] = stored(known_db)
+    assert row["id"] == sid
     assert (row["asof"], row["title"], row["body"]) == (LAST, "直した", "新")
     assert (row["created"], row["updated"]) == (TODAY - 3, TODAY)
-    assert len(summary.rows(known_db)) == 1

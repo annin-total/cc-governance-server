@@ -17,6 +17,12 @@ def make(conn, day: int = TODAY, **values) -> str:
     return summary.create(conn, {**V, **values}, day * 86400)
 
 
+def stored(conn) -> list:
+    """保存された行（新しい順）。画面が別の接続で書いた後に読むため、読む前にトランザクションを区切る（MySQL の REPEATABLE READ）。"""
+    conn.commit()
+    return summary.rows(conn)
+
+
 def html_of(client, path: str) -> str:
     return client.get(ADMIN + path).get_data(as_text=True)
 

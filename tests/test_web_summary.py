@@ -6,7 +6,7 @@ from html import unescape
 import pytest
 from conftest import ADMIN
 from known_data import TODAY
-from summary_data import V, html_of, make, post, save
+from summary_data import V, html_of, make, post, save, stored
 
 from ccgov.constants import TABLE_FOLD_ROWS
 from ccgov.reports import summary
@@ -76,11 +76,11 @@ def test_delete_asks_on_a_page_then_deletes_by_post(today_client, known_db):
     assert 'method="post"' in form.group(1)
     assert f'action="{ADMIN}/summary/{sid}/delete"' in form.group(1)
     assert "data-confirm" not in form.group(1)
-    assert summary.get(known_db, sid) is not None
+    assert sid in [r["id"] for r in stored(known_db)]
     response = post(today_client, f"/summary/{sid}/delete")
     assert response.status_code == 303
     assert response.headers["Location"].endswith(ADMIN + "/summary")
-    assert [r["id"] for r in summary.rows(known_db)] == [keep]
+    assert [r["id"] for r in stored(known_db)] == [keep]
 
 
 @pytest.mark.parametrize("sid", ["0" * 32, "abc", "0" * 31 + "g", "A" * 32])
@@ -98,7 +98,7 @@ def test_post_without_token_changes_nothing(today_client, known_db, action):
         (f"/summary/{sid}/{action}", {"action": "save", "body": "x"}),
     ):
         assert today_client.post(ADMIN + path, data=data).status_code == 403
-    assert [(r["id"], r["body"]) for r in summary.rows(known_db)] == [(sid, V["body"])]
+    assert [(r["id"], r["body"]) for r in stored(known_db)] == [(sid, V["body"])]
 
 
 @pytest.mark.parametrize(

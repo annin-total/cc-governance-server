@@ -104,6 +104,7 @@ def test_draft_follows_the_overview_of_the_asof(today_client, known_db, asof):
     for line, (state, label) in zip(lines, expected):
         assert line.startswith(f"・{state} · {label}"), line
     assert re.search(rf'name="asof"[^>]*value="{asof}"', html)
+    known_db.commit()
     assert summary.rows(known_db) == []
 
 
