@@ -150,7 +150,8 @@ def _period() -> windows.Period:
 @admin.route("/", strict_slashes=False)
 def index() -> str:
     period = _period()
-    screen = view.build(overview_screen.SCREEN, _build(overview.build, period))
+    data = _build(overview.build, period, _basis()["today"])
+    screen = view.build(overview_screen.SCREEN, data)
     return render_template(
         "overview.html",
         view=screen,

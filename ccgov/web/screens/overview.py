@@ -1,56 +1,45 @@
-"""概況の定義。カードを足すなら `CARDS` に、タブを足すなら `TABS` に 1 要素足す（文言は `words.py`）。"""
+"""概況の定義。専用ページのカードを写し、1 つの格子に流す。カードを押すと専用ページのタブへ移る（概況はタブを持たない）。
 
-from ccgov.web import labels as L
-from ccgov.web.screens import SAME, Card, Chip, Col, Screen, Tab, Viz
-from ccgov.web.screens import words as W
-from ccgov.web.text import HIGHER_IS_BETTER as UP
-from ccgov.web.text import LOWER_IS_BETTER as DOWN
+写すカードを足すなら `_COST`・`_POLICY` に id を足す。並びは画面の並び。
+"""
 
-GROUPS = ("use",)
+import dataclasses
 
-# fmt: off
-_WEEK = Col("day", "week", label="week")
-_PROVIDERS = Col("providers", "usd", each="cost[providers]", terms=L.PROVIDER)
-_COST_SPARK = Viz("spark", "cost[spark]", "total", fmt="usd")
+from ccgov.web.screens import SAME, Screen
+from ccgov.web.screens import cost_page as _cost
+from ccgov.web.screens import policy as _policy
 
-# コストと利用者のページも同じタブを使う
-COST_TAB = Tab("cost", "cost[days]", (
-    Col("day", "date"), _PROVIDERS, Col("total", "usd_strong"), Col("total", "bar", label="bar", sort=None),
-), sort=("day", "desc"), chips_by="period", chips=(Chip("recent", L.RECENT), Chip("prev", L.PREV)),
-    search="{day:day}", chart="cost",
-    long=Tab("weeks_cost", "cost[weeks]", (
-        _WEEK, _PROVIDERS, Col("total", "usd_strong"), Col("total", "bar", label="bar", sort=None),
-    ), sort=("day", "desc"), chart="weeks_cost"))
-MONTH_TAB = Tab("month", "month[rows]", (
-    Col("day", "mday", label="month_day", sort=None), Col("n", "num", sort=None), Col("cost", "usd", sort=None),
-    Col("cost", "bar", label="bar", sort=None, den="top"), Col("cum", "cum", sort=None), Col("prev", "usd_sub", label="prev_cum", sort=None),
-), chips_by="mode", chips=tuple(Chip(k, v) for k, v in W.MONTH_CHIPS.items()), chips_all=False, chart="month", long=SAME)
-
-CARDS = (
-    Card("users", "use", "daily", "{users[recent]:num}", "{users[delta]:signed}", better=UP, viz=Viz("spark", "trend[rows]", "users"),
-         long=Card("cost_users", "use", "weeks_users", "{cost_users[total]:num}", viz=Viz("spark", "cost_users[spark]", "users"))),
-    Card("sessions", "use", "daily", "{sessions[recent]:dec1}", "{sessions[delta]:signed1}", better=UP, viz=Viz("spark", "trend[rows]", "sessions")),
-    Card("cost", "use", "cost", "{cost[recent]:usd}", "{cost[change]:signed_pct}", better=DOWN, viz=_COST_SPARK,
-         long=Card("cost", "use", "weeks_cost", "{cost[recent]:usd}", viz=_COST_SPARK, words="cost_year")),
-    Card("forecast", "use", "month", "{month[forecast]:usd}", viz=Viz("forecast", "month"), long=SAME),
-    Card("bypass", "use", "modes", "{bypass[rate]:dec1}", viz=Viz("meter", "bypass[numerator]", den="bypass[denominator]")),
+GROUPS = ("main",)
+_COST = (
+    "cost_total",
+    "per_bd",
+    "per_user_bd",
+    "cost_forecast",
+    "over_day",
+    "over_week",
+    "over_month",
+    "billed_users",
 )
+_POLICY = ("all_applied", "off", "none", "core_outdated", "plugin_outdated")
 
-TABS = (
-    Tab("daily", "trend[rows]", (
-        Col("day", "date"), Col("period", "tag", terms=L.PERIOD), Col("users", "num", unit="person"),
-        Col("sessions", "num", unit="item"), Col("sessions", "bar", label="sessions_bar", sort=None),
-    ), sort=("day", "desc"), chips_by="period", chips=(Chip("recent", L.RECENT), Chip("prev", L.PREV)), chart="trend",
-        long=Tab("weeks_users", "cost_users[weeks]", (
-            _WEEK, Col("users", "num", unit="person"), Col("users", "bar", label="bar", sort=None),
-        ), sort=("day", "desc"), chart="weeks_users")),
-    COST_TAB,
-    MONTH_TAB,
-    Tab("modes", "usage", (
-        Col("field", "tag", terms=L.USAGE_FIELD), Col("value", "term", terms=L.USAGE_VALUE, by="field"),
-        Col("count", "num"), Col("share", "pct"), Col("share", "bar", label="bar", sort=None, den="100"),
-    ), chips_by="field", chips=tuple(Chip(k, v) for k, v in L.USAGE_FIELD.items())),
+
+def _mirror(cards: tuple, ids: tuple, page: str, at: bool = False) -> tuple:
+    """`at` は今日の時点で数える画面のカード。時点を添え、期間に依らないので 12 か月でもそのまま出す。"""
+    found = {c.id: c for c in cards}
+
+    def move(card):
+        return dataclasses.replace(card, group=GROUPS[0], page=page, at=at)
+
+    result = []
+    for card in (found[i] for i in ids):
+        long = (
+            SAME if at else card.long if card.long in (None, SAME) else move(card.long)
+        )
+        result.append(dataclasses.replace(move(card), long=long))
+    return tuple(result)
+
+
+CARDS = _mirror(_cost.CARDS, _COST, "admin.cost_view") + _mirror(
+    _policy.CARDS, _POLICY, "admin.policy_view", at=True
 )
-# fmt: on
-
-SCREEN = Screen(GROUPS, CARDS, TABS)
+SCREEN = Screen(GROUPS, CARDS, ())

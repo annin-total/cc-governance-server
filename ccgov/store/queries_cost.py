@@ -47,19 +47,6 @@ def daily_cost(conn, start: Optional[int] = None, end: Optional[int] = None) -> 
     return cur.fetchall()
 
 
-def cost_user_days(conn, start: int, end: int) -> list:
-    """`start`〜`end` にコスト（0 より大きい）があった `(day, user_email)`。週・月の人数は呼び出し側で数える。"""
-    cur = conn.cursor()
-    cur.execute(
-        db.q(
-            "SELECT DISTINCT day, user_email FROM cost_daily"
-            " WHERE day BETWEEN ? AND ? AND cost > 0"
-        ),
-        (start, end),
-    )
-    return [tuple(row) for row in cur.fetchall()]
-
-
 def cost_user_count(conn, start: int, end: int) -> int:
     """`start`〜`end` にコスト（0 より大きい）があった利用者の数。"""
     cur = conn.cursor()

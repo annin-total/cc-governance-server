@@ -1,13 +1,10 @@
 """コストと利用者の定義。カードを足すなら `CARDS` に、タブを足すなら `TABS` に 1 要素足す（文言は `words.py`）。"""
 
-import dataclasses
-
 from ccgov.constants import TABLE_FOLD_ROWS
 from ccgov.metrics.spend import BASES
 from ccgov.web import labels as L
 from ccgov.web.screens import SAME, USER_SEARCH, Axis, Card, Chip, Col, Screen, Tab, Viz
 from ccgov.web.screens import words as W
-from ccgov.web.screens.overview import COST_TAB, MONTH_TAB
 from ccgov.web.text import HIGHER_IS_BETTER as UP
 from ccgov.web.text import LOWER_IS_BETTER as DOWN
 
@@ -71,6 +68,9 @@ _DEPT_HEAD = (
 _DEPT_TAIL = (Col("share", "pct", label="spend_share", sort=None), Col("per_user_bd", "usd", sort=None))
 _SEARCH = USER_SEARCH + " {model}"
 _STATES = ("ng", "warn", "ok")
+_WEEK = Col("day", "week", label="week")
+_PROVIDERS = Col("providers", "usd", each="cost[providers]", terms=L.PROVIDER)
+_TOTAL = (Col("total", "usd_strong"), Col("total", "bar", label="bar", sort=None))
 
 TABS = (
     Tab("user_cost", "users", (
@@ -87,13 +87,18 @@ TABS = (
     ), chips_by="basis", chips=tuple(Chip(b, n) for b, n in W.OVER_BASIS.items()), chips_present=True, search=USER_SEARCH, fold=_FOLD,
         axes=(Axis("state", tuple(Chip(k, L.STATE[k], k) for k in _STATES), "over_now"),
               Axis("kind", tuple(Chip(k, n) for k, n in W.OVER_KIND.items()), "over_kind")), org=True),
-    dataclasses.replace(COST_TAB, fold=_FOLD, long=dataclasses.replace(COST_TAB.long, fold=_FOLD)),
+    Tab("cost", "cost[days]", (Col("day", "date"), _PROVIDERS, *_TOTAL), sort=("day", "desc"), chips_by="period",
+        chips=(Chip("recent", L.RECENT), Chip("prev", L.PREV)), search="{day:day}", chart="cost", fold=_FOLD,
+        long=Tab("weeks_cost", "cost[weeks]", (_WEEK, _PROVIDERS, *_TOTAL), sort=("day", "desc"), chart="weeks_cost", fold=_FOLD)),
     Tab("models", "models[rows]", (
         *_MODEL_HEAD, Col("share", "pct"), Col("prev", "usd_sub", label="prev_spend"), Col("diff", "usd_delta", label="spend_diff"),
         *_MODEL_TAIL,
     ), sort=("cost", "desc"), long=Tab("models", "models[rows]", (*_MODEL_HEAD, Col("share", "pct"), *_MODEL_TAIL),
                                        sort=("cost", "desc"), words="models_year")),
-    dataclasses.replace(MONTH_TAB, fold=_FOLD),
+    Tab("month", "month[rows]", (
+        Col("day", "mday", label="month_day", sort=None), Col("n", "num", sort=None), Col("cost", "usd", sort=None),
+        Col("cost", "bar", label="bar", sort=None, den="top"), Col("cum", "cum", sort=None), Col("prev", "usd_sub", label="prev_cum", sort=None),
+    ), chips_by="mode", chips=tuple(Chip(k, v) for k, v in W.MONTH_CHIPS.items()), chips_all=False, chart="month", fold=_FOLD, long=SAME),
     Tab("months", "months", (
         Col("day", "month", label="month"), Col("cost", "usd_strong", label="spend"), Col("cost", "bar", label="bar", sort=None),
         Col("users", "num", unit="person"), Col("new", "num", label="new_users", unit="person"), Col("bd", "num"), Col("per_bd", "usd"),

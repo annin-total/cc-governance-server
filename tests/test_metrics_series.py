@@ -21,9 +21,7 @@ def test_total_between_includes_both_ends():
     assert series.total_between(values, 2, 3) == 6.0
 
 
-def test_mean_and_change_pct():
-    assert series.mean([1, 2, 6]) == 3
-    assert series.mean([]) is None
+def test_change_pct():
     assert series.change_pct(110.0, 100.0) == 10.0
     assert series.change_pct(1.0, 0.0) is None
 

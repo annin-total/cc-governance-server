@@ -39,6 +39,8 @@
   /* グラフと表の連動で、当てていない棒を薄くする度合いと、途中の週の棒の薄さ */
   --link-dim: .35;
   --partial-opacity: .45;
+  /* 概況の状態の絞り込みで、当たらないカードを薄くする度合い */
+  --card-dim: .35;
 
   /* 文字 */
   --sans: "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic UI", "Yu Gothic", "Meiryo", system-ui, sans-serif;
@@ -92,7 +94,6 @@
   --search-w: 240px;
   --table-max-h: 560px;
   --tip-max-w: 320px;
-  --fc-cum-h: 28px;
   --ln-w: 18px;
   --cum-line: 2px;
   --cum-dash: 5 4;

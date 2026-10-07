@@ -20,13 +20,14 @@ def test_all_screens_return_200(no_csv_client, path):
     assert no_csv_client.get(ADMIN + path).status_code == 200
 
 
-def test_overview_fills_tables_from_events_and_policy(no_csv_client):
-    """CSV に依らない表は埋まり、コストの表だけが空になる。"""
+def test_overview_fills_policy_cards_without_csv(no_csv_client):
+    """利用明細に依らない設定の適用のカードは埋まり、コストのカードだけが「—」になる。"""
     html = no_csv_client.get(ADMIN + "/").get_data(as_text=True)
-    modes = [r for r in table_rows(html, "modes") if r["tags"] == ["permission_mode"]]
-    assert len(modes) == 3
-    assert card_value(html, "送信した利用者") == "4"
-    assert rows_in_table(html, "cost") == []
+    policy = no_csv_client.get(ADMIN + "/policy").get_data(as_text=True)
+    assert card_value(html, "プラグイン未導入") == card_value(
+        policy, "プラグイン未導入"
+    )
+    assert card_value(html, "すべての設定を適用") not in ("", "—")
     assert card_value(html, "コスト（利用明細）") == "—"
 
 

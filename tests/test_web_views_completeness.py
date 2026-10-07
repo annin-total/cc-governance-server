@@ -90,9 +90,9 @@ def test_import_results_is_referenced_by_settings(today_app):
 @pytest.mark.parametrize(
     ("report", "args", "long"),
     [
-        ("overview", (windows.period("7", TODAY),), False),
-        ("overview", (windows.period("28", TODAY),), False),
-        ("overview", (windows.period("12m", TODAY),), True),
+        ("overview", (windows.period("7", TODAY), TODAY), False),
+        ("overview", (windows.period("28", TODAY), TODAY), False),
+        ("overview", (windows.period("12m", TODAY), TODAY), True),
         ("cost_page", (windows.period("7", TODAY),), False),
         ("cost_page", (windows.period("28", TODAY),), False),
         ("cost_page", (windows.period("12m", TODAY),), True),

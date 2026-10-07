@@ -53,30 +53,6 @@ def test_daily_cost_survives_null_cost_row(known_db):
     assert rows[(20006, "openai")] == 0.0
 
 
-def test_user_session_trend(known_db):
-    """`day` 別の利用者数・セッション数が既知データの表と一致する。"""
-    rows = {
-        r[0]: (r[1], r[2]) for r in queries_events.user_session_trend(known_db, TODAY)
-    }
-    assert rows[19995] == (1, 1)
-    assert rows[19996] == (2, 2)
-    assert rows[20000] == (1, 1)
-    assert rows[20001] == (1, 1)
-    assert rows[20002] == (2, 2)
-    assert rows[20003] == (1, 1)
-    assert rows[20004] == (2, 2)
-    assert 19988 not in rows  # 集計期間（day >= 19992）より前
-
-
-def test_user_session_trend_unchanged_after_duplicate_injection(known_db):
-    """重複行を注入しても利用者数・セッション数は変わらない。"""
-
-    def compute():
-        return sorted(queries_events.user_session_trend(known_db, TODAY))
-
-    assert_invariant_under_duplication(known_db, compute)
-
-
 def test_distribution_permission_mode(known_db):
     rows = dict(queries_events.distribution(known_db, TODAY, "permission_mode"))
     assert rows == {"default": 11, "plan": 1, "acceptEdits": 1}

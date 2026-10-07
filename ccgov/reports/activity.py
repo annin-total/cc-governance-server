@@ -3,13 +3,27 @@
 12 か月では何も数えない（すべて記録から数える項目のため）。
 """
 
-from ccgov.metrics import activity, calls, session_size
+from ccgov.metrics import activity, calls, rates, session_size
 from ccgov.metrics import roster as names
 from ccgov.metrics.windows import Period
-from ccgov.reports import overview, roster
-from ccgov.store import queries_activity
+from ccgov.reports import roster
+from ccgov.store import queries_activity, queries_events
 
 _NO_CALLS = {k: 0 for k in calls.KINDS}
+_USAGE_FIELDS = ("permission_mode", "effort_level", "source")
+
+
+def usage(conn, today: int, days: int) -> list:
+    """権限モード・effort・セッションの開始の値ごとの件数と、区分の中での割合。"""
+    rows = []
+    for field in _USAGE_FIELDS:
+        dist = queries_events.distribution(conn, today, field, days)
+        total = sum(count for _, count in dist)
+        rows += [
+            {"field": field, "value": v, "count": n, "share": rates.rate(n, total)}
+            for v, n in dist
+        ]
+    return rows
 
 
 def _user_calls(users: list, per_user: dict) -> list:
@@ -37,5 +51,5 @@ def build(conn, period: Period) -> dict:
         "bypass": activity.bypass(days, period),
         "user_use": names.named(people, users),
         "user_calls": names.named(people, _user_calls(users, called["per_user"])),
-        "usage": overview.usage(conn, period.end, period.days),
+        "usage": usage(conn, period.end, period.days),
     }

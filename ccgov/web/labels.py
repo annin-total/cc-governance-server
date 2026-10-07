@@ -16,11 +16,13 @@ from ccgov.metrics.windows import KEYS, LONG_KEY
 
 APP = "Claude Code 利用状況"
 ASOF = "{} 時点"
+# 今日の時点で数える画面のカードを概況に写すとき、値の下の 1 行の頭に添える
+AT_SUB = ASOF.format("{at:md}") + " · "
 FOOTER = "端末から送られた値です。コストとトークンは全社の利用明細（CSV）の値を正とします。"
 
 # endpoint -> (見出し, 説明)
 SCREENS = {
-    "admin.index": ("概況", "全体の利用量"),
+    "admin.index": ("概況", "コスト・利用者・設定の適用の要点と、注意・要確認の点"),
     "admin.cost_view": ("コストと利用者", "いくらかかり、誰に集まり、何人が使っているか"),
     "admin.activity_view": ("利用状況", "どれだけの頻度で使い、何を呼び出し、セッションはどれだけ大きいか"),
     "admin.policy_view": ("設定の適用状況", "配布した設定と更新が、利用者に行き渡っているか"),
@@ -37,7 +39,6 @@ OPEN_LIST = "一覧"
 EXACT = "正確な値"
 # カードの小さなグラフのツールチップ。2 つの空白の前が見出し、後ろが値（app.js が組む）
 SPARK_TIP = "{day:md}（{day:weekday}）  {value}"
-SPARK_TIP_WEEK = "{day:md}〜{end:md}  {value}"
 SPARK_TIP_MONTH = "{day:ym}  {value}"
 # 分布の区間と、状態ごとの帯のツールチップ
 BIN_TIP = "{lo}〜{hi}  {n} 人"
@@ -49,6 +50,9 @@ FILTER_GROUP = "区分"
 FOLD_MORE = "さらに表示（残り {} 件）"
 FOLD_CLOSE = "閉じる"
 STATE = {"ok": "正常", "warn": "注意", "ng": "要確認", "neutral": "—"}
+# 概況の状態の絞り込み: 段階 -> 語（「注意以上」は注意と要確認）。当たらないカードを薄くする
+STATE_FILTER = {"all": ALL, "warn": "注意以上", "ng": STATE["ng"]}
+STATE_FILTER_GROUP = "状態で絞り込む"
 # 名簿に無い利用者の部署
 UNLISTED = "不明"
 # 部署の絞り込み（ボタンの文言の {} は選んだ最初の部・課と、残りの数）

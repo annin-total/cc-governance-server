@@ -9,11 +9,6 @@ from ccgov.constants import FORECAST_MIN_BUSINESS_DAYS
 from ccgov.metrics import business_days as bd
 
 
-def per_user(per_bd: Optional[float], users: int) -> Optional[float]:
-    """1 人 1 営業日あたり。利用者が 0 なら None。"""
-    return None if per_bd is None or not users else per_bd / users
-
-
 def _ratio(value: float, count: int) -> Optional[float]:
     return value / count if count else None
 

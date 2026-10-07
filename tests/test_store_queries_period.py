@@ -21,9 +21,7 @@ def test_usage_queries_follow_the_period_days(known_db):
     assert totals == {"pdf": (4, 0), "xlsx": (2, 0)}
 
 
-def test_trend_and_distribution_follow_the_period_days(known_db):
-    trend = queries_events.user_session_trend(known_db, TODAY, 28)
-    assert trend[0][0] == 19988 and len(trend) == 8
+def test_distribution_follows_the_period_days(known_db):
     dist = dict(queries_events.distribution(known_db, TODAY, "permission_mode", 28))
     assert dist == {"default": 15, "plan": 1, "acceptEdits": 1}
 
@@ -49,7 +47,7 @@ def test_daily_cost_can_be_limited_to_a_range(known_db):
 
 
 def test_cost_users_are_people_with_positive_cost(known_db):
-    """コストがあった利用者: 日ごとの (day, 利用者)。コストが 0 や空の行だけの人は入らない。"""
+    """コストがあった利用者の数。コストが 0 や空の行だけの人は入らない。"""
     insert_cost_daily(known_db, day=20003, user_email="u0", provider="openai", cost=0.0)
     insert_cost_daily(
         known_db, day=20003, user_email="u6", provider="openai", cost=None
@@ -57,13 +55,4 @@ def test_cost_users_are_people_with_positive_cost(known_db):
     insert_cost_daily(
         known_db, day=20004, user_email="u1", provider="aws-bedrock", cost=2.0
     )
-    got = sorted(queries_cost.cost_user_days(known_db, 20000, 20004))
-    assert got == [
-        (20000, "u1"),
-        (20001, "u2"),
-        (20002, "u3"),
-        (20003, "u4"),
-        (20004, "u1"),
-        (20004, "u5"),
-    ]
     assert queries_cost.cost_user_count(known_db, 20003, 20004) == 3

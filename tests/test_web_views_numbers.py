@@ -16,7 +16,7 @@ _EXACT = re.compile(
 
 
 def _html(client) -> str:
-    return client.get(ADMIN + "/").get_data(as_text=True)
+    return client.get(ADMIN + "/cost").get_data(as_text=True)
 
 
 def _exacts(fragment: str) -> list:
@@ -39,7 +39,7 @@ def test_cost_card_rounds_from_threshold_and_keeps_exact(known_db, today_client)
     html = _html(today_client)
     assert _exacts(card_value(html, "コスト（利用明細）")) == [("$2,275", "$2,274.54")]
     sub = card(html, "コスト（利用明細）").split('class="k-sub"')[1].split("</span>")
-    assert "$2,274.54" not in sub[0] and "前の 7 日 $0.00" in unescape("".join(sub))
+    assert "$2,274.54" not in sub[0] and "前 $0.00" in unescape("".join(sub))
 
 
 def test_cost_table_keeps_one_scale_per_column(known_db, today_client):

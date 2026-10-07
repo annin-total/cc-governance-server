@@ -13,7 +13,6 @@ KEY = {
     "cost": "day",
     "hist": "bin",
     "month": "link",
-    "weeks_users": "day",
     "weeks_cost": "day",
     "sizes": "bin",
 }
@@ -29,7 +28,7 @@ def build(tab: Tab, rows: list, ctx: dict) -> Optional[dict]:
         return _trend(tab, rows, ctx)
     if tab.chart == "cost" and rows:
         return _cost(rows, ctx)
-    if tab.chart in ("weeks_users", "weeks_cost") and rows:
+    if tab.chart == "weeks_cost" and rows:
         return _weeks(tab, rows, ctx)
     if tab.chart == "hist" and rows:
         return {
@@ -81,20 +80,12 @@ def _cost(rows: list, ctx: dict) -> dict:
 
 def _weeks(tab: Tab, rows: list, ctx: dict) -> dict:
     """週ごとの棒（途中の週は薄く）と、軸の下の暦月の名前と合計。"""
-    users = tab.chart == "weeks_users"
-    src = "cost_users" if users else "cost"
-    providers = [] if users else text.lookup(ctx, "cost[providers]")
-    columns = [
-        (
-            r["day"],
-            [r["users"]] if users else [r["providers"].get(p, 0) for p in providers],
-        )
-        for r in rows
-    ]
+    providers = text.lookup(ctx, "cost[providers]")
+    columns = [(r["day"], [r["providers"].get(p, 0) for p in providers]) for r in rows]
     geo = charts.stacked(columns, *COST_CHART, day_labels=False)
     for bar, row in zip(geo["bars"], rows):
         bar["dim"] = row["partial"]
-    months = text.lookup(ctx, f"{src}[months]")
+    months = text.lookup(ctx, "cost[months]")
     shown = [
         m for i, m in enumerate(months)
         if i + 1 == len(months) or months[i + 1]["week"] - m["week"] >= MONTH_ROW_MIN_WEEKS
@@ -109,9 +100,7 @@ def _weeks(tab: Tab, rows: list, ctx: dict) -> dict:
             "value_y": base + MONTH_ROW_VALUE_Y,
             "name": filters.ym(m["day"])
             + (L.MONTH_PARTIAL if m["partial"] and m is months[-1] else ""),
-            "value": f"{filters.num(m['users'])} {L.UNIT['person']}"
-            if users
-            else filters.usd(m["total"]),
+            "value": filters.usd(m["total"]),
         }
         for m in shown
     ]
@@ -120,7 +109,7 @@ def _weeks(tab: Tab, rows: list, ctx: dict) -> dict:
     return {
         "kind": "cost",
         "geo": geo,
-        "fmt": "num" if users else "usd",
+        "fmt": "usd",
         "series": [text.term(L.PROVIDER, p) for p in providers],
         "legend": [text.fill(t, ctx) for t in W.TAB[tab.id].get("legend", ())],
         "note": "".join(text.fill(L.MONTH_SKIPPED, m) for m in skipped),

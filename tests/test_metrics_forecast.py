@@ -89,9 +89,3 @@ def test_calendar_rows_mark_off_days_and_place_forecast_on_business_days():
     assert (
         cal[D("2026-09-30")]["fc"] is None and cal[D("2026-09-30")]["off"] == "棚卸し"
     )
-
-
-def test_per_user_divides_per_business_day_by_users():
-    assert forecast.per_user(12.0, 4) == pytest.approx(3.0)
-    assert forecast.per_user(12.0, 0) is None
-    assert forecast.per_user(None, 4) is None

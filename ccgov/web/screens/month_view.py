@@ -27,36 +27,6 @@ def _tip(i: int, row: dict, prev_month: int) -> str:
     return head + "  " + " · ".join(v for v in (now, prev) if v)
 
 
-def card(month: dict, words: dict) -> Optional[dict]:
-    """営業日あたり・1 人 1 営業日あたり（前月と比べる）と、営業日を横軸にした低い累積の線。"""
-    rows = _mode(month, "bd")
-    if not any(r["cum"] is not None or r["prev"] is not None for r in rows):
-        return None
-    stats = []
-    for label, key in words["stats"]:
-        change = month[f"{key}_change"]
-        change = "" if change is None else text.fill("{v:signed_pct}", {"v": change})
-        stats.append(
-            {
-                "label": label,
-                "now": text.parts("{v:usd}", {"v": month[key]}),
-                "change": change,
-                "tone": text.chip_tone(change, text.LOWER_IS_BETTER),
-                "prev": text.fill(
-                    L.FC_PREV,
-                    {
-                        "month": month["prev_month"],
-                        "value": filters.usd(month[f"prev_{key}"]),
-                    },
-                ),
-            }
-        )
-    geo = charts_cum.line(rows, charts_cum.MINI)
-    tips = [_tip(i, r, month["prev_month"]) for i, r in enumerate(rows)]
-    geo["cols"] = [{**c, "tip": t} for c, t in zip(geo["cols"], tips)]
-    return {"kind": "forecast", "stats": stats, "geo": geo}
-
-
 def cum_card(month: dict, words: dict, ctx: dict) -> Optional[dict]:
     """営業日を横軸にした、今月の累積と見込みの線に前月の累積を薄く重ねたカードのグラフ。"""
     rows = _mode(month, "bd")
