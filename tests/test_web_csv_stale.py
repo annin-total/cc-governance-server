@@ -22,7 +22,7 @@ def _stale_cal(known_db, client, age: int, path: str) -> _Calendar:
     return _cal(client, path)
 
 
-@pytest.mark.parametrize("path", ["/", "/assets", "/effect", "/policy"])
+@pytest.mark.parametrize("path", ["/", "/activity", "/effect", "/policy"])
 def test_stale_warning_from_the_constant(known_db, today_client, path):
     cal = _stale_cal(known_db, today_client, CSV_STALE_DAYS, path)
     [warning] = cal.stale

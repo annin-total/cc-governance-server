@@ -5,16 +5,20 @@
 
 from known_data import TODAY, insert_cost_daily
 
-from ccgov.reports import assets, overview
-from ccgov.store import queries_cost, queries_errors, queries_events
+from ccgov.metrics.windows import period
+from ccgov.reports import overview
+from ccgov.store import queries_activity, queries_cost, queries_errors, queries_events
 
 
 def test_usage_queries_follow_the_period_days(known_db):
     """28 日では、7 日の前の期間にあった呼び出し（e14・e15）も直近に入り、前の期間は空になる。"""
-    rows = {r[0]: r[1:] for r in queries_events.skill_usage(known_db, TODAY, 28)}
-    assert rows["pdf"] == (4, 2, 0, 0)
-    assert rows["xlsx"] == (2, 2, 0, 0)
-    assert queries_events.subagent_counts(known_db, TODAY, 28) == (2, 17)
+    skills = queries_activity.calls(known_db, period("28", TODAY))[0]
+    totals = {}
+    for _, name, recent, prev in skills:
+        totals[name] = tuple(
+            a + b for a, b in zip(totals.get(name, (0, 0)), (recent, prev))
+        )
+    assert totals == {"pdf": (4, 0), "xlsx": (2, 0)}
 
 
 def test_trend_and_distribution_follow_the_period_days(known_db):
@@ -27,8 +31,6 @@ def test_trend_and_distribution_follow_the_period_days(known_db):
 def test_health_counts_follow_the_period_days(known_db):
     counts = overview.health_counts(known_db, TODAY, 28)
     assert (counts["recent"]["events"], counts["prev"]["events"]) == (17, 0)
-    [(_, denominator, _)] = assets.subagent_ratio(known_db, TODAY, 28)
-    assert denominator == 17
 
 
 def test_reconciliation_and_errors_follow_the_period_days(known_db):

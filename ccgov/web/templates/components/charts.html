@@ -122,6 +122,11 @@
 {%- elif v.kind == "stack" -%}
 <span class="stack">{% for p in v.parts %}<i class="{{ p.cls }}" style="flex: {{ p.value }}"></i>{% endfor %}</span>
 <span class="legend">{% for p in v.parts %}<span><i class="{{ p.cls }}"></i>{{ p.label }} {{ p.value|num }}</span>{% endfor %}</span>
+{%- elif v.kind == "sizes" -%}
+<svg class="spark" viewBox="0 0 {{ v.geo.w }} {{ v.geo.h }}" preserveAspectRatio="none" aria-hidden="true">{% for b in v.geo.bars %}{{ hist_segs(v.geo, b) }}{% endfor %}
+  <line class="spark-guide" x1="0" x2="0" y1="0" y2="{{ v.geo.h }}" vector-effect="non-scaling-stroke"/>
+  {{ hits(v.geo.bars, v.geo.h) }}</svg>
+<span class="legend">{% for name in v.legend %}<span><i class="{{ 'bar-hi' if loop.last else 'bar-old' }}"></i>{{ name }}</span>{% endfor %}</span>
 {%- elif v.kind == "hist" -%}
 <svg class="spark" viewBox="0 0 {{ v.geo.w }} {{ v.geo.h }}" preserveAspectRatio="none" aria-hidden="true">{% for b in v.geo.bars %}{{ hist_segs(v.geo, b) }}{% endfor %}</svg>
 <span class="legend">{% for name in v.terms.values() %}<span><i class="{{ 'bar-hi' if loop.last else 'bar-old' }}"></i>{{ name }}</span>{% endfor %}</span>

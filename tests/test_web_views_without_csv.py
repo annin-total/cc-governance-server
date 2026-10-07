@@ -15,7 +15,7 @@ def no_csv_client(known_db, today_client):
     return today_client
 
 
-@pytest.mark.parametrize("path", ["/", "/policy", "/effect", "/assets"])
+@pytest.mark.parametrize("path", ["/", "/policy", "/effect", "/activity"])
 def test_all_screens_return_200(no_csv_client, path):
     assert no_csv_client.get(ADMIN + path).status_code == 200
 
@@ -54,7 +54,7 @@ def test_effect_fills_context_distribution(no_csv_client):
     assert rows_in_table(html, "study") == []
 
 
-def test_assets_fills_usage_tables(no_csv_client):
-    html = no_csv_client.get(ADMIN + "/assets").get_data(as_text=True)
-    assert rows_in_table(html, "skills")
-    assert rows_in_table(html, "commands")
+def test_activity_fills_usage_tables(no_csv_client):
+    html = no_csv_client.get(ADMIN + "/activity").get_data(as_text=True)
+    assert rows_in_table(html, "calls")
+    assert rows_in_table(html, "user_use")

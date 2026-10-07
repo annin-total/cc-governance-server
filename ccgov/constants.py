@@ -6,7 +6,7 @@ POLICY_DAYS = 30
 STALE_DAYS = 14
 EVENT_STUDY_SPAN = 14
 
-# 概況とスキル・コマンドの利用で切り替える期間。日数の期間は直近 N 日とその前の N 日を比べ、
+# 期間のページで切り替える期間。日数の期間は直近 N 日とその前の N 日を比べ、
 # 月数の期間は比べずに週ごとに並べる。最初の日数が既定
 PERIOD_DAYS = (RECENT_DAYS, 28)
 LONG_MONTHS = 12
@@ -39,8 +39,8 @@ EXPORT_BYTES_PER_ROW = {
 # 長い一覧が初めに出す行の数。残りは「さらに表示」で開く（一覧ごとに変えられる）
 TABLE_FOLD_ROWS = 10
 
-# スキル・コマンドの利用のカードに並べる名前の数
-ASSET_CARD_ROWS = 3
+# 利用状況の呼び出しのカードと、利用者ごとの呼び出しの一覧に並べる名前の数
+CALL_TOP = 3
 # コストの多い利用者のカードに並べる人数
 TOP_SPENDERS = 5
 
@@ -62,8 +62,13 @@ USERS_DROP_HIGH = 15
 USER_COST_ELEVATED = {"day": 50, "week": 70, "month": 280}
 USER_COST_HIGH = {"day": 100, "week": 150, "month": 600}
 
-# 概況で割合を出す権限モードの値（Claude Code の `permission_mode`）
+# 確認なしの権限モードの値（Claude Code の `permission_mode`）
 BYPASS_MODE = "bypassPermissions"
+# 利用状況で数えるツール（Claude Code の `tool_name`）。外部ツールは MCP（サーバごと）と Web の 2 つ、
+# サブエージェントの起動は本体から呼んだ Agent（旧名 Task）。ほかの組み込みのツールは数えない
+MCP_PREFIX = "mcp__"
+WEB_TOOLS = ("WebSearch", "WebFetch")
+AGENT_TOOLS = ("Agent", "Task")
 
 # 効果測定の実験（policy.py とは独立に固定）。値は prev_value の表記（文字列）で書く。
 # plugin_version の分布も REFERENCE_KEY の行で数えるため、キーを替えると分布も変わる

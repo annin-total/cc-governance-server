@@ -128,20 +128,20 @@ def test_twelve_months_weekly_rows_and_monthly_totals(today_client):
     assert re.search(r'class="month-total"[^>]*>5 人</text>', users_chart)
 
 
-def test_assets_twelve_months_is_all_unavailable(today_client):
-    html = _html(today_client, "/assets", "12m")
+def test_activity_twelve_months_is_all_unavailable(today_client):
+    html = _html(today_client, "/activity", "12m")
     assert "<table" not in html
     assert (
-        "スキルの呼び出し・コマンドの呼び出しは、記録から数えるため 12 か月では出しません"
-        in html
+        "スキルの呼び出し・コマンドの呼び出し・外部ツールの呼び出し・サブエージェントの起動は、"
+        "記録から数えるため 12 か月では出しません" in html
     )
-    assert html.count('<p class="na">') == 3
+    assert html.count('<p class="na">') == 6
 
 
-def test_assets_28_days(today_client):
-    html = _html(today_client, "/assets", "28")
-    rows = {r["cells"][0]: r["cells"] for r in table_rows(html, "skills")}
-    assert rows["pdf"][1] == "4 回"
+def test_activity_28_days(today_client):
+    html = _html(today_client, "/activity", "28")
+    rows = {r["cells"][1]: r["cells"] for r in table_rows(html, "calls")}
+    assert rows["pdf"][3] == "4 回"
     assert "前の 28 日" in html
 
 
@@ -149,7 +149,7 @@ def test_navigation_keeps_the_period_only_where_it_applies(today_client):
     html = _html(today_client, period="28")
     nav = html.split('<nav aria-label="画面">')[1].split("</nav>")[0]
     assert f'href="{ADMIN}/?period=28"' in nav
-    assert f'href="{ADMIN}/assets?period=28"' in nav
+    assert f'href="{ADMIN}/activity?period=28"' in nav
     assert f'href="{ADMIN}/policy"' in nav and f'href="{ADMIN}/effect"' in nav
     default_nav = (
         _html(today_client).split('<nav aria-label="画面">')[1].split("</nav>")[0]

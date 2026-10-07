@@ -13,7 +13,7 @@ def _add(client, start, end, name):
 
 
 def test_every_page_has_the_entry_at_the_right_of_the_header(today_client):
-    for path in ("/", "/policy", "/effect", "/assets", "/settings"):
+    for path in ("/", "/policy", "/effect", "/activity", "/settings"):
         html = today_client.get(ADMIN + path).get_data(as_text=True)
         head = html.split("</header>")[0]
         assert f'href="{ADMIN}/settings"' in head.split('class="bar-end"')[1]

@@ -6,7 +6,7 @@ import json
 import pytest
 from conftest import ADMIN, basic_auth
 
-_ADMIN_PAGES = ["/", "/policy", "/effect", "/assets"]
+_ADMIN_PAGES = ["/", "/policy", "/effect", "/activity"]
 
 
 @pytest.fixture
@@ -80,7 +80,7 @@ def test_import_and_export_require_credentials(client, method, path):
         ("get", "/"),
         ("get", "/policy"),
         ("get", "/effect"),
-        ("get", "/assets"),
+        ("get", "/activity"),
         ("post", "/import"),
         ("get", "/static/tokens.css"),
     ],

@@ -31,9 +31,9 @@ _ROWS = (
 )  # fmt: skip
 
 _CASES = [
-    ("/assets", "skill"),
-    ("/assets", "cmd"),
-    ("/assets", "src"),
+    ("/activity", "skill"),
+    ("/activity", "cmd"),
+    ("/activity", "src"),
     ("/policy", "user"),
     ("/policy", "host"),
     ("/policy", "prev"),

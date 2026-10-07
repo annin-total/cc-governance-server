@@ -5,7 +5,7 @@
 
 from known_data import TODAY, assert_invariant_under_duplication, insert_event
 
-from ccgov.reports import assets, overview
+from ccgov.reports import overview
 
 
 def test_health_counts_recent_window(known_db):
@@ -100,7 +100,6 @@ def test_rates_are_none_when_denominator_is_zero(db_conn):
     health = overview.health_counts(db_conn, TODAY)
     assert set(health["recent"]["null_rates"].values()) == {None}
     assert overview.reconciliation_rate(db_conn, TODAY) == [(0, 0, None)]
-    assert assets.subagent_ratio(db_conn, TODAY) == [(0, 0, None)]
 
 
 def test_reconciliation_rate(known_db):

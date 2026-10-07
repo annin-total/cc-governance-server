@@ -188,7 +188,7 @@ def test_pages_without_a_period_have_no_calendar(today_client, path):
     assert _cal(today_client, path).found == 0
 
 
-@pytest.mark.parametrize("path", ["/", "/assets", "/effect"])
+@pytest.mark.parametrize("path", ["/", "/activity", "/effect"])
 def test_period_pages_have_one_calendar(today_client, path):
     assert _cal(today_client, path).found == 1
 
@@ -197,7 +197,7 @@ def test_without_csv_there_is_no_calendar_and_no_warning(known_db, today_client)
     """利用明細が 1 件も無ければ基準日を選べず、古さも言えない（警告を出さない）。"""
     known_db.cursor().execute("DELETE FROM cost_daily")
     known_db.commit()
-    for path in ("/", "/assets", "/effect", "/policy"):
+    for path in ("/", "/activity", "/effect", "/policy"):
         cal = _cal(today_client, path)
         assert (cal.found, cal.stale) == (0, [])
 

@@ -2,7 +2,7 @@
 
 from typing import Optional
 
-from ccgov.metrics import context
+from ccgov.metrics import context, session_size
 from ccgov.web import charts, charts_hist, filters, text
 from ccgov.web import labels as L
 from ccgov.web.screens import Tab, month_view
@@ -15,6 +15,7 @@ KEY = {
     "month": "link",
     "weeks_users": "day",
     "weeks_cost": "day",
+    "sizes": "bin",
 }
 TREND_CHART, COST_CHART = (540, 132), (1100, 180)
 HIST_CHART = (1100, 200, charts.STACK_PAD_LEFT, charts.STACK_PAD_BOTTOM)
@@ -25,7 +26,7 @@ MONTH_ROW_TEXT_X, MONTH_ROW_NAME_Y, MONTH_ROW_VALUE_Y, MONTH_ROW_GAP = 5, 14, 31
 
 def build(tab: Tab, rows: list, ctx: dict) -> Optional[dict]:
     if tab.chart == "trend":
-        return _trend(rows, ctx)
+        return _trend(tab, rows, ctx)
     if tab.chart == "cost" and rows:
         return _cost(rows, ctx)
     if tab.chart in ("weeks_users", "weeks_cost") and rows:
@@ -36,12 +37,18 @@ def build(tab: Tab, rows: list, ctx: dict) -> Optional[dict]:
             "geo": charts_hist.hist(rows, context.SIDES, *HIST_CHART),
             "series": list(L.SIDE.values()),
         }
+    if tab.chart == "sizes" and rows:
+        return {
+            "kind": "hist",
+            "geo": charts_hist.hist(rows, session_size.SIDES, *HIST_CHART),
+            "series": [text.fill(L.PERIOD[s], ctx) for s in session_size.SIDES],
+        }
     if tab.chart == "month":
         return month_view.chart(ctx["month"], ctx)
     return None
 
 
-def _trend(rows: list, ctx: dict) -> dict:
+def _trend(tab: Tab, rows: list, ctx: dict) -> dict:
     days = [r["day"] for r in rows]
     labels = [filters.md(d) for d in days]
     recent = ctx["period"]["days"]
@@ -52,7 +59,7 @@ def _trend(rows: list, ctx: dict) -> dict:
                 title,
                 charts.bars([r[k] for r in rows], labels, days, recent, *TREND_CHART),
             )
-            for title, k in zip(W.TAB["daily"]["charts"], ("users", "sessions"))
+            for title, k in W.TAB[tab.words or tab.id]["charts"]
         ],
     }
 

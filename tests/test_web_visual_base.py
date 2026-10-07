@@ -114,7 +114,7 @@ def test_opened_row_is_not_bold_and_only_the_row_is_shaded():
     assert "background" not in _decls("components.css", ".m-tables")
 
 
-@pytest.mark.parametrize("path", ["/", "/policy", "/effect", "/assets"])
+@pytest.mark.parametrize("path", ["/", "/policy", "/effect", "/activity"])
 def test_screens_say_compact_and_version(today_client, path):
     """画面の語は「コンパクト」「バージョン」。「圧縮」「版」を使わない。"""
     html = today_client.get(ADMIN + path).get_data(as_text=True)
