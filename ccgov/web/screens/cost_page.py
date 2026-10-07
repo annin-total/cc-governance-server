@@ -55,6 +55,7 @@ _USER_COLS = (
 _USER_TAIL = (
     Col("share", "pct", label="spend_share"), Col("cum", "pct", label="cum_share", sort=None),
     Col("days", "num", label="cost_days", unit="day"), Col("per_day", "usd"), Col("model", "text", label="main_model"),
+    Col("cache", "pct", label="user_cache"),
 )
 _MODEL_HEAD = (Col("model", "text"), Col("cost", "usd_strong", label="spend"), Col("cost", "bar", label="bar", sort=None))
 _MODEL_TAIL = (Col("users", "num", label="model_users", unit="person"), Col("cache", "pct"))

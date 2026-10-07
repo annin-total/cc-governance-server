@@ -255,7 +255,7 @@ COL = {
     "prev_cum": "前月（{month[prev_month]:mon} 月）の累積", "weekday": "曜日", "name": "名前", "delete": "",
     "file": "取り込んだファイル", "span": "期間", "bytes": "大きさ",
     "rank": "順位", "spend": "コスト", "prev_spend": "前の期間", "spend_diff": "前との差", "spend_rate": "増減率",
-    "spend_share": "コストに占める割合", "cum_share": "累積", "cost_days": "日数", "per_day": "1 日あたり", "main_model": "主なモデル",
+    "spend_share": "コストに占める割合", "cum_share": "累積", "cost_days": "日数", "per_day": "1 日あたり", "main_model": "主なモデル", "user_cache": "キャッシュ読み",
     "model": "モデル", "model_users": "利用者数", "cache": "キャッシュ読み込みの割合", "month": "月", "new_users": "使い始めた利用者",
     "bd": "営業日", "per_bd": "1 営業日あたり",
 }

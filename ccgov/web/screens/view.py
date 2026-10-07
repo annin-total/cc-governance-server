@@ -3,7 +3,7 @@
 from typing import Optional
 
 from ccgov import constants
-from ccgov.metrics import context
+from ccgov.metrics import context, states
 from ccgov.web import charts, charts_hist, filters, text
 from ccgov.web import labels as L
 from ccgov.web.screens import SAME, Card, Screen, month_view, table, viz_cost
@@ -129,12 +129,17 @@ def _card(card: Card, ctx: dict) -> dict:
         "delta": "" if delta == filters.EM_DASH else delta,
         "tone": text.chip_tone(delta, card.better),
         "sub": text.parts(words.get("sub", ""), ctx),
-        "state": (state, L.STATE[state]) if state else None,
+        "state": _mark(state),
         "wide": card.wide,
         "caps": [text.fill(c, ctx) for c in _caps(words, ctx)],
         "foot": text.fill(words.get("foot", ""), ctx),
         "viz": _viz(card, words, ctx) if card.viz else None,
     }
+
+
+def _mark(state: Optional[str]) -> Optional[tuple]:
+    """カードに出す状態の札。正常は札を出さない（カードは一覧への入口だけになる）。"""
+    return (state, L.STATE[state]) if state and state != states.OK else None
 
 
 def _caps(words: dict, ctx: dict) -> tuple:
@@ -208,7 +213,7 @@ def _viz(card: Card, words: dict, ctx: dict) -> Optional[dict]:
             "label": text.term(viz.terms, r["key"]),
             "pct": charts.pct(r[viz.field], whole),
             "right": [text.fill(t, r) for t in words["row"]],
-            "state": (r["state"], L.STATE[r["state"]]) if r.get("state") else None,
+            "state": _mark(r.get("state")),
         }
         for r in src
     ]

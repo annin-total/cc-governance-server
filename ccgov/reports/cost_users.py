@@ -26,14 +26,21 @@ def per_user(rows: list, start: int, end: int) -> dict:
     return users
 
 
-def main_models(rows: list) -> dict:
-    """利用者ごとにコストの最も多いモデル（同じならモデル名の順）。"""
+def by_user(rows: list) -> dict:
+    """`(user_email, model, コスト, 全トークン, キャッシュ読み込み)` から、利用者ごとの主なモデル（コストの最も多いモデル。
+    同じならモデル名の順）と、キャッシュ読み込みの割合。"""
     best: dict = {}
-    for email, model, amount in rows:
+    tokens: dict = {}
+    for email, model, amount, total, read in rows:
         key = (-amount, str(model))
         if email not in best or key < best[email][0]:
             best[email] = (key, model)
-    return {email: model for email, (_, model) in best.items()}
+        t = tokens.setdefault(email, [0, 0])
+        t[0], t[1] = t[0] + int(total), t[1] + int(read)
+    return {
+        email: {"model": model, "cache": rates.rate(tokens[email][1], tokens[email][0])}
+        for email, (_, model) in best.items()
+    }
 
 
 def rows(users: dict, models: dict, days: Optional[int]) -> list:
@@ -60,7 +67,8 @@ def rows(users: dict, models: dict, days: Optional[int]) -> list:
                 "cum": _share(cum, total),
                 "days": u["days"],
                 "per_day": u["cost"] / u["days"],
-                "model": models.get(email),
+                "model": models.get(email, {}).get("model"),
+                "cache": models.get(email, {}).get("cache"),
             }
         )
     return result

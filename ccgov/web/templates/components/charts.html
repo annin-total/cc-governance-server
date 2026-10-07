@@ -82,7 +82,7 @@
 {# 月末の見込みのカード: 今月の累積・見込みの破線・前月の累積（薄い線） #}
 {% macro cum_card(v) -%}
 {%- set g = v.geo -%}
-<svg class="spark" viewBox="0 0 {{ g.w }} {{ g.h }}" preserveAspectRatio="none" aria-hidden="true">
+<svg class="spark cum-card" viewBox="0 0 {{ g.w }} {{ g.h }}" preserveAspectRatio="none" aria-hidden="true">
   {%- if g.prev %}<polyline class="fc-cum-prev" points="{{ g.prev }}" vector-effect="non-scaling-stroke"/>{% endif %}
   {%- if g.fc %}<polyline class="fc-cum-fc" points="{{ g.fc }}" vector-effect="non-scaling-stroke"/>{% endif %}
   {%- if g.now %}<polyline class="fc-cum-now" points="{{ g.now }}" vector-effect="non-scaling-stroke"/>{% endif %}
@@ -90,7 +90,7 @@
   <line class="spark-guide" x1="0" x2="0" y1="0" y2="{{ g.h }}" vector-effect="non-scaling-stroke"/>
   {{ hits(g.cols, g.h) }}
 </svg>
-<span class="legend"><span><i class="ln now"></i>{{ v.legend[0] }}</span><span><i class="ln fc"></i>{{ v.legend[1] }}</span><span><i class="ln prev"></i>{{ v.legend[2] }}</span></span>
+<span class="legend cum-card-legend"><span><i class="ln now"></i>{{ v.legend[0] }}</span><span><i class="ln fc"></i>{{ v.legend[1] }}</span><span><i class="ln prev"></i>{{ v.legend[2] }}</span></span>
 {%- endmacro %}
 
 {# 状態ごとの帯: コストと人数の 100% の帯を上下にそろえる #}

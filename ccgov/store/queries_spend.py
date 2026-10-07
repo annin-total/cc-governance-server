@@ -6,6 +6,12 @@
 from ccgov.store import db
 
 _HAS_COST = "SUM(CASE WHEN cost > 0 THEN 1 ELSE 0 END) > 0"
+# 全トークン（入力・出力・キャッシュの読み書き）と、キャッシュ読み込みのトークン
+_TOKENS = (
+    " COALESCE(SUM(COALESCE(input_tokens, 0) + COALESCE(output_tokens, 0)"
+    " + COALESCE(cache_read_tokens, 0) + COALESCE(cache_write_tokens, 0)), 0),"
+    " COALESCE(SUM(cache_read_tokens), 0)"
+)
 
 
 def user_days(conn, start: int, end: int) -> list:
@@ -22,11 +28,13 @@ def user_days(conn, start: int, end: int) -> list:
 
 
 def user_models(conn, start: int, end: int) -> list:
-    """`(user_email, model, コスト)`。主なモデル（コストの最も多いモデル）を決めるのに使う。"""
+    """`(user_email, model, コスト, 全トークン, キャッシュ読み込みのトークン)`。主なモデルとキャッシュ読み込みの割合に使う。"""
     cur = conn.cursor()
     cur.execute(
         db.q(
-            "SELECT user_email, model, COALESCE(SUM(cost), 0) FROM cost_daily"
+            "SELECT user_email, model, COALESCE(SUM(cost), 0),"
+            + _TOKENS
+            + " FROM cost_daily"
             " WHERE day BETWEEN ? AND ? GROUP BY user_email, model"
         ),
         (start, end),
@@ -41,10 +49,8 @@ def models(conn, start: int, end: int) -> list:
         db.q(
             "SELECT model, COALESCE(SUM(cost), 0),"
             " COUNT(DISTINCT CASE WHEN cost > 0 THEN user_email END),"
-            " COALESCE(SUM(COALESCE(input_tokens, 0) + COALESCE(output_tokens, 0)"
-            " + COALESCE(cache_read_tokens, 0) + COALESCE(cache_write_tokens, 0)), 0),"
-            " COALESCE(SUM(cache_read_tokens), 0)"
-            " FROM cost_daily WHERE day BETWEEN ? AND ? GROUP BY model"
+            + _TOKENS
+            + " FROM cost_daily WHERE day BETWEEN ? AND ? GROUP BY model"
         ),
         (start, end),
     )

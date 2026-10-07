@@ -77,6 +77,7 @@ def test_top_spenders_lists_five_at_most_with_share_and_state(cost_client):
     assert names == ["a@example.com", "b@example.com", "c@example.com", "e@example.com"]
     assert "$120.00" in body and "54.5%" in body
     assert body.count('class="mark ng"') == 1 and body.count('class="mark warn"') == 1
+    assert 'class="mark ok"' not in body
 
 
 def test_model_mix_card(cost_client):
@@ -113,7 +114,7 @@ def test_billed_users_card(cost_client):
     body = card(html, LABELS["billed"])
     assert card_value(html, LABELS["billed"]) == "4"
     assert 'class="change better">+33.3%<' in body and "前 3 人（+1 人）" in body
-    assert '<span class="mark ok">正常</span>' in body
+    assert 'class="mark' not in body and '<span class="go">一覧' in body
 
 
 def test_new_users_and_retention(cost_client):

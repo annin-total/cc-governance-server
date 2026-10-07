@@ -61,8 +61,18 @@ def test_per_user_distribution_marks_mean_and_median(cost_client):
 
 
 def test_forecast_draws_this_month_forecast_and_last_month(cost_client):
+    """前月の累積は薄く細い線、今月は濃い線。線は塗らず、凡例の見本も同じ色にする。"""
     body = card(html_of(cost_client), LABELS["forecast"])
+    assert '<svg class="spark cum-card"' in body
     assert 'class="fc-cum-prev"' in body and 'class="fc-cum-fc"' in body
+    assert '<i class="ln prev"></i>9 月' in body
+    from test_web_visual_base import _decls
+
+    assert "fill: none" in _decls("charts.css", ".cum-card polyline")
+    assert "var(--accent)" in _decls("charts.css", ".cum-card .fc-cum-now")
+    prev = _decls("charts.css", ".cum-card .fc-cum-prev")
+    assert "var(--ghost)" in prev and "stroke-width: 1;" in prev
+    assert "var(--ghost)" in _decls("charts.css", ".legend .ln.prev")
     assert len(_tips(body)) == 22
     assert "9 月" in body
 

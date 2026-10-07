@@ -94,11 +94,12 @@ def test_empty_db_shows_dash_without_state(db_conn):
 
 
 def test_error_table_is_empty_without_errors(today_client):
-    """errors が無ければ、失敗の表は 0 行で、カードは正常。"""
+    """errors が無ければ、失敗の表は 0 行で、カードは正常（正常の札は出さず、一覧への入口だけ）。"""
     html = _html(today_client)
     assert table_rows(html, "errors") == []
     assert card_value(html, "プラグインのエラー") == "0"
-    assert 'class="mark ok"' in card(html, "プラグインのエラー")
+    body = card(html, "プラグインのエラー")
+    assert 'class="mark' not in body and '<span class="go">一覧' in body
 
 
 def test_error_table_lists_stage_and_error_type(known_db, today_client):

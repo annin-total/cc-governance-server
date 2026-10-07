@@ -47,3 +47,9 @@
 .st-ok { background: var(--ghost); }
 .rates.wide .rate.marked { grid-template-columns: 1fr 30% 5.5em 3.6em 4.5em; }
 .spark .bar-part { opacity: var(--partial-opacity); }
+/* 月末の見込みのカード: 今月は濃い線、前月は薄く細い線（凡例の見本も同じ） */
+.cum-card polyline { fill: none; stroke-width: 1.5; stroke-linejoin: round; }
+.cum-card .fc-cum-now { stroke: var(--accent); }
+.cum-card .fc-cum-prev { stroke: var(--ghost); stroke-width: 1; }
+.cum-card-legend .ln { border-top-width: 1.5px; }
+.cum-card-legend .ln.prev { border-top-width: 1px; }
