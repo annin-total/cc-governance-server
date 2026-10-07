@@ -285,3 +285,12 @@ def test_session_size_without_sessions_is_none():
         s["auto_diff"],
         s["rows"],
     ) == (None, 0, None, None, None, [])
+
+
+def test_call_tops_stop_at_the_constant():
+    from ccgov.constants import CALL_TOP
+
+    skills = [("a", f"s{i}", 10 - i, 0) for i in range(CALL_TOP + 2)]
+    c = calls.build(skills, [], [], 1)
+    assert [t["key"] for t in c["skill"]["top"]] == [f"s{i}" for i in range(CALL_TOP)]
+    assert len(c["per_user"]["a"]["skill_top"]) == CALL_TOP

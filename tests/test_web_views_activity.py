@@ -352,3 +352,23 @@ def test_command_without_source_is_shown_as_dash(act_client, db_conn):
         if r["cells"][1] == "commit"
     ]
     assert rows == [["コマンド", "commit", "—", "1 回"]]
+
+
+def test_more_bypass_users_is_worse(act_client, db_conn):
+    from known_data import insert_event
+
+    insert_event(
+        db_conn,
+        event_id="bp",
+        ts=1,
+        day=20026,
+        user_email="c@example.com",
+        host="h",
+        hook_event="UserPromptSubmit",
+        session_id="sc1",
+        permission_mode="bypassPermissions",
+    )
+    assert _chip(card(html_of(act_client), "確認なしモードを使った利用者")) == (
+        "worse",
+        "+1 人",
+    )
