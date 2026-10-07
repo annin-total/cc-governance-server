@@ -42,10 +42,12 @@ def _links(html: str) -> list:
         ("/activity", {}, "10/02〜10/08"),
         ("/effect", {}, "10/08 時点"),
         ("/policy", {}, "10/09 時点"),
+        ("/collect", {}, "10/09 時点"),
         ("/", {"asof": ASOF}, "09/27〜10/03"),
         ("/activity", {"asof": ASOF, "period": "28"}, "09/06〜10/03"),
         ("/effect", {"asof": ASOF}, "10/03 時点"),
         ("/policy", {"asof": ASOF}, "10/09 時点"),
+        ("/collect", {"asof": ASOF}, "10/09 時点"),
     ],
 )
 def test_period_span_ends_at_the_last_csv_day_or_asof(today_client, path, args, text):
@@ -62,8 +64,9 @@ def test_events_after_the_last_csv_day_are_not_counted(known_db, today_client):
         known_db, event_id="x1", day=TODAY, user_email="u1", hook_event="PostToolUse",
         session_id="s1", tool_name="Skill", skill_name="pdf",
     )  # fmt: skip
+    insert_event(known_db, event_id="x2", day=TODAY, user_email="u6", hook_event="Stop")
     html = _html(today_client)
-    assert card_value(html, "受信した記録") == "13"
+    assert card_value(html, "送信した利用者") == "4"
     assert table_rows(html, "daily")[0]["cells"][0].startswith("2024-10-08")
     calls = table_rows(_html(today_client, "/activity"), "calls")
     assert [r["cells"][3] for r in calls if r["cells"][1] == "pdf"] == ["3 回"]
@@ -74,21 +77,21 @@ def test_without_csv_the_period_ends_today(known_db, today_client):
     known_db.cursor().execute("DELETE FROM cost_daily")
     known_db.commit()
     insert_event(
-        known_db, event_id="x1", day=TODAY, user_email="u1", hook_event="PostToolUse",
+        known_db, event_id="x1", day=TODAY, user_email="u6", hook_event="PostToolUse",
         session_id="s1", tool_name="Read",
     )  # fmt: skip
     html = _html(today_client)
     assert _span(html) == "10/03〜10/09"
-    assert card_value(html, "受信した記録") == "14"
+    assert card_value(html, "送信した利用者") == "5"
     # 利用明細が無ければ基準日を選べない
     assert _span(_html(today_client, asof=ASOF)) == "10/03〜10/09"
 
 
 def test_asof_moves_every_window_of_the_overview(today_client):
-    """基準日 10/03 で終わる 7 日（09/27〜10/03）は e14〜e16 の 3 件、前の 7 日は e17 の 1 件。見込みは 10/03 まで。"""
+    """基準日 10/03 で終わる 7 日（09/27〜10/03）は e14〜e16 の 3 人、前の 7 日は e17 の 1 人。見込みは 10/03 まで。"""
     html = _html(today_client, asof=ASOF)
-    assert card_value(html, "受信した記録") == "3"
-    assert "前の 7 日 1 件" in card(html, "受信した記録")
+    assert card_value(html, "送信した利用者") == "3"
+    assert "前の 7 日 1 人" in card(html, "送信した利用者")
     assert card_value(html, "コスト（利用明細）") == "$0.00"
     assert "10/03 まで" in card(html, "月末のコスト見込み（10 月）")
 
@@ -128,7 +131,7 @@ def test_edges_of_the_range_are_accepted(today_client):
 
 
 @pytest.mark.parametrize(
-    "path", ["/", "/cost", "/activity", "/effect", "/policy", "/settings"]
+    "path", ["/", "/cost", "/activity", "/effect", "/policy", "/collect", "/settings"]
 )
 def test_asof_is_kept_across_pages_and_period_tabs(today_client, path):
     """状態のページとデータと設定でも、URL の基準日を消さずに引き継ぐ。"""

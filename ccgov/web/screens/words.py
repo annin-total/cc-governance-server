@@ -13,6 +13,7 @@ from ccgov.web.labels import (
     RECENT,
 )
 from ccgov.web.screens import words_activity as _activity
+from ccgov.web.screens import words_collect as _collect
 from ccgov.web.screens import words_policy as _policy
 
 _BILL = "利用明細 {cost[start]:md}〜{cost[end]:md} と前の {period[days]} 日 · 利用明細にコストがあった利用者"
@@ -21,7 +22,6 @@ _MONTH = "{month[month]:ym} · 利用明細の最終日（{month[as_of]:md}）�
 # 群: id -> (見出し, 期間と母集団)
 GROUP = {
     "use": ("利用", "直近 {period[days]} 日と、その前の {period[days]} 日"),
-    "data": ("データの届き具合", "直近 {period[days]} 日と、その前の {period[days]} 日"),
     "work": ("設定は働いているか", "{REFERENCE_KEY:setting}を {REFERENCE_VALUE} にした前後 {EVENT_STUDY_SPAN} 日 · 前後の境は各利用者が守り始めた日"),
     "spend": ("コストの前後差", "1 人 1 日あたり · {EFFECT_PROVIDER:provider} · 時期の変動を含むため、前後差を施策の効果と読まない"),
     "bill": ("コスト", _BILL),
@@ -62,13 +62,6 @@ CARD = {
                  "empty": "month[as_of]", "cap_empty": ("今月（{month[month]:mon} 月）の利用明細はまだありません",)},
     "bypass": {"label": "確認なしモードの記録", "unit": "%", "sub": "{bypass[numerator]:num} 件 / 全 {bypass[denominator]:num} 件",
                "cap": ("権限モード「確認なし」の割合",)},
-    "events": {"label": "受信した記録", "unit": "件", "sub": "前の {period[days]} 日 {events[prev]:num} 件"},
-    "reconciliation": {"label": "CSV との照合率", "unit": "%",
-                       "sub": "CSV にもいた {reconciliation[numerator]:num} 人 / 送信した {reconciliation[denominator]:num} 人",
-                       "cap": ("前との比較なし",)},
-    "errors": {"label": "プラグインのエラー", "unit": "件", "sub": "{errors[kinds]:num} 種類 · 前との比較なし"},
-    "nulls": {"label": "項目の欠け（最大）", "unit": "%", "sub": "{nulls[key]:field} · {nulls[ok]:num} / {nulls[total]:num} 項目が正常",
-              "row": ("{rate:pct}",)},
     "precompact": {"label": "コンパクト直前のコンテキスト（中央の区間）", "unit": "トークン",
                    "sub": "適用前 {precompact[median][before]:bin} · 記録 {precompact[total][before]:num} → {precompact[total][after]:num} 件",
                    "cap": ("区間の幅 {CONTEXT_BIN:tok} トークン · 縦は各期間の中の割合",)},
@@ -162,12 +155,6 @@ TAB = {
     "csv_files": {"label": IMPORT["title"], "hint": "", "title": IMPORT["title"], "scope": "", "unit": "件"},
     "modes": {"label": "使われ方", "hint": "直近 {period[days]} 日 · 記録", "title": "使われ方", "unit": "行",
               "scope": "直近 {period[days]} 日 · 記録の件数（開始のしかたはセッション開始の記録）· 割合は区分の中での割合"},
-    "health": {"label": "受信と項目の欠け", "hint": "直近 {period[days]} 日と前の {period[days]} 日", "title": "受信と項目の欠け",
-               "scope": "直近 {period[days]} 日と前の {period[days]} 日 · 欠けの分母は、その項目が送られるはずの記録", "unit": "行",
-               "note": "欠けは {NULL_RATE_ELEVATED}% 未満を正常、{NULL_RATE_ELEVATED}% 以上を注意、{NULL_RATE_HIGH}% 以上を要確認とします（仮の基準）。100% に跳ねたら上流の仕様変更を疑います。"},
-    "errors": {"label": "プラグインのエラー", "hint": "直近 {period[days]} 日 · {errors[total]:num} 件", "title": "プラグインのエラー",
-               "scope": "直近 {period[days]} 日 · 端末 = 利用者とホスト名の組 · 失った記録は戻りません", "unit": "行",
-               "search": "エラーの種類・バージョン"},
     "precompact": {"label": "コンパクト直前の分布", "hint": "記録 {precompact[total][before]:num} → {precompact[total][after]:num} 件",
                    "title": "コンパクト直前のコンテキストの大きさ", "unit": "区間", "note": _HIST_NOTE,
                    "scope": "自動コンパクトが走る直前（PreCompact）のトークン数" + _HIST_SCOPE},
@@ -211,8 +198,8 @@ TAB.update({
 COL = {
     "day": "日付", "period": "期間", "users": "利用者数", "sessions": "セッション数", "sessions_bar": "セッション数の比較",
     "total": "合計", "bar": "", "field": "区分", "value": "値", "count": "件数", "share": "割合", "group": "区分",
-    "item": "項目", "now": RECENT, "prev": PREV, "diff": "差", "state": "状態", "stage": "処理段階",
-    "error_type": "エラーの種類", "terminals": "端末数", "version": "最後に起きたバージョン", "status": "状態", "email": "利用者",
+    "item": "項目", "diff": "差", "state": "状態", "stage": "処理段階",
+    "error_type": "エラーの種類", "version": "最後に起きたバージョン", "status": "状態", "email": "利用者",
     "last_day": "最終報告日", "setting": "設定", "ratio": "適用済み / 対象", "rate": "適用率",
     "kind": "種類", "versions": "バージョン",
     "bin": "トークン数の区間", "before_count": "適用前の件数", "before_share": "適用前の割合", "after_count": "適用後の件数",
@@ -230,7 +217,7 @@ COL = {
     "basis": "基準", "over_prev": "前の状態", "over_now": "今の状態", "over_kind": "区分", "over_amount": "金額", "over_at": "日付",
     "over_prev_amount": "前の金額",
 }
-for _words in (_activity, _policy):
+for _words in (_activity, _policy, _collect):
     GROUP.update(_words.GROUP)
     CARD.update(_words.CARD)
     TAB.update(_words.TAB)

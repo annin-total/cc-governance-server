@@ -19,33 +19,11 @@ def test_overview_page_returns_200(today_client):
     assert "CSV を取り込む" not in response.get_data(as_text=True)
 
 
-def test_cards_show_event_and_user_counts(today_client):
-    """カードに、イベント数・送信した利用者数の直近 7 日の値と、前の 7 日との差が読める。"""
+def test_cards_show_user_counts(today_client):
+    """カードに、送信した利用者数の直近 7 日の値と、前の 7 日の値が読める。"""
     html = _html(today_client)
-    assert card_value(html, "受信した記録") == "13"
-    assert "+10" in card(html, "受信した記録")
     assert card_value(html, "送信した利用者") == "4"
     assert "前の 7 日 3 人" in card(html, "送信した利用者")
-
-
-def test_health_table_lists_all_four_null_rates(today_client):
-    """受信と項目の欠けの表に、受信 3 行と 4 項目の欠けが 1 行ずつ出る。"""
-    rows = table_rows(_html(today_client), "health")
-    nulls = [r["cells"][1] for r in rows if r["tags"] == ["null"]]
-    assert len(rows) == 7
-    assert [r["cells"][2] for r in rows if r["tags"] == ["null"]] == ["0.0%"] * 4
-    assert [n.split()[0] for n in nulls] == [
-        "ツール名",
-        "スキル名",
-        "コンテキストのトークン数",
-        "コマンドの定義元",
-    ]
-
-
-def test_reconciliation_card_shows_rate_and_counts(today_client):
-    html = _html(today_client)
-    assert card_value(html, "CSV との照合率") == "75.0"
-    assert "CSV にもいた 3 人 / 送信した 4 人" in card(html, "CSV との照合率")
 
 
 def test_daily_cost_table_has_one_row_per_day_and_provider_columns(today_client):
@@ -83,44 +61,16 @@ def test_empty_db_shows_dash_without_state(db_conn):
     importlib.reload(app_module)
     client = admin_client(app_module.app)
     html = _html(client)
-    body = table_body(html, "health")
-    assert "—" in body
-    assert 'class="mark' not in body
-    assert card_value(html, "項目の欠け（最大）") == "—"
     assert card_value(html, "コスト（利用明細）") == "—"
     assert ">None<" not in html
+    collect = client.get(ADMIN + "/collect").get_data(as_text=True)
+    body = table_body(collect, "health")
+    assert "—" in body
+    assert 'class="mark' not in body
+    assert card_value(collect, "項目の欠け（最大）") == "—"
+    assert ">None<" not in collect
     for path in ("/policy", "/activity"):
         assert client.get(ADMIN + path).status_code == 200
-
-
-def test_error_table_is_empty_without_errors(today_client):
-    """errors が無ければ、失敗の表は 0 行で、カードは正常（正常の札は出さず、一覧への入口だけ）。"""
-    html = _html(today_client)
-    assert table_rows(html, "errors") == []
-    assert card_value(html, "プラグインのエラー") == "0"
-    body = card(html, "プラグインのエラー")
-    assert 'class="mark' not in body and '<span class="go">一覧' in body
-
-
-def test_error_table_lists_stage_and_error_type(known_db, today_client):
-    """stage x error_type ごとに件数・端末数・最新版が 1 行ずつ出る。"""
-    cur = known_db.cursor()
-    sql = db.q(
-        "INSERT INTO errors (event_id, ts, day, host, plugin_version, stage,"
-        " error_type) VALUES (?, ?, ?, ?, ?, ?, ?)"
-    )
-    cur.execute(sql, ("x1", 2, TODAY - 1, "h1", "0.2.0", "sender", "HTTP 403"))
-    cur.execute(sql, ("x2", 1, TODAY - 1, "h2", "0.1.0", "sender", "HTTP 403"))
-    cur.execute(sql, ("x3", 1, TODAY - 1, "h1", "0.1.0", "send", "KeyError"))
-    known_db.commit()
-
-    html = _html(today_client)
-    assert [r["cells"] for r in table_rows(html, "errors")] == [
-        ["sender", "HTTP 403", "2", "2 台", "0.2.0"],
-        ["送信 send", "KeyError", "1", "1 台", "0.1.0"],
-    ]
-    assert card_value(html, "プラグインのエラー") == "3"
-    assert 'class="mark warn"' in card(html, "プラグインのエラー")
 
 
 def test_cost_card_sums_window_ending_at_last_csv_day(known_db, today_client):
@@ -148,14 +98,14 @@ def test_cost_card_sums_window_ending_at_last_csv_day(known_db, today_client):
     assert [r["cells"][0][:10] for r in rows if r["tags"] == ["prev"]] == ["2024-10-01"]
 
 
-def test_lead_names_the_data_card_group(today_client):
-    """画面の説明が、データの届き具合のカード群と同じ語を使う。"""
+def test_lead_no_longer_names_the_delivery(today_client):
+    """概況の説明は届き具合に触れず、届き具合は収集の状態の説明にある。"""
     from ccgov.web import labels
-    from ccgov.web.screens import words
 
     lead = labels.SCREENS["admin.index"][1]
-    assert words.GROUP["data"][0] in lead
+    assert "届き" not in lead
     assert f'<p class="lead">{lead}</p>' in _html(today_client)
+    assert "admin.collect_view" in labels.SCREENS
 
 
 def test_footer_keeps_only_the_source_note(today_client):

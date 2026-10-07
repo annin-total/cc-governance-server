@@ -6,7 +6,7 @@ from ccgov.web.screens import words as W
 from ccgov.web.text import HIGHER_IS_BETTER as UP
 from ccgov.web.text import LOWER_IS_BETTER as DOWN
 
-GROUPS = ("use", "data")
+GROUPS = ("use",)
 
 # fmt: off
 _WEEK = Col("day", "week", label="week")
@@ -34,13 +34,6 @@ CARDS = (
          long=Card("cost", "use", "weeks_cost", "{cost[recent]:usd}", viz=_COST_SPARK, words="cost_year")),
     Card("forecast", "use", "month", "{month[forecast]:usd}", viz=Viz("forecast", "month"), long=SAME),
     Card("bypass", "use", "modes", "{bypass[rate]:dec1}", viz=Viz("meter", "bypass[numerator]", den="bypass[denominator]")),
-    Card("events", "data", "health", "{events[recent]:num}", "{events[delta]:signed}", viz=Viz("pair", "events", terms=W.PAIR)),
-    Card("reconciliation", "data", "health", "{reconciliation[rate]:dec1}",
-         viz=Viz("meter", "reconciliation[numerator]", den="reconciliation[denominator]")),
-    Card("errors", "data", "errors", "{errors[total]:num}", state="errors[state]",
-         viz=Viz("stack", "errors[stages]", tone="warn", terms=L.STAGE)),
-    Card("nulls", "data", "health", "{nulls[rate]:dec1}", state="nulls[state]", chip="null",
-         viz=Viz("rates", "nulls[fields]", "rate", terms=L.HEALTH_ITEM)),
 )
 
 TABS = (
@@ -57,15 +50,6 @@ TABS = (
         Col("field", "tag", terms=L.USAGE_FIELD), Col("value", "term", terms=L.USAGE_VALUE, by="field"),
         Col("count", "num"), Col("share", "pct"), Col("share", "bar", label="bar", sort=None, den="100"),
     ), chips_by="field", chips=tuple(Chip(k, v) for k, v in L.USAGE_FIELD.items())),
-    Tab("health", "health", (
-        Col("group", "tag", terms=L.HEALTH_GROUP, sort=None), Col("item", "term", terms=L.HEALTH_ITEM, sort=None),
-        Col("now", "measure", sort=None), Col("prev", "measure_sub", sort=None), Col("diff", "diff", sort=None),
-        Col("state", "state", sort=None),
-    ), chips_by="group", chips=tuple(Chip(k, v) for k, v in L.HEALTH_GROUP.items())),
-    Tab("errors", "errors[rows]", (
-        Col("stage", "stage", terms=L.STAGE), Col("error_type", "code"), Col("count", "num"),
-        Col("terminals", "num", unit="terminal"), Col("version", "code"),
-    ), sort=("count", "desc"), chips_by="stage", chip_terms=L.STAGE, search="{error_type} {version} {stage}"),
 )
 # fmt: on
 

@@ -6,7 +6,7 @@ import json
 import pytest
 from conftest import ADMIN, basic_auth
 
-_ADMIN_PAGES = ["/", "/policy", "/effect", "/activity"]
+_ADMIN_PAGES = ["/", "/policy", "/effect", "/activity", "/collect"]
 
 
 @pytest.fixture

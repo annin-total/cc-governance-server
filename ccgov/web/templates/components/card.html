@@ -1,17 +1,17 @@
-{# 上段の要点のカード。群ごとに見出しと期間・母集団を付ける。カードを押すと、対応するタブ（と区分）が開く。 #}
+{# 上段の要点のカード。群ごとに見出しと期間・母集団を付ける。カードを押すと、対応するタブ（と区分）が開く。タブの無いカードは押せない。 #}
 {% from "components/marks.html" import mark %}
 {% from "components/charts.html" import viz, caps %}
 {% from "components/values.html" import parts %}
 
 {% macro card(c) -%}
-<a class="card{{ ' wide' if c.wide }}" href="#{{ c.tab }}" data-open="{{ c.href[1:] }}">
-  <span class="k-label"><span>{{ c.label }}</span>{% if c.state %}{{ mark(*c.state) }}{% else %}<span class="go">{{ L.OPEN_LIST }}</span>{% endif %}</span>
+{%- if c.tab %}<a class="card{{ ' wide' if c.wide }}" href="#{{ c.tab }}" data-open="{{ c.href[1:] }}">{% else %}<div class="card still{{ ' wide' if c.wide }}">{% endif %}
+  <span class="k-label"><span>{{ c.label }}</span>{% if c.state %}{{ mark(*c.state) }}{% elif c.tab %}<span class="go">{{ L.OPEN_LIST }}</span>{% endif %}</span>
   {%- if c.value %}
   <span class="k-value">{{ parts(c.value) }}<span class="u">{{ c.unit }}</span></span>
   {%- endif %}
   <span class="k-sub">{% if c.delta %}<span class="change{{ ' ' ~ c.tone if c.tone }}">{{ c.delta }}</span>{% endif %}{{ parts(c.sub) }}</span>
   <span class="k-viz">{% if c.viz %}{{ viz(c.viz) }}{% endif %}{% if c.caps %}{{ caps(c.caps) }}{% endif %}{% if c.foot %}<span class="legend">{{ c.foot }}</span>{% endif %}</span>
-</a>
+{% if c.tab %}</a>{% else %}</div>{% endif %}
 {%- endmacro %}
 
 {% macro card_groups(groups) -%}

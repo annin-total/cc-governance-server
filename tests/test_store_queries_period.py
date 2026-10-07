@@ -6,7 +6,7 @@
 from known_data import TODAY, insert_cost_daily
 
 from ccgov.metrics.windows import period
-from ccgov.reports import overview
+from ccgov.reports import collect
 from ccgov.store import queries_activity, queries_cost, queries_errors, queries_events
 
 
@@ -29,7 +29,7 @@ def test_trend_and_distribution_follow_the_period_days(known_db):
 
 
 def test_health_counts_follow_the_period_days(known_db):
-    counts = overview.health_counts(known_db, TODAY, 28)
+    counts = collect.health_counts(known_db, TODAY, 28)
     assert (counts["recent"]["events"], counts["prev"]["events"]) == (17, 0)
 
 

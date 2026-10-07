@@ -53,7 +53,7 @@ def test_28_days_rewrites_windows_and_words(today_client):
     html = _html(today_client, period="28")
     assert "直近 28 日と、その前の 28 日" in _group(html, "利用")
     assert "前の 28 日 0 人" in card(html, "送信した利用者")
-    assert card_value(html, "受信した記録") == "17"
+    assert card_value(html, "送信した利用者") == "6"
     assert len(table_rows(html, "daily")) == 56
     assert _tab_hint(html, "daily") == "直近 56 日"
     assert "前の 28 日" in table_rows(html, "daily")[-1]["cells"][1]
@@ -83,11 +83,6 @@ def test_twelve_months_shows_only_cost_items(today_client):
         "送信した利用者・1 日あたりのセッション・確認なしモードの記録は、記録から数えるため 12 か月では出しません"
         in use
     )
-    data = _group(html, "データの届き具合")
-    assert 'class="card' not in data
-    assert (
-        "受信した記録・CSV との照合率・プラグインのエラー・項目の欠け（最大）は" in data
-    )
     # CSV は 2024-09-04 からしか無いので、その日から数える（記録の無い週を 0 で埋めない）
     assert "直近 12 か月（2024-09-04〜2024-10-08）" in use
 
@@ -98,12 +93,10 @@ def test_twelve_months_keeps_every_tab(today_client):
     tabs = re.findall(r'data-tab="([^"]+)"><b>([^<]*)</b><span>([^<]*)</span>', html)
     assert [(t, label) for t, label, _ in tabs] == [
         ("weeks_users", "週ごとの利用者"), ("weeks_cost", "週ごとのコスト"), ("month", "今月のコスト"),
-        ("modes", "使われ方"), ("health", "受信と項目の欠け"), ("errors", "プラグインのエラー"),
+        ("modes", "使われ方"),
     ]  # fmt: skip
-    assert [hint for t, _, hint in tabs if t in ("modes", "health", "errors")] == [
-        "12 か月では出しません"
-    ] * 3
-    panel = html.split('data-panel="health"')[1].split('data-panel="errors"')[0]
+    assert [hint for t, _, hint in tabs if t == "modes"] == ["12 か月では出しません"]
+    panel = html.split('data-panel="modes"')[1]
     assert (
         "12 か月では出しません。記録から数える項目は 7 日・28 日で見られます。" in panel
     )

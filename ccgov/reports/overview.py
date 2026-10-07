@@ -1,10 +1,10 @@
 """`/` 画面（概況）の組み立て。"""
 
-from ccgov.constants import BYPASS_MODE, ERROR_COUNT_ELEVATED, RECENT_DAYS
-from ccgov.metrics import health, rates, series, states
+from ccgov.constants import BYPASS_MODE, RECENT_DAYS
+from ccgov.metrics import rates, series
 from ccgov.metrics.windows import Period, previous_window, recent_window
-from ccgov.reports import cost, cost_weeks, month
-from ccgov.store import queries_errors, queries_events
+from ccgov.reports import collect, cost, cost_weeks, month
+from ccgov.store import queries_events
 
 USAGE_FIELDS = ("permission_mode", "effort_level", "source")
 
@@ -12,26 +12,6 @@ USAGE_FIELDS = ("permission_mode", "effort_level", "source")
 def _pair(recent, prev) -> dict:
     """直近と前の期間の値と、その差。"""
     return {"recent": recent, "prev": prev, "delta": rates.delta(recent, prev)}
-
-
-def health_counts(conn, today: int, days: int = RECENT_DAYS) -> dict:
-    """直近と前の `days` 日のイベント件数・送信した利用者数・NULL 率を返す。"""
-    return {
-        window: {
-            "events": counts["events"],
-            "terminals": counts["terminals"],
-            "null_rates": health.null_rates(counts["null_counts"]),
-        }
-        for window, counts in queries_events.health_window_counts(
-            conn, today, days
-        ).items()
-    }
-
-
-def reconciliation_rate(conn, today: int, days: int = RECENT_DAYS) -> list:
-    """突合率を `[(分子, 分母, 率)]` で返す。"""
-    counts = queries_events.reconciliation_counts(conn, today, days)
-    return [rates.rate_row(*counts)]
 
 
 def trend(conn, today: int, days: int = RECENT_DAYS) -> dict:
@@ -86,44 +66,6 @@ def bypass(usage_rows: list) -> dict:
     return {"numerator": numerator, "denominator": denominator, "rate": rate}
 
 
-def errors(conn, today: int, days: int = RECENT_DAYS) -> dict:
-    rows = [
-        dict(zip(("stage", "error_type", "count", "terminals", "version"), r))
-        for r in queries_errors.error_summary(conn, today, days)
-    ]
-    total = sum(r["count"] for r in rows)
-    return {
-        "rows": rows,
-        "total": total,
-        "kinds": len(rows),
-        "state": states.at_least(total, ERROR_COUNT_ELEVATED, states.WARN),
-        "stages": series.group_totals([(r["stage"], r["count"]) for r in rows]),
-    }
-
-
-def health_rows(
-    recent: dict, prev: dict, reconciliation: dict, null_now: dict, null_prev: dict
-) -> list:
-    """受信と項目の欠けの一覧。照合率は前の期間と比べない。欠けの差は百分率の差（pt）。"""
-    rows = [
-        {"group": "recv", "item": item, "unit": unit, "now": recent[key], "prev": prev[key],
-         "diff": rates.delta(recent[key], prev[key]), "state": None}
-        for item, key, unit in (("events", "events", "item"), ("users", "terminals", "person"))
-    ]  # fmt: skip
-    rows.append(
-        {"group": "recv", "item": "reconciliation", "unit": "rate", "now": reconciliation["rate"],
-         "prev": None, "diff": None, "state": None, "ratio": reconciliation}
-    )  # fmt: skip
-    for key, rate in null_now.items():
-        before = null_prev.get(key)
-        diff = None if rate is None or before is None else round(rate - before, 1)
-        rows.append(
-            {"group": "null", "item": key, "unit": "rate", "now": rate, "prev": before,
-             "diff": diff, "state": health.null_rate_status(rate)}
-        )  # fmt: skip
-    return rows
-
-
 def build(conn, period: Period) -> dict:
     """`/` 画面の集計結果を返す（取込結果を除く）。12 か月は利用明細から数える項目だけ。"""
     today, days = period.end, period.days
@@ -134,33 +76,14 @@ def build(conn, period: Period) -> dict:
     }
     if period.long:
         return {**common, "cost_users": cost_weeks.users(conn, period)}
-    counts = health_counts(conn, today, days)
-    recent, prev = counts["recent"], counts["prev"]
-    null_now, null_prev = recent["null_rates"], prev["null_rates"]
-    numerator, denominator, rate = reconciliation_rate(conn, today, days)[0]
-    reconciliation = {"numerator": numerator, "denominator": denominator, "rate": rate}
-    worst_key, worst_rate = health.worst_null_rate(null_now)
+    counts = collect.health_counts(conn, today, days)
     usage_rows = usage(conn, today, days)
     trend_days = trend(conn, today, days)
     return {
         **common,
-        "users": _pair(recent["terminals"], prev["terminals"]),
-        "events": _pair(recent["events"], prev["events"]),
+        "users": _pair(counts["recent"]["terminals"], counts["prev"]["terminals"]),
         "sessions": sessions_per_day(trend_days["rows"]),
         "bypass": bypass(usage_rows),
-        "reconciliation": reconciliation,
-        "errors": errors(conn, today, days),
-        "nulls": {
-            "key": worst_key,
-            "rate": worst_rate,
-            "state": health.null_rate_status(worst_rate),
-            "ok": sum(
-                health.null_rate_status(r) == states.OK for r in null_now.values()
-            ),
-            "total": len(null_now),
-            "fields": [{"key": k, "rate": r} for k, r in null_now.items()],
-        },
         "trend": trend_days,
         "usage": usage_rows,
-        "health": health_rows(recent, prev, reconciliation, null_now, null_prev),
     }
