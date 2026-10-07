@@ -63,6 +63,8 @@
   <input type="hidden" name="csrf" value="{{ csrf_token() }}"><button type="submit" class="btn-quiet">{{ L.HOLIDAY.delete }}</button></form>
 {%- elif k == "delete_file" -%}<form method="post" action="{{ url_for('admin.delete_csv') }}" data-confirm="{{ fill(L.IMPORT.confirm if row.first is not none else L.IMPORT.confirm_file, row) }}">
   <input type="hidden" name="csrf" value="{{ csrf_token() }}"><input type="hidden" name="file" value="{{ v }}"><button type="submit" class="btn-quiet">{{ L.IMPORT.delete }}</button></form>
+{%- elif k == "delete_org" -%}<form method="post" action="{{ url_for('admin.delete_org', month=v) }}" data-confirm="{{ fill(L.ORG.confirm, row) }}">
+  <input type="hidden" name="csrf" value="{{ csrf_token() }}"><button type="submit" class="btn-quiet">{{ L.ORG.delete }}</button></form>
 {%- elif k == "span" -%}{{ fill(L.SPAN, row) }}
 {%- elif k == "bytes" -%}{{ v|size }}
 {%- elif k == "bin" -%}{{ v|bin }}

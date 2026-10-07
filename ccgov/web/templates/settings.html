@@ -1,4 +1,4 @@
-{# データと設定。取り込む（CSV の受け取りと取り込み済みのファイル）・書き出す（月ごとの ZIP）・会社の休日の 3 節を縦に並べる。 #}
+{# データと設定。取り込む（CSV の受け取りと取り込み済みのファイル）・組織 CSV（月ごとの名簿）・書き出す（月ごとの ZIP）・会社の休日の 4 節を縦に並べる。 #}
 {% set here = "admin.settings" %}
 {% extends "base.html" %}
 {% from "components/table.html" import table, fold_attrs %}
@@ -16,6 +16,20 @@
   </form>
   <p class="note">{{ L.IMPORT.note }}</p>
   {{ table(files, fold=TABLE_FOLD_ROWS) }}
+</section>
+<section class="panel section" id="org" aria-labelledby="org-title">
+  <header class="p-head"><h2 id="org-title">{{ L.ORG.title }}</h2><p class="scope">{{ L.ORG.lead }}</p></header>
+  {%- for r in org %}
+  <p class="notice {{ 'ng' if r.error else 'ok' }}"{% if r.error %} role="alert"{% endif %}>{{ fill(L.CSV_FAILED if r.file else L.CSV_REJECTED, r) if r.error else fill(L.ORG_DONE, r) }}</p>
+  {%- endfor %}
+  <form class="upload-form" method="post" action="{{ url_for('admin.upload_org') }}" enctype="multipart/form-data">
+    <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+    <label>{{ L.ORG.file }}<input type="file" name="file" accept=".csv" required></label>
+    <label>{{ L.ORG.month }}<input type="month" name="month" required></label>
+    <button type="submit" class="btn">{{ L.ORG.button }}</button>
+  </form>
+  <p class="note">{{ L.ORG.note }}</p>
+  {{ table(rosters, fold=TABLE_FOLD_ROWS) }}
 </section>
 <section class="panel section" id="export" aria-labelledby="export-title">
   <header class="p-head"><h2 id="export-title">{{ L.EXPORT.title }}</h2><p class="scope">{{ L.EXPORT.lead }} · {{ L.EXPORT.hint }}</p></header>
