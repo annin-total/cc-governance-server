@@ -1,6 +1,5 @@
 """`/policy` `/effect` 画面の集計クエリ。"""
 
-from ccgov.constants import STALE_DAYS
 from ccgov.metrics.windows import around, policy_window_start
 from ccgov.store import db
 
@@ -55,51 +54,37 @@ def not_introduced(conn, today: int) -> list:
     return cur.fetchall()
 
 
-def stale_terminals(conn, today: int) -> list:
-    """集計期間内の最終 `day` が `STALE_DAYS` 以上前の端末。無効化スイッチは利用ログ（`events`）だけを止め、policy イベントは送り続けるため、`policy_state` で判定する。"""
-    cur = conn.cursor()
-    cur.execute(
-        db.q(
-            "SELECT user_email, host, MAX(day) AS last_day FROM policy_state"
-            " WHERE day >= ? GROUP BY user_email, host"
-            " HAVING ? - MAX(day) >= ? ORDER BY user_email, host"
-        ),
-        (policy_window_start(today), today, STALE_DAYS),
-    )
-    return cur.fetchall()
-
-
-def _latest_per_terminal_distribution(
+def _latest_per_terminal(
     conn, today: int, table: str, column: str, condition: str, params: tuple
 ) -> list:
-    """`condition` を満たす行のうち、端末ごとに `ts` が最新の 1 行の `column` を数える。
+    """`condition` を満たす行のうち、端末ごとに `ts` が最新の 1 行の `(user_email, host, column)`。
 
     `table`・`column`・`condition` は SQL に埋め込むため、呼び出し側の固定の文字列だけを渡す。
     """
     cur = conn.cursor()
     cur.execute(
         db.q(
-            f"SELECT {column}, COUNT(*) FROM ("
+            f"SELECT user_email, host, {column} FROM ("
             f"  SELECT user_email, host, {column},"
             "         ROW_NUMBER() OVER (PARTITION BY user_email, host ORDER BY ts DESC) AS rn"
             f"    FROM {table} WHERE {condition} AND day >= ?"
-            f") t WHERE rn = 1 GROUP BY {column}"
+            ") t WHERE rn = 1"
         ),
         (*params, policy_window_start(today)),
     )
     return cur.fetchall()
 
 
-def plugin_version_distribution(conn, today: int, key_name: str) -> list:
-    """端末ごとの最新 1 行の `plugin_version` を数える。"""
-    return _latest_per_terminal_distribution(
+def plugin_versions(conn, today: int, key_name: str) -> list:
+    """端末ごとに `key_name` の最新 1 行の `plugin_version`。"""
+    return _latest_per_terminal(
         conn, today, "policy_state", "plugin_version", "key_name = ?", (key_name,)
     )
 
 
-def claude_code_version_distribution(conn, today: int) -> list:
-    """端末ごとに版のある最新 1 行の `claude_code_version` を数える。"""
-    return _latest_per_terminal_distribution(
+def claude_code_versions(conn, today: int) -> list:
+    """端末ごとにバージョンのある最新 1 行の `claude_code_version`。"""
+    return _latest_per_terminal(
         conn,
         today,
         "events",

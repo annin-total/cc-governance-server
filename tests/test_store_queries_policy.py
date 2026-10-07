@@ -131,58 +131,28 @@ def test_compliance_rate_without_user_folding_would_differ(known_db):
     assert folded_rate == 20.0
 
 
-def test_non_compliant_k(known_db):
-    rows = sorted(policy.non_compliant(known_db, TODAY, K, "60"))
-    assert rows == [
-        ("u2", "h2", "80", 20001),
-        ("u3", "h3b", "80", 20003),
-        ("u5", "h5", "80", 20004),
-    ]
-
-
-def test_non_compliant_a_is_empty(known_db):
-    """項目 A の未準拠者一覧は 0 行。空の一覧がエラーにならないこと。"""
-    rows = policy.non_compliant(known_db, TODAY, A, "true")
-    assert rows == []
-
-
 def test_not_introduced(known_db):
     """未導入者の一覧は 1 行（u4）。u7 / u10 / u11 は `cost_daily` に現れないため一覧にも出ない。"""
     rows = queries_policy.not_introduced(known_db, TODAY)
     assert [r[0] for r in rows] == ["u4"]
 
 
-def test_stale_terminals_uses_policy_state(known_db):
-    """途絶えた端末は `policy_state` で判定する。1 行のみ u7 / h7 / 最終 19990。"""
-    rows = queries_policy.stale_terminals(known_db, TODAY)
-    assert list(rows) == [("u7", "h7", 19990)]
+def _plugin(conn) -> dict:
+    return {
+        (u, h): v
+        for u, h, v in queries_policy.plugin_versions(conn, TODAY, REFERENCE_KEY)
+    }
 
 
-def test_stale_terminals_excludes_kill_switch_terminal(known_db):
-    """無効化スイッチを入れた u10 / h10 は、`events` で判定すれば並ぶはずだが `policy_state` 判定では並ばない。"""
-    rows = queries_policy.stale_terminals(known_db, TODAY)
-    hosts = {(r[0], r[1]) for r in rows}
-    assert ("u10", "h10") not in hosts
-
-    # 対照実験: events で最終 day を判定すると u10 / h10（最終 19988、差 17）が現れる
-    cur = known_db.cursor()
-    cur.execute(
-        "SELECT user_email, host, MAX(day) FROM events GROUP BY user_email, host"
-    )
-    events_last_day = {(r[0], r[1]): r[2] for r in cur.fetchall()}
-    assert events_last_day.get(("u10", "h10")) == 19988
-    assert TODAY - events_last_day[("u10", "h10")] >= queries_policy.STALE_DAYS
+def test_plugin_versions_per_terminal(known_db):
+    """端末ごとに最新 1 行のプラグインのバージョン。u3 の 2 台は別々に返る（利用者にまとめるのは metrics）。"""
+    rows = _plugin(known_db)
+    assert len(rows) == 7
+    assert (rows[("u3", "h3")], rows[("u3", "h3b")]) == ("1.4.0", "1.3.0")
 
 
-def test_plugin_version_distribution(known_db):
-    rows = dict(
-        queries_policy.plugin_version_distribution(known_db, TODAY, REFERENCE_KEY)
-    )
-    assert rows == {"1.4.0": 5, "1.3.0": 2}
-
-
-def test_plugin_version_distribution_picks_max_ts_not_max_day(known_db):
-    """版分布も `ts` の降順で最新 1 行を選ぶ。`day` の降順にすると別の版が数えられる。"""
+def test_plugin_versions_pick_max_ts_not_max_day(known_db):
+    """`ts` の降順で最新 1 行を選ぶ。`day` の降順にすると別のバージョンになる。"""
     insert_compliant_policy(
         known_db, "tie4", 20000, "uy", "hy", ts=5000, key_name=REFERENCE_KEY
     )
@@ -197,20 +167,15 @@ def test_plugin_version_distribution_picks_max_ts_not_max_day(known_db):
         prev_value="80",
         plugin_version="1.3.0",
     )
-    rows = dict(
-        queries_policy.plugin_version_distribution(known_db, TODAY, REFERENCE_KEY)
-    )
-    # ts=5000（day=20000, 1.4.0）が最新のため、uy は 1.4.0 側に数えられる。
-    assert rows["1.4.0"] == 6
-    assert rows["1.3.0"] == 2
+    assert _plugin(known_db)[("uy", "hy")] == "1.4.0"
 
 
-def test_plugin_version_distribution_unchanged_after_duplicate_injection(known_db):
-    """重複行を注入しても版分布は変わらない。"""
+def test_plugin_versions_unchanged_after_duplicate_injection(known_db):
+    """重複行を注入しても端末ごとのバージョンは変わらない。"""
 
     def compute():
         return sorted(
-            queries_policy.plugin_version_distribution(known_db, TODAY, REFERENCE_KEY)
+            queries_policy.plugin_versions(known_db, TODAY, REFERENCE_KEY), key=str
         )
 
     assert_invariant_under_duplication(known_db, compute)
@@ -223,13 +188,9 @@ def test_all_numbers_survive_full_duplication_at_once(known_db):
         return {
             "rate_k": policy.compliance_rate(known_db, TODAY, K, "60"),
             "rate_a": policy.compliance_rate(known_db, TODAY, A, "true"),
-            "non_compliant_k": sorted(policy.non_compliant(known_db, TODAY, K, "60")),
             "not_introduced": sorted(queries_policy.not_introduced(known_db, TODAY)),
-            "stale": sorted(queries_policy.stale_terminals(known_db, TODAY)),
             "versions": sorted(
-                queries_policy.plugin_version_distribution(
-                    known_db, TODAY, REFERENCE_KEY
-                )
+                queries_policy.plugin_versions(known_db, TODAY, REFERENCE_KEY), key=str
             ),
         }
 
@@ -250,19 +211,21 @@ def test_cost_window_ends_today(known_db):
     assert list(queries_policy.not_introduced(known_db, later)) == []
 
 
-def test_claude_code_version_distribution(known_db):
-    """端末ごとに版のある最新 1 行（`ts` の降順）を数える。版の無い行と集計期間の外は数えない。"""
+def test_claude_code_versions_per_terminal(known_db):
+    """端末ごとにバージョンのある最新 1 行（`ts` の降順）。バージョンの無い行と集計期間の外は見ない。"""
     seed_claude_code_versions(known_db)
-    rows = dict(queries_policy.claude_code_version_distribution(known_db, TODAY))
-    assert rows == {"2.1.283": 2, "2.1.281": 1}
+    rows = sorted(queries_policy.claude_code_versions(known_db, TODAY))
+    assert rows == [
+        ("uv1", "hv1", "2.1.283"),
+        ("uv2", "hv2", "2.1.283"),
+        ("uv2", "hv2b", "2.1.281"),
+    ]
 
 
-def test_claude_code_version_distribution_unchanged_after_duplicate_injection(
-    known_db,
-):
+def test_claude_code_versions_unchanged_after_duplicate_injection(known_db):
     seed_claude_code_versions(known_db)
 
     def compute():
-        return sorted(queries_policy.claude_code_version_distribution(known_db, TODAY))
+        return sorted(queries_policy.claude_code_versions(known_db, TODAY))
 
     assert_invariant_under_duplication(known_db, compute)

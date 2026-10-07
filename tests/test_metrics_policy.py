@@ -23,11 +23,6 @@ def test_compliance_rate_is_none_without_users():
     assert compliance.compliance_rate([], set(), "60") == (0, 0, None)
 
 
-def test_non_compliant_keeps_mismatched_terminals():
-    rows = [("u1", "h1", "60", 5, 1), ("u2", "h2", None, 6, 2)]
-    assert compliance.non_compliant(rows, "60") == [("u2", "h2", None, 6)]
-
-
 def test_event_study_averages_over_population():
     """分母は相対日が CSV の期間に入る利用者（u3 は入らない）。相対日 0 と分母 0 の相対日は出さない。"""
     start_dates = {"u1": 10, "u2": 11, "u3": 100}

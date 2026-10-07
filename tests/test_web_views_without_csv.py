@@ -33,8 +33,8 @@ def test_overview_fills_tables_from_events_and_policy(no_csv_client):
 def test_policy_denominator_is_policy_users_with_note(no_csv_client):
     """準拠率の分母は `policy_state` の利用者（6 人）になり、その旨の注記が出る。"""
     html = no_csv_client.get(ADMIN + "/policy").get_data(as_text=True)
-    assert rows_in_table(html, "terminals")
-    ratios = [r["cells"][1] for r in table_rows(html, "settings")]
+    assert rows_in_table(html, "policy_users")
+    ratios = [r["cells"][1] for r in table_rows(html, "policy_settings")]
     assert len(ratios) == 6
     assert {r.split(" / ")[1] for r in ratios} == {"6 人"}
     assert _NOTE in html

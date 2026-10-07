@@ -3,7 +3,6 @@
 # 集計期間（日数）
 RECENT_DAYS = 7
 POLICY_DAYS = 30
-STALE_DAYS = 14
 EVENT_STUDY_SPAN = 14
 
 # 期間のページで切り替える期間。日数の期間は直近 N 日とその前の N 日を比べ、
@@ -53,6 +52,9 @@ NULL_RATE_ELEVATED = 20
 ERROR_COUNT_ELEVATED = 1
 NON_COMPLIANT_USERS_HIGH = 1
 NOT_INTRODUCED_ELEVATED = 1
+# 本体・プラグインが最新でないバージョンの利用者の人数
+CORE_OUTDATED_ELEVATED = 1
+PLUGIN_OUTDATED_ELEVATED = 1
 # コストの前との増減率（%。1 営業日あたり・1 人 1 営業日あたり・月末の見込み）と、利用者数の減少率（%）
 COST_RISE_ELEVATED = 10
 COST_RISE_HIGH = 15

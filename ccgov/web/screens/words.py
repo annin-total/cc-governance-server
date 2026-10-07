@@ -4,7 +4,6 @@
 """
 
 # fmt: off
-from ccgov.constants import REFERENCE_KEY
 from ccgov.web.labels import (
     HOLIDAY,
     IMPORT,
@@ -12,10 +11,9 @@ from ccgov.web.labels import (
     PERIOD_NAMES,
     PREV,
     RECENT,
-    SETTING,
-    STALE_NOTE,
 )
 from ccgov.web.screens import words_activity as _activity
+from ccgov.web.screens import words_policy as _policy
 
 _BILL = "利用明細 {cost[start]:md}〜{cost[end]:md} と前の {period[days]} 日 · 利用明細にコストがあった利用者"
 _BILL_LONG = "利用明細 直近 {period[months]} か月（{cost[start]:day}〜{cost[end]:day}）· 暦月 · 前の期間と比べない"
@@ -24,8 +22,6 @@ _MONTH = "{month[month]:ym} · 利用明細の最終日（{month[as_of]:md}）�
 GROUP = {
     "use": ("利用", "直近 {period[days]} 日と、その前の {period[days]} 日"),
     "data": ("データの届き具合", "直近 {period[days]} 日と、その前の {period[days]} 日"),
-    "who": ("利用者", "直近 {POLICY_DAYS} 日 · 対象は{basis:basis} {denominator:num} 人"),
-    "set": ("設定と更新", "直近 {POLICY_DAYS} 日 · 端末ごとに最新の報告 1 件"),
     "work": ("設定は働いているか", "{REFERENCE_KEY:setting}を {REFERENCE_VALUE} にした前後 {EVENT_STUDY_SPAN} 日 · 前後の境は各利用者が守り始めた日"),
     "spend": ("コストの前後差", "1 人 1 日あたり · {EFFECT_PROVIDER:provider} · 時期の変動を含むため、前後差を施策の効果と読まない"),
     "bill": ("コスト", _BILL),
@@ -73,17 +69,6 @@ CARD = {
     "errors": {"label": "プラグインのエラー", "unit": "件", "sub": "{errors[kinds]:num} 種類 · 前との比較なし"},
     "nulls": {"label": "項目の欠け（最大）", "unit": "%", "sub": "{nulls[key]:field} · {nulls[ok]:num} / {nulls[total]:num} 項目が正常",
               "row": ("{rate:pct}",)},
-    "all_applied": {"label": "すべての設定を適用", "unit": "人", "sub": "対象 {denominator:num} 人のうち {counts[ok_rate]:pct}",
-                    "cap": ("{counts[items]:num} つの設定がすべて配布した値",)},
-    "off": {"label": "未適用のある利用者", "unit": "人", "sub": "端末 {counts[off_terminals]:num} 台 · 違う値か未設定",
-            "cap": ("対象 {denominator:num} 人のうち",)},
-    "none": {"label": "プラグイン未導入", "unit": "人", "sub": "コストがあるのに報告が無い", "cap": ("対象 {denominator:num} 人のうち",)},
-    "stale": {"label": "報告が止まった端末", "unit": "台", "sub": "{counts[stale_users]:num} 人 · 最後の報告から {STALE_DAYS} 日以上",
-              "cap": ("全 {counts[terminals]:num} 台のうち",)},
-    "settings": {"label": "設定ごとの適用率", "sub": "最も低いのは {lowest:setting}",
-                 "row": ("{numerator:num} / {denominator:num} 人", "{rate:pct}")},
-    "plugin": {"label": "プラグインが最新バージョンの端末", "unit": "台", "sub": "最新 {plugin[latest]} · 全 {plugin[total]:num} 台"},
-    "core": {"label": "本体が最新バージョンの端末", "unit": "台", "sub": "最新 {core[latest]} · 全 {core[total]:num} 台"},
     "precompact": {"label": "コンパクト直前のコンテキスト（中央の区間）", "unit": "トークン",
                    "sub": "適用前 {precompact[median][before]:bin} · 記録 {precompact[total][before]:num} → {precompact[total][after]:num} 件",
                    "cap": ("区間の幅 {CONTEXT_BIN:tok} トークン · 縦は各期間の中の割合",)},
@@ -183,17 +168,6 @@ TAB = {
     "errors": {"label": "プラグインのエラー", "hint": "直近 {period[days]} 日 · {errors[total]:num} 件", "title": "プラグインのエラー",
                "scope": "直近 {period[days]} 日 · 端末 = 利用者とホスト名の組 · 失った記録は戻りません", "unit": "行",
                "search": "エラーの種類・バージョン"},
-    "users": {"label": "利用者ごと", "hint": "{denominator:num} 人", "title": "利用者ごとの適用状況", "unit": "人",
-              "scope": "対象 {denominator:num} 人", "search": "利用者で絞り込み",
-              "note": "1 台でも違う値の端末があれば、その利用者は未適用と数えます。このため台数と人数は一致しません。{basis:basis_note}"},
-    "terminals": {"label": "端末ごと", "hint": "{counts[terminals]:num} 台", "title": "端末ごとの現在の値", "unit": "台",
-                  "scope": "直近 {POLICY_DAYS} 日に設定の報告があった端末 · 端末ごとに最新の報告 1 件",
-                  "search": "利用者・端末名で絞り込み", "note": STALE_NOTE},
-    "settings": {"label": "設定ごと", "hint": "{counts[items]:num} 設定", "title": "設定ごとの適用率", "unit": "行",
-                 "scope": "直近 {POLICY_DAYS} 日 · 分母は{basis:basis}利用者 {denominator:num} 人",
-                 "search": "設定名・キーで絞り込み", "note": "{basis:basis_note}"},
-    "versions": {"label": "バージョン", "hint": "プラグイン・本体", "title": "バージョンの分布", "unit": "行",
-                 "scope": "直近 {POLICY_DAYS} 日 · 端末ごとに最新の報告 1 件 · 古いバージョンが残るのは更新が届いていない端末"},
     "precompact": {"label": "コンパクト直前の分布", "hint": "記録 {precompact[total][before]:num} → {precompact[total][after]:num} 件",
                    "title": "コンパクト直前のコンテキストの大きさ", "unit": "区間", "note": _HIST_NOTE,
                    "scope": "自動コンパクトが走る直前（PreCompact）のトークン数" + _HIST_SCOPE},
@@ -239,9 +213,8 @@ COL = {
     "total": "合計", "bar": "", "field": "区分", "value": "値", "count": "件数", "share": "割合", "group": "区分",
     "item": "項目", "now": RECENT, "prev": PREV, "diff": "差", "state": "状態", "stage": "処理段階",
     "error_type": "エラーの種類", "terminals": "端末数", "version": "最後に起きたバージョン", "status": "状態", "email": "利用者",
-    "user_terminals": "端末", "last_day": "最終報告日", "host": "端末名", "reference": SETTING[REFERENCE_KEY][0],
-    "off_keys": "未適用の設定", "setting": "設定", "ratio": "適用済み / 対象", "rate": "適用率", "off_terminals": "未適用の端末",
-    "kind": "種類", "versions": "バージョン", "version_count": "端末数",
+    "last_day": "最終報告日", "setting": "設定", "ratio": "適用済み / 対象", "rate": "適用率",
+    "kind": "種類", "versions": "バージョン",
     "bin": "トークン数の区間", "before_count": "適用前の件数", "before_share": "適用前の割合", "after_count": "適用後の件数",
     "after_share": "適用後の割合", "rel_day": "守り始めてからの日数", "side": "期間", "people": "対象者数",
     "per_cost": "1 人あたりコスト", "per_tokens": "1 人あたりトークン",
@@ -257,10 +230,11 @@ COL = {
     "basis": "基準", "over_prev": "前の状態", "over_now": "今の状態", "over_kind": "区分", "over_amount": "金額", "over_at": "日付",
     "over_prev_amount": "前の金額",
 }
-GROUP.update(_activity.GROUP)
-CARD.update(_activity.CARD)
-TAB.update(_activity.TAB)
-COL.update(_activity.COL)
+for _words in (_activity, _policy):
+    GROUP.update(_words.GROUP)
+    CARD.update(_words.CARD)
+    TAB.update(_words.TAB)
+    COL.update(_words.COL)
 CALL_KIND = _activity.CALL_KIND
 COL_EACH_SUB = "{numerator:num} / {denominator:num} 人"
 MONTH_CHIPS = {"bd": "営業日", "cal": "暦日"}

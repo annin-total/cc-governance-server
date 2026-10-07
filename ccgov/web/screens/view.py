@@ -21,7 +21,6 @@ CONSTANTS = {
     name: getattr(constants, name)
     for name in (
         "POLICY_DAYS",
-        "STALE_DAYS",
         "NULL_RATE_ELEVATED",
         "NULL_RATE_HIGH",
         "EVENT_STUDY_SPAN",

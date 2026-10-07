@@ -10,7 +10,7 @@ from ccgov.web.screens import words as W
 
 SCALED = {"usd", "usd_strong", "usd_sub", "usd_delta", "cum", "tok"}
 NUMERIC = {"num", "pct", "pct_strong", "measure", "measure_sub"} | SCALED
-NUMERIC |= {"diff", "last_day", "ratio", "count_of", "dash_num", "num_sub", "bytes"}
+NUMERIC |= {"diff", "last_day", "ratio", "count_of", "num_sub", "bytes"}
 NUMERIC |= {"pct_delta"}
 
 

@@ -1,8 +1,10 @@
-"""`/policy` 画面の組み立て。"""
+"""`/policy` 画面の組み立て。数える単位は利用者で、今日までの `POLICY_DAYS` 日の報告を見る。"""
 
 from ccgov.constants import (
+    CORE_OUTDATED_ELEVATED,
     NON_COMPLIANT_USERS_HIGH,
     NOT_INTRODUCED_ELEVATED,
+    PLUGIN_OUTDATED_ELEVATED,
     REFERENCE_KEY,
 )
 from ccgov.metrics import compliance, rates, rollup, states, versions
@@ -17,25 +19,19 @@ def compliance_rate(conn, today: int, key_name: str, expected_value: str) -> lis
     return [compliance.compliance_rate(rows, users, expected_value)]
 
 
-def non_compliant(conn, today: int, key_name: str, expected_value: str) -> list:
-    """最新 1 行の `prev_value` が施策値と一致しない端末を返す。"""
-    rows = queries_policy.latest_values(conn, today, key_name)
-    return compliance.non_compliant(rows, expected_value)
-
-
-def _item(conn, today: int, key: str, expected: str) -> dict:
+def _item(conn, today: int, key: str, expected: str, users: list) -> dict:
     numerator, denominator, rate = compliance_rate(conn, today, key, expected)[0]
     return {
         "key": key,
         "numerator": numerator,
         "denominator": denominator,
         "rate": rate,
-        "off_terminals": len(non_compliant(conn, today, key, expected)),
+        "off_users": sum(1 for u in users if u["on"][key] is False),
     }
 
 
 def _versions(kind: str, summary: dict) -> list:
-    """版の分布の行。`order` は新しい版ほど大きい。"""
+    """バージョンの表の行。`order` は新しいバージョンほど大きい。"""
     parts = summary["parts"]
     return [
         {
@@ -43,6 +39,7 @@ def _versions(kind: str, summary: dict) -> list:
             "version": version,
             "count": count,
             "total": summary["total"],
+            "share": rates.rate(count, summary["total"]),
             "latest": version == summary["latest"],
             "order": len(parts) - i,
         }
@@ -50,18 +47,13 @@ def _versions(kind: str, summary: dict) -> list:
     ]
 
 
-def _counts(users: list, terminals: list, targets: set, items: list) -> dict:
-    ok = rollup.count_status(users, rollup.FINE)
-    stale = [t for t in terminals if t["stale"]]
+def _counts(users: list, targets: set, items: list) -> dict:
+    ok = rollup.count_tag(users, rollup.FINE)
     return {
         "ok": ok,
         "ok_rate": rates.rate(ok, len(targets)),
-        "off": rollup.count_status(users, rollup.OFF),
-        "none": rollup.count_status(users, rollup.NONE),
-        "off_terminals": rollup.count_status(terminals, rollup.OFF),
-        "stale_terminals": len(stale),
-        "stale_users": len({t["email"] for t in stale}),
-        "terminals": len(terminals),
+        "off": rollup.count_tag(users, rollup.OFF),
+        "none": rollup.count_tag(users, rollup.NONE),
         "items": len(items),
     }
 
@@ -71,24 +63,19 @@ def build(conn, today: int) -> dict:
     expected = dict(targets)
     latest = {k: queries_policy.latest_values(conn, today, k) for k in expected}
     users_in_scope = queries_policy.denominator_users(conn, today)
-    items = [_item(conn, today, k, v) for k, v in targets]
-    stale = {(u, h) for u, h, _ in queries_policy.stale_terminals(conn, today)}
-    terminals = rollup.terminals(latest, expected, stale, today)
-    reference = latest.get(REFERENCE_KEY) or queries_policy.latest_values(
-        conn, today, REFERENCE_KEY
-    )
-    values = {(u, h): prev for u, h, prev, _, _ in reference}
-    for t in terminals:
-        t["value"] = values.get((t["email"], t["host"]))
     not_introduced = {r[0] for r in queries_policy.not_introduced(conn, today)}
-    users = rollup.users(terminals, list(expected), users_in_scope, not_introduced)
-    counts = _counts(users, terminals, users_in_scope, items)
-    plugin = versions.summary(
-        queries_policy.plugin_version_distribution(conn, today, REFERENCE_KEY)
-    )
-    core = versions.summary(
-        queries_policy.claude_code_version_distribution(conn, today)
-    )
+    users = rollup.users(latest, expected, users_in_scope, not_introduced, today)
+    found = {
+        "core": versions.summary(
+            queries_policy.claude_code_versions(conn, today), users_in_scope
+        ),
+        "plugin": versions.summary(
+            queries_policy.plugin_versions(conn, today, REFERENCE_KEY), users_in_scope
+        ),
+    }
+    rollup.add_versions(users, found)
+    items = [_item(conn, today, k, v, users) for k, v in targets]
+    counts = _counts(users, users_in_scope, items)
     rated = [it for it in items if it["rate"] is not None]
     return {
         "denominator": len(users_in_scope),
@@ -96,15 +83,21 @@ def build(conn, today: int) -> dict:
         "items": items,
         "lowest": min(rated, key=lambda it: it["rate"])["key"] if rated else None,
         "users": users,
-        "terminals": terminals,
         "counts": counts,
         "states": {
             "off": states.at_least(counts["off"], NON_COMPLIANT_USERS_HIGH, states.NG),
             "none": states.at_least(
                 counts["none"], NOT_INTRODUCED_ELEVATED, states.WARN
             ),
+            "core": states.at_least(
+                found["core"]["outdated"], CORE_OUTDATED_ELEVATED, states.WARN
+            ),
+            "plugin": states.at_least(
+                found["plugin"]["outdated"], PLUGIN_OUTDATED_ELEVATED, states.WARN
+            ),
         },
-        "plugin": plugin,
-        "core": core,
-        "versions": _versions("plugin", plugin) + _versions("core", core),
+        "core": found["core"],
+        "plugin": found["plugin"],
+        "versions": _versions("core", found["core"])
+        + _versions("plugin", found["plugin"]),
     }

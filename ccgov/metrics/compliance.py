@@ -25,12 +25,3 @@ def compliance_rate(latest_rows: list, users: set, expected_value: str) -> tuple
         compliant_by_user[user_email] = compliant_by_user.get(user_email, True) and ok
     numerator = sum(1 for u in users if compliant_by_user.get(u, False))
     return rate_row(numerator, len(users))
-
-
-def non_compliant(latest_rows: list, expected_value: str) -> list:
-    """最新 1 行の `prev_value` が施策値と一致しない端末を返す。"""
-    return [
-        (user_email, host, prev_value, day)
-        for user_email, host, prev_value, day, _ts in latest_rows
-        if prev_value != expected_value
-    ]
