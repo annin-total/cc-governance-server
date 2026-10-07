@@ -79,6 +79,7 @@ def test_daily_card_shows_two_numbers_d2_chips_and_moves(over_client):
     assert '<span class="mark ng">要確認</span>' in body
     assert 'data-open="over_users:day"' in body
     ng, warn = _column(body, "ng"), _column(body, "warn")
+    assert body.index('data-state="ng"') < body.index('data-state="warn"')
     assert _text(ng).startswith("要確認 3 人 前 3 人（±0 人） コストの 52.5%")
     assert _chips(ng) == [(" worse", "新規 1 人"), (" better", "離脱 1 人")]
     assert "コストの 13.8%" in _text(warn)
@@ -181,3 +182,5 @@ def test_tab_is_not_shown_for_12_months(over_client):
     html = html_of(over_client, "?period=12m")
     assert 'data-tab="over_users"' in html
     assert 'data-testid="over_users"' not in html
+    panel = html.split('data-panel="over_users"')[1].split("data-panel=")[0]
+    assert "基準は 7 日・28 日の期間で判定します。" in panel
