@@ -57,7 +57,10 @@ def test_optional_columns_may_be_missing():
 
 @pytest.mark.parametrize("bom", [b"", b"\xef\xbb\xbf"])
 def test_utf8_with_or_without_bom(bom):
-    rows, _ = roster_csv.parse(bom + org_bytes(("a@example.com", "山田", "部", "課")))
+    """BOM を剥がさないと、先頭の列名が一致しない（先頭に必須の列を置いて確かめる）。"""
+    header = tuple(reversed(HEADER))
+    body = org_bytes(("a@example.com", "山田", "部", "課"), header=header)
+    rows, _ = roster_csv.parse(bom + body)
     assert rows[0]["name"] == "山田"
 
 

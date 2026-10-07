@@ -75,10 +75,13 @@ def test_listing_counts_departments_sections_and_unlisted_users(db_conn):
         _row("u3@example.com", department="D1", section="S2"),
         _row("x@example.com", department="D2", section="S1"),  # 部が違えば別の課
         _row("y@example.com", department="D2", section=None),
+        _row(
+            "u4@example.com", department="D1", section="S1"
+        ),  # コストが 0 の人は数えない
     )
     _put(db_conn, _JUL, _row("u5@example.com"), _row("u2@example.com"))
     aug, jul = roster.build(db_conn)["rosters"]
-    assert (aug["rows"], aug["depts"], aug["sections"]) == (4, 2, 3)
+    assert (aug["rows"], aug["depts"], aug["sections"]) == (5, 2, 3)
     assert aug["unlisted"] == 2  # u2・u5
     assert jul["unlisted"] == 1  # u1
     assert aug["imported"] == _IMPORTED

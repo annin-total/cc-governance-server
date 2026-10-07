@@ -83,6 +83,7 @@ def test_same_month_is_overwritten(today_client, known_db):
         ({"month": ""}, labels.ORG_ERROR["month"]),
         ({"month": "2024-13"}, labels.ORG_ERROR["month"]),
         ({"month": "2024/09"}, labels.ORG_ERROR["month"]),
+        ({"month": "2024-09-01"}, labels.ORG_ERROR["month"]),
         ({"month": "2024-09", "name": "org.txt"}, labels.CSV_ERROR["name"]),
         ({"month": "2024-09", "body": "メール\r\n".encode("cp932")}, "UTF-8"),
         (
