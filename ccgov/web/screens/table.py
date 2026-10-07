@@ -1,11 +1,11 @@
-"""下段のタブの表示用の値を組み立てる。行は並べ替え済みで渡し、絞り込みの区分は行の `data-tags` にする。"""
+"""下段のタブの表示用の値を組み立てる。行は並べ替え済みで渡し、絞り込みの区分は行の `data-tags`、部署は `data-dept`・`data-sec` にする。"""
 
 from typing import Any
 
-from ccgov.metrics import series
 from ccgov.web import charts, filters, text
 from ccgov.web import labels as L
-from ccgov.web.screens import Col, Tab, tab_charts
+from ccgov.web.screens import Col, Tab, org, tab_charts
+from ccgov.web.screens import chips as chip_groups
 from ccgov.web.screens import words as W
 
 SCALED = {"usd", "usd_strong", "usd_sub", "usd_delta", "cum", "tok"}
@@ -75,7 +75,7 @@ def tab(tab: Tab, ctx: dict) -> dict:
         key, order = tab.sort
         rows.sort(key=lambda r: _sort_key(r.get(key)), reverse=order == "desc")
     cols = [c for col in tab.cols for c in _columns(col, tab, rows, ctx)]
-    chips, tags = _chips(tab, rows, words, ctx)
+    chips, axes, tags = chip_groups.build(tab, rows, words, ctx)
     chart = tab_charts.build(tab, source, ctx)
     return {
         **_head(tab, ctx),
@@ -83,7 +83,9 @@ def tab(tab: Tab, ctx: dict) -> dict:
         "search": words.get("search", "") if tab.search else "",
         "unit": words["unit"],
         "chips": chips,
+        "axes": axes,
         "chips_all": tab.chips_all,
+        "org": ctx[org.CTX] if tab.org else None,
         "total": len(rows) if tab.chips_all or not chips else chips[0]["count"],
         "cols": cols,
         "rows": [
@@ -91,6 +93,8 @@ def tab(tab: Tab, ctx: dict) -> dict:
                 "tags": " ".join(tags(r)),
                 "q": text.fill(tab.search, r) if tab.search else "",
                 "key": r.get(tab_charts.KEY[tab.chart]) if tab.chart else None,
+                "org": org.keys(r) if tab.org else None,
+                "cls": org.row_class(r) if tab.org else "",
                 "cells": [_cell(c, r) for c in cols],
             }
             for r in rows
@@ -167,37 +171,3 @@ def _cell(col: dict, row: dict) -> dict:
         "row": row,
         "col": col,
     }
-
-
-def _chips(tab: Tab, rows: list, words: dict, ctx: dict) -> tuple:
-    if not tab.chips_by:
-        return [], lambda r: []
-
-    def raw(r: dict) -> list:
-        v = r.get(tab.chips_by)
-        return list(v) if isinstance(v, (list, tuple)) else [v]
-
-    if tab.chips:
-        options = [(c.id, text.fill(c.label, ctx), c.tone) for c in tab.chips]
-        ids = {c.id: c.id for c in tab.chips}
-    else:
-        values = series.group_totals([(v, 1) for r in rows for v in raw(r)])
-        ids = {v: f"k{i}" for i, (v, _) in enumerate(values)}
-        options = [(ids[v], text.term(tab.chip_terms, v), "") for v, _ in values]
-
-    def tags(r: dict) -> list:
-        return [ids[v] for v in raw(r) if v in ids]
-
-    counted = [
-        {"id": i, "label": lb, "tone": t, "count": sum(i in tags(r) for r in rows)}
-        for i, lb, t in options
-    ]
-    if tab.chips_present:
-        counted = [c for c in counted if c["count"]]
-    every = {
-        "id": "all",
-        "label": words.get("all", L.ALL),
-        "tone": "",
-        "count": len(rows),
-    }
-    return ([every] if tab.chips_all else []) + counted, tags

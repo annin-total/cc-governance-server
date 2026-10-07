@@ -11,6 +11,7 @@ from ccgov.web.screens import (
     Card,
     Screen,
     month_view,
+    org,
     table,
     viz_activity,
     viz_cost,
@@ -70,9 +71,10 @@ def _words(card: Card) -> dict:
 
 
 def build(screen: Screen, data: dict) -> dict:
-    ctx = {**CONSTANTS, **data}
     long = is_long(data)
     days = (data.get("period") or {}).get("days")
+    ctx = {**CONSTANTS, **data}
+    ctx[org.CTX] = _org(screen, ctx, long)
     groups = []
     for g in screen.groups:
         cards = [pick(c, long, days) for c in screen.cards if c.group == g]
@@ -94,6 +96,14 @@ def build(screen: Screen, data: dict) -> dict:
         if long or not t.only_long
     ]
     return {"groups": groups, "tabs": tabs}
+
+
+def _org(screen: Screen, ctx: dict, long: bool) -> dict:
+    """部署の絞り込みのチップ。ページの中の、部署で絞るタブの行すべてに現れる部と課から作る（タブをまたいで同じ並び）。"""
+    shown = [pick(t, long) for t in screen.tabs if long or not t.only_long]
+    return org.panel(
+        [r for t in shown if t and t.org for r in text.lookup(ctx, t.rows)]
+    )
 
 
 def sources(screen: Screen, long: bool = False) -> set:

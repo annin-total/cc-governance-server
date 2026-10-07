@@ -26,6 +26,11 @@
   --ng-bg: #f3dfdb;
   --warn-2: #b0823f;
   --warn-3: #d6b98f;
+  /* 色: 部署（部の色は状態とチップの色と紛れない紫と青緑、課はその薄い色。不明は --neutral）。地の文字 --on-ink で AA を満たす */
+  --dept-0: #7d5a8c;
+  --dept-1: #2a737c;
+  --dept-0-2: #c0afc3;
+  --dept-1-2: #9ababc;
   /* 影 */
   --shadow-card: 0 1px 0 rgba(0, 0, 0, .04);
   --shadow-raised: 0 1px 2px rgba(0, 0, 0, .1);
@@ -100,6 +105,8 @@
   --cal-day-h: 2.2em;
   --cal-key: 1.4em;
   --cal-max-h: 340px;
+  --org-w: 540px;
+  --org-off: .35;
   --month-cols: minmax(0, 1fr) 9em 7em var(--col-bar) 7.5em;
   --month-table-cols: 9.5em 6em minmax(0, 1fr);
 }

@@ -1,0 +1,27 @@
+/* 部署: 絞り込み（ボタンで開くパネルに、押すと塗られる部と課のチップ）・部署ごとの表の部の行・コストの多い課の部の色の印 */
+.d0 { --tone: var(--dept-0); --tone-2: var(--dept-0-2); }
+.d1 { --tone: var(--dept-1); --tone-2: var(--dept-1-2); }
+.unk { --tone: var(--neutral); --tone-2: var(--chip); }
+
+.org { position: relative; margin-left: auto; }
+.org + .count { margin-left: 0; }
+.org-btn { font: inherit; font-size: var(--fs-sm); padding: var(--sp-2xs) var(--sp-m); border: 1px solid var(--rule); border-radius: var(--r-m); background: var(--card); color: var(--ink-2); cursor: pointer; white-space: nowrap; }
+.org-btn::after { content: ""; display: inline-block; margin-left: var(--sp-xs); vertical-align: middle; border: var(--caret-h) solid transparent; border-top-color: currentColor; border-bottom: 0; }
+.org-btn[aria-expanded="true"] { background: var(--card-hover); }
+.org-panel { position: absolute; right: 0; top: calc(100% + var(--sp-2xs)); z-index: 5; width: var(--org-w); max-width: 90vw; display: grid; gap: var(--sp-s); padding: var(--sp-m) var(--sp-l); background: var(--card); border: 1px solid var(--rule); border-radius: var(--r-l); box-shadow: var(--shadow-tip); }
+.org-panel[hidden] { display: none; }
+.org-line { display: grid; grid-template-columns: 2em minmax(0, 1fr); align-items: start; }
+.org-head { font-size: var(--fs-xs); color: var(--muted); padding-top: var(--sp-2xs); }
+.org-chips { display: flex; flex-wrap: wrap; gap: var(--sp-2xs) var(--sp-s); }
+.org-chips.secs { gap: var(--sp-2xs) var(--sp-m); }
+.org-chip { font: inherit; font-size: var(--fs-sm); padding: var(--sp-3xs) var(--sp-s); border: 1px solid var(--tone); border-radius: var(--r-m); background: var(--card); color: var(--ink-2); cursor: pointer; }
+.org-chip[data-sec] { border-color: var(--tone-2); }
+.org-chip[data-dept][aria-pressed="true"] { background: var(--tone); color: var(--on-ink); }
+.org-chip[data-sec][aria-pressed="true"] { background: var(--tone-2); border-color: var(--tone); color: var(--ink); }
+.org-chip:disabled { opacity: var(--org-off); cursor: default; }
+.org-clear { justify-self: start; padding: 0; border: 0; background: none; font: inherit; font-size: var(--fs-sm); color: var(--accent); cursor: pointer; }
+
+/* 部署ごとの表: 部の行は部全体の合算で薄い地、課の行は 1 段下げる */
+tr.lv-dept td { background: var(--track); }
+tr.lv-dept .c-unit { font-weight: 700; }
+.unit-sec { padding-left: var(--sp-l); }

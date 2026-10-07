@@ -82,10 +82,20 @@ class Chip:
 
 
 @dataclass(frozen=True)
+class Axis:
+    """区分のチップの 2 つ目以降の軸。行の `by` の値で絞り、`label` は `words.COL` の見出し（チップの群の名前）。"""
+
+    by: str
+    chips: tuple
+    label: str
+
+
+@dataclass(frozen=True)
 class Tab:
     """下段のタブ 1 つ。文言は `words.TAB[words or id]`（label・hint・title・scope・note・search・all・unit）。
 
-    `fold` は一覧を折りたたむ行の数（0 は畳まない）。`chips_present` なら、決まった区分のうち行の無いものを出さない。
+    `fold` は一覧を折りたたむ行の数（0 は畳まない）。`chips_present` なら、決まった区分のうち行の無いものを出さない（どの軸も）。
+    `axes` は区分の 2 つ目以降の軸（軸ごとに 1 つ選び、すべての軸に当たる行を出す）。`org` なら部署の絞り込みを置く。
     """
 
     id: str
@@ -103,6 +113,8 @@ class Tab:
     only_long: bool = False
     words: str = ""
     chips_present: bool = False
+    axes: tuple = ()
+    org: bool = False
 
 
 @dataclass(frozen=True)

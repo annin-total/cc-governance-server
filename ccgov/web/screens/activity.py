@@ -47,13 +47,13 @@ TABS = (
         Col("name", "user", label="user"), Col("days", "num", label="use_days", unit="day"), Col("sessions", "num", label="use_sessions"),
         Col("prompts", "num"), Col("prompts_diff", "diff"), Col("prompts_rate", "pct_delta"), Col("size", "tok"),
         Col("auto_share", "pct"), Col("bypass_share", "pct"), Col("last_day", "day", label="use_last"),
-    ), sort=("days", "desc"), search=USER_SEARCH, fold=_FOLD),
+    ), sort=("days", "desc"), search=USER_SEARCH, fold=_FOLD, org=True),
     Tab("user_calls", "user_calls", (
         Col("name", "user", label="user"), Col("skill", "num", label="skill_n"), Col("skill_top", label="skill_top", **_TOP),
         Col("command", "num", label="command_n"), Col("command_top", label="command_top", **_TOP),
         Col("external", "num", label="external_n"), Col("external_top", label="external_top", **_TOP),
         Col("agent", "num", label="agent_n"),
-    ), sort=("skill", "desc"), search=USER_SEARCH, fold=_FOLD),
+    ), sort=("skill", "desc"), search=USER_SEARCH, fold=_FOLD, org=True),
     Tab("daily_use", "freq[daily]", (
         Col("day", "date"), Col("period", "tag", terms=L.PERIOD), Col("users", "num", unit="person"),
         Col("sessions", "num", unit="item", label="use_sessions"), Col("prompts", "num", unit="item"),

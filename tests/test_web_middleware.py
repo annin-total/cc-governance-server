@@ -70,6 +70,7 @@ def test_stylesheet_is_served_under_base_path(app_with_base_path, base_path):
         "charts.css",
         "components.css",
         "layout.css",
+        "org.css",
         "tokens.css",
     ]
     for href in hrefs:

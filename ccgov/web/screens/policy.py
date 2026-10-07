@@ -35,7 +35,7 @@ TABS = (
         Col("status", "user_state", sort="rank"), Col("name", "user", label="user"), Col("on", "dot", each="items", terms=L.SETTING),
         Col("core", "code", label="core_version", sort=None), Col("plugin", "code", label="plugin_version", sort=None),
         Col("day", "last_day", label="last_day"),
-    ), sort=("rank", "asc"), chips_by="tags", chips=_USER_CHIPS, search=USER_SEARCH, fold=_FOLD),
+    ), sort=("rank", "asc"), chips_by="tags", chips=_USER_CHIPS, search=USER_SEARCH, fold=_FOLD, org=True),
     Tab("policy_settings", "items", (
         Col("key", "setting", label="setting", terms=L.SETTING), Col("numerator", "ratio", label="ratio"), Col("rate", "pct_strong"),
         Col("rate", "bar", label="bar", sort=None, den="100"), Col("off_users", "num", unit="person"),
