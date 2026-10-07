@@ -88,5 +88,14 @@ def test_12_months_draw_calendar_months(cost_client):
     assert _tips(card(html, LABELS["billed"])) == ["2024-09  4 人", "2024-10  4 人"]
     assert 'class="avg"' not in card(html, LABELS["per_bd"])
     assert 'class="spark-shade"' not in card(html, LABELS["total"])
+    # 10 月の継続率は 9 月の 4 人（a・b・c・d）のうち 3 人
+    assert _tips(card(html, LABELS["retention"])) == ["2024-10  75.0 %"]
     # 9 月は 09/04 から、10 月は 10/08 までの途中の月なので透かす
     assert card(html, LABELS["total"]).count('class="bar-hi bar-part"') == 2
+
+
+def test_baseline_above_every_bar_stays_inside_the_chart():
+    from ccgov.web import charts, charts_cost
+
+    geo = charts_cost.columns([1, 2], ["bar-hi", "bar-hi"], avg=10)
+    assert 0 <= geo["avg_y"] < min(b["y"] for b in geo["bars"]) <= charts.SPARK_H

@@ -55,7 +55,7 @@ def build(conn, period: Period) -> dict:
 
 def _days(conn, w: Period, spent: dict) -> dict:
     found = queries_spend.user_days(conn, w.prev_start, w.end)
-    users = cost_users.per_user(found, w.start, w.end, (w.prev_start, w.prev_end))
+    users = cost_users.per_user(found, w.start, w.end)
     models = cost_users.main_models(queries_spend.user_models(conn, w.start, w.end))
     user_rows = cost_users.rows(users, models, w.days)
     company = queries_holidays.between(conn, w.prev_start, w.end)
@@ -132,7 +132,7 @@ def _month_cols(months: list, key: str) -> list:
 
 def _months(conn, w: Period, spent: dict) -> dict:
     found = queries_spend.user_days(conn, w.start, w.end)
-    users = cost_users.per_user(found, w.start, w.end, None)
+    users = cost_users.per_user(found, w.start, w.end)
     models = cost_users.main_models(queries_spend.user_models(conn, w.start, w.end))
     user_rows = cost_users.rows(users, models, None)
     company = queries_holidays.between(conn, w.start, w.end)

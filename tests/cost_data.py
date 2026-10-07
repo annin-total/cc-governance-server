@@ -10,14 +10,14 @@
 | d | なし | 09/27 $30（sonnet） | 離脱 |
 | e | 10/08 $5（haiku）。最初のコスト | なし | 正常・使い始めた |
 
-直近の合計 $220・前 $60。トークンは a の 10/02 の行だけ（入力 300・出力 100・キャッシュ読み込み 600）。
+z は 10/08 に $0 の行だけで、どこにも利用者として数えない。直近の合計 $220・前 $60。トークンは a の 10/02 の行だけ（入力 300・出力 100・キャッシュ読み込み 600）。
 """
 
 from conftest import ADMIN
 from known_data import insert_cost_daily
 
 TODAY = 20005
-A, B, C, D, E = (f"{u}@example.com" for u in "abcde")
+A, B, C, D, E, Z = (f"{u}@example.com" for u in "abcdez")
 
 # fmt: off
 ROWS = (
@@ -31,6 +31,7 @@ ROWS = (
     (19992, C, "sonnet", 10.0, 0, 0, 0),
     (19993, D, "sonnet", 30.0, 0, 0, 0),
     (20004, E, "haiku", 5.0, 0, 0, 0),
+    (20004, Z, "haiku", 0.0, 0, 0, 0),
 )
 # fmt: on
 

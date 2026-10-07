@@ -22,12 +22,12 @@ def user_days(conn, start: int, end: int) -> list:
 
 
 def user_models(conn, start: int, end: int) -> list:
-    """`(user_email, model, コスト)`。主なモデルを決めるのに使う。"""
+    """`(user_email, model, コスト)`。主なモデル（コストの最も多いモデル）を決めるのに使う。"""
     cur = conn.cursor()
     cur.execute(
         db.q(
             "SELECT user_email, model, COALESCE(SUM(cost), 0) FROM cost_daily"
-            " WHERE day BETWEEN ? AND ? GROUP BY user_email, model HAVING " + _HAS_COST
+            " WHERE day BETWEEN ? AND ? GROUP BY user_email, model"
         ),
         (start, end),
     )

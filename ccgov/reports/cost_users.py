@@ -10,8 +10,8 @@ def _share(value: float, total: float) -> Optional[float]:
     return round(value / total * 100, 1) if total else None
 
 
-def per_user(rows: list, start: int, end: int, prev: Optional[tuple]) -> dict:
-    """`(user_email, day, コスト)` を利用者ごとの直近のコスト・日数・1 日の最大と、前の期間のコストにまとめる。"""
+def per_user(rows: list, start: int, end: int) -> dict:
+    """`(user_email, day, コスト)` を利用者ごとの `start`〜`end` のコスト・日数・1 日の最大と、それより前の行のコスト（前の期間）にまとめる。"""
     users: dict = {}
     for email, day, amount in rows:
         u = users.setdefault(
@@ -21,7 +21,7 @@ def per_user(rows: list, start: int, end: int, prev: Optional[tuple]) -> dict:
             u["cost"] += amount
             u["days"] += 1
             u["max_day"] = max(u["max_day"], amount)
-        elif prev and prev[0] <= day <= prev[1]:
+        else:
             u["prev"] += amount
     return users
 
