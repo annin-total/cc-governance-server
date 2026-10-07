@@ -78,7 +78,7 @@ TABS = (
     Tab("months", "months", (
         Col("day", "month", label="month"), Col("cost", "usd_strong", label="spend"), Col("cost", "bar", label="bar", sort=None),
         Col("users", "num", unit="person"), Col("new", "num", label="new_users", unit="person"), Col("bd", "num"), Col("per_bd", "usd"),
-    ), sort=("day", "asc"), only_long=True, long=SAME),
+    ), sort=("day", "asc"), fold=_FOLD, only_long=True, long=SAME),
 )
 # fmt: on
 

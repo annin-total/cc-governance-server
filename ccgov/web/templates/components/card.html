@@ -10,7 +10,7 @@
   <span class="k-value">{{ parts(c.value) }}<span class="u">{{ c.unit }}</span></span>
   {%- endif %}
   <span class="k-sub">{% if c.delta %}<span class="change{{ ' ' ~ c.tone if c.tone }}">{{ c.delta }}</span>{% endif %}{{ parts(c.sub) }}</span>
-  <span class="k-viz">{% if c.viz %}{{ viz(c.viz) }}{% endif %}{% if c.caps %}{{ caps(c.caps) }}{% endif %}</span>
+  <span class="k-viz">{% if c.viz %}{{ viz(c.viz) }}{% endif %}{% if c.caps %}{{ caps(c.caps) }}{% endif %}{% if c.foot %}<span class="legend">{{ c.foot }}</span>{% endif %}</span>
 </a>
 {%- endmacro %}
 

@@ -88,3 +88,5 @@ def test_12_months_draw_calendar_months(cost_client):
     assert _tips(card(html, LABELS["billed"])) == ["2024-09  4 人", "2024-10  4 人"]
     assert 'class="avg"' not in card(html, LABELS["per_bd"])
     assert 'class="spark-shade"' not in card(html, LABELS["total"])
+    # 9 月は 09/04 から、10 月は 10/08 までの途中の月なので透かす
+    assert card(html, LABELS["total"]).count('class="bar-hi bar-part"') == 2

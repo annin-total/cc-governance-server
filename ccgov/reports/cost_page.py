@@ -126,6 +126,10 @@ def _dist(user_rows: list, days: int) -> dict:
     return {"values": values, "median": spend.median(values)}
 
 
+def _month_cols(months: list, key: str) -> list:
+    return [{"day": m["day"], "value": m[key], "partial": m["partial"]} for m in months]
+
+
 def _months(conn, w: Period, spent: dict) -> dict:
     found = queries_spend.user_days(conn, w.start, w.end)
     users = cost_users.per_user(found, w.start, w.end, None)
@@ -138,12 +142,12 @@ def _months(conn, w: Period, spent: dict) -> dict:
     total = sum(m["cost"] for m in months)
     per_bd = _per(total, days)
     return {
-        "per_bd": {"value": per_bd, "days": days, "cols": [{"day": m["day"], "value": m["per_bd"]} for m in months]},
+        "per_bd": {"value": per_bd, "days": days, "cols": _month_cols(months, "per_bd")},
         "per_user": {"value": _per(per_bd, len(user_rows)), "users": len(user_rows), "days": days, **_dist(user_rows, days)},
         "top": cost_users.top(user_rows),
         "models": cost_users.models(queries_spend.models(conn, w.start, w.end), None),
-        "billed": {"recent": len(user_rows), "cols": [{"day": m["day"], "value": m["users"]} for m in months]},
-        "new_users": {"count": len(firsts), "cols": [{"day": m["day"], "value": m["new"]} for m in months]},
+        "billed": {"recent": len(user_rows), "cols": _month_cols(months, "users")},
+        "new_users": {"count": len(firsts), "cols": _month_cols(months, "new")},
         "retention": cost_months.retention(months),
         "users": user_rows,
         "months": months,

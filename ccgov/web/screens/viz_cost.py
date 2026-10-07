@@ -18,7 +18,7 @@ def build(viz: Viz, words: dict, ctx: dict) -> Optional[dict]:
     if viz.kind == "cols":
         return _cols(viz, src, words, ctx)
     if viz.kind == "dist":
-        return _dist(viz, src, words, ctx)
+        return _dist(viz, src)
     if viz.kind == "cum":
         return month_view.cum_card(src, words, ctx)
     return _bands(src, words)
@@ -41,9 +41,11 @@ def _head(row: dict, long: bool) -> str:
 
 
 def _cls(row: dict, avg: Optional[float]) -> str:
+    """前は薄く、直近は濃く。基準線を下回る直近の棒は淡く、途中の月は透かす。"""
     if row.get("period") == "prev":
         return "bar-old"
-    return "bar-lo" if avg is not None and not row.get("over") else "bar-hi"
+    cls = "bar-lo" if avg is not None and not row.get("over") else "bar-hi"
+    return cls + (" bar-part" if row.get("partial") else "")
 
 
 def _cols(viz: Viz, rows: list, words: dict, ctx: dict) -> Optional[dict]:
@@ -55,14 +57,10 @@ def _cols(viz: Viz, rows: list, words: dict, ctx: dict) -> Optional[dict]:
         return None
     for bar, row, value in zip(geo["bars"], rows, values):
         bar["tip"] = f"{_head(row, long)}  {_shown(value, viz.fmt, words)}"
-    return {"kind": "cols", "geo": geo, "note": _note(words, ctx)}
+    return {"kind": "cols", "geo": geo}
 
 
-def _note(words: dict, ctx: dict) -> str:
-    return text.fill(words["note"], ctx) if "note" in words else ""
-
-
-def _dist(viz: Viz, src: dict, words: dict, ctx: dict) -> Optional[dict]:
+def _dist(viz: Viz, src: dict) -> Optional[dict]:
     bins = spend.histogram(src["values"], DIST_BINS)
     geo = charts_cost.dist(bins, src["value"], src["median"])
     if not geo:
@@ -70,7 +68,7 @@ def _dist(viz: Viz, src: dict, words: dict, ctx: dict) -> Optional[dict]:
     for bar, (lo, hi, n) in zip(geo["bars"], bins):
         fmt = text.FORMATS[viz.fmt]
         bar["tip"] = text.fill(L.BIN_TIP, {"lo": fmt(lo), "hi": fmt(hi), "n": n})
-    return {"kind": "dist", "geo": geo, "note": _note(words, ctx)}
+    return {"kind": "dist", "geo": geo}
 
 
 def _bands(rows: list, words: dict) -> Optional[dict]:

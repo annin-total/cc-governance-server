@@ -104,8 +104,8 @@
 {%- if v.kind == "spark" -%}{{ spark(v.geo) }}
 {%- elif v.kind == "forecast" -%}{{ forecast(v) }}
 {%- elif v.kind == "meter" -%}<span class="meter {{ v.tone }}"{% if v.tip %} data-tip="{{ v.tip }}" title="{{ v.tip }}"{% endif %}><i style="width: {{ v.pct|round(1) }}%"></i></span>
-{%- elif v.kind == "cols" -%}{{ cols(v) }}{% if v.note %}<span class="legend">{{ v.note }}</span>{% endif %}
-{%- elif v.kind == "dist" -%}{{ dist(v) }}{% if v.note %}<span class="legend">{{ v.note }}</span>{% endif %}
+{%- elif v.kind == "cols" -%}{{ cols(v) }}
+{%- elif v.kind == "dist" -%}{{ dist(v) }}
 {%- elif v.kind == "cum" -%}{{ cum_card(v) }}
 {%- elif v.kind == "bands" -%}{{ bands(v) }}
 {%- elif v.kind == "pair" -%}

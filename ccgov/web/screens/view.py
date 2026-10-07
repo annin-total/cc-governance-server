@@ -101,7 +101,7 @@ def sources(screen: Screen, long: bool = False) -> set:
             names |= text.fields(template)
         paths = [card.state] + ([card.viz.src, card.viz.den] if card.viz else [])
         names |= {p.split("[")[0] for p in paths if p}
-        names |= text.fields(words.get("note", "")) | text.fields(words.get("tip", ""))
+        names |= text.fields(words.get("foot", "")) | text.fields(words.get("tip", ""))
         names |= {n for t in words.get("legend", ()) for n in text.fields(t)}
     for tab in filter(None, (pick(t, long) for t in screen.tabs)):
         words = W.TAB[tab.words or tab.id]
@@ -132,6 +132,7 @@ def _card(card: Card, ctx: dict) -> dict:
         "state": (state, L.STATE[state]) if state else None,
         "wide": card.wide,
         "caps": [text.fill(c, ctx) for c in _caps(words, ctx)],
+        "foot": text.fill(words.get("foot", ""), ctx),
         "viz": _viz(card, words, ctx) if card.viz else None,
     }
 

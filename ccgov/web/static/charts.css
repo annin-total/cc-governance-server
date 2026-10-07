@@ -46,3 +46,4 @@
 .st-warn { background: var(--warn); }
 .st-ok { background: var(--ghost); }
 .rates.wide .rate.marked { grid-template-columns: 1fr 30% 5.5em 3.6em 4.5em; }
+.spark .bar-part { opacity: var(--partial-opacity); }

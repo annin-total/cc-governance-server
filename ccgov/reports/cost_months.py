@@ -62,5 +62,8 @@ def retention(months: list) -> dict:
         "rate": done and done["retention"],
         "lost": done and done["lost"],
         "month": done and done["day"],
-        "cols": [{"day": m["day"], "value": m["retention"]} for m in months[1:]],
+        "cols": [
+            {"day": m["day"], "value": m["retention"], "partial": m["partial"]}
+            for m in months[1:]
+        ],
     }
