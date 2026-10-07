@@ -47,7 +47,7 @@ def rows(users: dict, models: dict, days: Optional[int]) -> list:
     """利用者ごとのコストの表の行（コストの多い順）。`days` が None（月数の期間）なら前と比べず、状態も付けない。"""
     recent = sorted(
         ((e, u) for e, u in users.items() if u["days"]),
-        key=lambda p: (-p[1]["cost"], p[0]),
+        key=lambda p: (-p[1]["cost"], str(p[0])),
     )
     total = sum(u["cost"] for _, u in recent)
     result, cum = [], 0.0

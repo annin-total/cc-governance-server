@@ -74,7 +74,7 @@ def rows(users: dict, bases: tuple) -> list:
                 }
             )  # fmt: skip
     out.sort(
-        key=lambda r: (bases.index(r["basis"]), _RANK[r["state"]], -(r["amount"] or 0), -(r["prev_amount"] or 0), r["email"])
+        key=lambda r: (bases.index(r["basis"]), _RANK[r["state"]], -(r["amount"] or 0), -(r["prev_amount"] or 0), str(r["email"]))
     )  # fmt: skip
     return out
 

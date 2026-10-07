@@ -11,9 +11,9 @@ def applied(months: list, month: int) -> Optional[int]:
     return min(months, default=None)
 
 
-def person(people: dict, email: str) -> dict:
+def person(people: dict, email: Optional[str]) -> dict:
     """氏名・部・課と、名簿にいるか。名簿に無い人と氏名の無い人は、氏名をメールアドレスにする。"""
-    found = people.get(email.lower())
+    found = None if email is None else people.get(email.lower())
     if found is None:
         return {"name": email, "dept": None, "sec": None, "listed": False}
     return {

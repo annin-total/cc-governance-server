@@ -58,6 +58,15 @@ def test_person_without_name_shows_email():
     assert roster.person(_PEOPLE, "d@x")["listed"] is True
 
 
+def test_person_without_email_is_unlisted():
+    assert roster.person(_PEOPLE, None) == {
+        "name": None,
+        "dept": None,
+        "sec": None,
+        "listed": False,
+    }
+
+
 def test_named_adds_person_to_each_row():
     rows = roster.named(_PEOPLE, [{"email": "b@x", "cost": 1}, {"email": "z@x"}])
     assert rows[0] == {
