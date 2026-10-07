@@ -42,6 +42,11 @@ GROUP_LONG = {
 # 12 か月で出さないカードの注記（無ければ `labels.NOT_LONG_CARDS`）
 _SHORT = "・".join(n for n in PERIOD_NAMES.values() if n != LONG_NAME)
 GROUP_NOT_LONG = {"billed": "{names}は、" + _SHORT + "の期間で基準を判定するため " + LONG_NAME + "では出しません"}
+# 基準を超えた利用者: 基準と区分の名前、カードの 2 つの数字の下の行
+OVER_BASIS = {"day": "日次", "week": "週次", "month": "月次"}
+OVER_KIND = {"new": "新規", "kept": "継続", "left": "離脱"}
+OVER = {"prev": "前 {prev:num} 人（{diff:signed} 人）", "share": "コストの {share:pct}", "new": "新規 {new:num} 人",
+        "left": "離脱 {left:num} 人", "move": "注意→要確認 {up:num} · 要確認→注意 {down:num}"}
 _WEEKS_CAP = ("{cost[start]:ym}", "完了した週ごと")
 # カード: label・unit・sub（値の下の 1 行）・cap（グラフの下の注記）・row（rates の行の右端）
 CARD = {
@@ -136,6 +141,9 @@ CARD = {
                   "cap": ("前の期間の利用者のうち、今も使った割合",)},
     "retention_year": {"label": "継続率", "unit": "%", "sub": "{retention[month]:ym} · 前の月からの離脱 {retention[lost]:num} 人",
                        "cap": ("暦月ごと · 前の月の利用者のうち、その月も使った割合",)},
+    **{f"over_{b}": {"label": f"基準を超えた利用者（{n}）",
+                     "cap": (f"{n}の基準 注意 {{USER_COST_ELEVATED[{b}]:usd0}} · 要確認 {{USER_COST_HIGH[{b}]:usd0}}",)}
+       for b, n in OVER_BASIS.items()},
     "conc": {"label": "コストの集中", "sub": "利用者ごとのコストの偏り", "bands": ("コスト", "人数"),
              "band_legend": "{name} {people:num} 人 · コストの {cost_pct:pct}",
              "cap": ("期間の基準の状態ごとに、コストと人数の割合を上下にそろえる",)},
@@ -222,6 +230,12 @@ _USER_COST_NOTE = (
     "要確認は日次 {USER_COST_HIGH[day]:usd0}・週次 {USER_COST_HIGH[week]:usd0}・月次 {USER_COST_HIGH[month]:usd0} 以上です（仮の基準）。"
 )
 TAB.update({
+    "over_users": {"label": "基準を超えた利用者", "hint": "{over[rows]:count} 行 · 利用明細", "title": "基準を超えた利用者", "unit": "行",
+                   "scope": "利用明細 {cost[start]:md}〜{cost[end]:md} と前の {period[days]} 日 · 今か前の期間に注意以上だった利用者 × 基準",
+                   "search": "利用者で絞り込み",
+                   "note": "新規・離脱は注意以上への出入りで、新規は今の状態、離脱は前の状態で数えます。注意と要確認の間を移った人は継続です。"
+                           "金額は、日次は期間で最も多い 1 日（日付はその日）、週次・月次は期間の合計です。",
+                   "na": "12 か月では出しません。基準は 7 日・28 日の期間で判定します。"},
     "user_cost": {"label": "利用者ごとのコスト", "hint": "{billed[recent]:num} 人 · 利用明細", "title": "利用者ごとのコストと順位", "unit": "人",
                   "scope": "利用明細 {cost[start]:md}〜{cost[end]:md} と前の {period[days]} 日 · コストの多い順 · 割合と累積は期間のコストのうち",
                   "search": "利用者・モデルで絞り込み", "note": _USER_COST_NOTE},
@@ -258,6 +272,8 @@ COL = {
     "spend_share": "コストに占める割合", "cum_share": "累積", "cost_days": "日数", "per_day": "1 日あたり", "main_model": "主なモデル", "user_cache": "キャッシュ読み",
     "model": "モデル", "model_users": "利用者数", "cache": "キャッシュ読み込みの割合", "month": "月", "new_users": "使い始めた利用者",
     "bd": "営業日", "per_bd": "1 営業日あたり",
+    "basis": "基準", "over_prev": "前の状態", "over_now": "今の状態", "over_kind": "区分", "over_amount": "金額", "over_at": "日付",
+    "over_prev_amount": "前の金額",
 }
 COL_EACH_SUB = "{numerator:num} / {denominator:num} 人"
 MONTH_CHIPS = {"bd": "営業日", "cal": "暦日"}

@@ -3,7 +3,7 @@
 文言は `words.py` にあり、定義は id で引く。値の場所は `users[recent]` の形（`str.format` と同じ）で書く。
 カードとタブの `long` は 12 か月での扱い: None は出さない（カードは群の注記に名前を出し、タブは「出しません」）、
 `SAME` はそのまま出す、`Card`・`Tab` はそれに差し替える（見出しの違うカードに差し替えたら、元の名前も注記に出す）。
-タブの `only_long` は 12 か月にだけ出す（ほかの期間では並べない）。
+タブの `only_long` は 12 か月にだけ出す（ほかの期間では並べない）。カードの `days` は、その日数の期間にだけ出す（空なら日数の期間すべて）。
 """
 
 from dataclasses import dataclass
@@ -50,6 +50,7 @@ class Card:
     viz: Optional[Viz] = None
     long: Any = None
     words: str = ""
+    days: tuple = ()
 
 
 @dataclass(frozen=True)
@@ -81,7 +82,7 @@ class Chip:
 class Tab:
     """下段のタブ 1 つ。文言は `words.TAB[words or id]`（label・hint・title・scope・note・search・all・unit）。
 
-    `fold` は一覧を折りたたむ行の数（0 は畳まない）。
+    `fold` は一覧を折りたたむ行の数（0 は畳まない）。`chips_present` なら、決まった区分のうち行の無いものを出さない。
     """
 
     id: str
@@ -98,6 +99,7 @@ class Tab:
     fold: int = 0
     only_long: bool = False
     words: str = ""
+    chips_present: bool = False
 
 
 @dataclass(frozen=True)

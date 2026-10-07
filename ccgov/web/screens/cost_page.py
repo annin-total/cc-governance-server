@@ -3,8 +3,10 @@
 import dataclasses
 
 from ccgov.constants import TABLE_FOLD_ROWS
+from ccgov.metrics.spend import BASES
 from ccgov.web import labels as L
 from ccgov.web.screens import SAME, Card, Chip, Col, Screen, Tab, Viz
+from ccgov.web.screens import words as W
 from ccgov.web.screens.overview import COST_TAB, MONTH_TAB
 from ccgov.web.text import HIGHER_IS_BETTER as UP
 from ccgov.web.text import LOWER_IS_BETTER as DOWN
@@ -41,6 +43,8 @@ CARDS = (
     Card("billed_users", "billed", "user_cost", "{billed[recent]:num}", "{billed[change]:signed_pct}", state="billed[state]",
          better=UP, viz=_cols("billed[cols]"),
          long=Card("billed_users", "billed", "months", "{billed[recent]:num}", viz=_cols("billed[cols]"), words="billed_users_year")),
+    *(Card(f"over_{b}", "billed", "over_users", state=f"over[cards][{b}][state]", chip=b, days=(d,), viz=Viz("over", f"over[cards][{b}]"))
+      for d, bases in BASES.items() for b in bases),
     Card("new_users", "billed", "user_cost", "{new_users[count]:num}",
          long=Card("new_users", "billed", "months", "{new_users[count]:num}", viz=_cols("new_users[cols]"), words="new_users_year")),
     Card("retention", "billed", "user_cost", "{retention[rate]:dec1}", viz=Viz("meter", "retention[kept]", den="retention[prev]", tone="ok"),
@@ -69,6 +73,11 @@ TABS = (
         chips=tuple(Chip(k, L.STATE[k], k) for k in ("ng", "warn", "ok")),
         long=Tab("user_cost", "users", (*_USER_COLS, *_USER_TAIL), sort=("cost", "desc"), chips_by="model", search=_SEARCH,
                  fold=_FOLD, words="user_cost_year")),
+    Tab("over_users", "over[rows]", (
+        Col("basis", "term", terms=W.OVER_BASIS), Col("prev_state", "state", label="over_prev"), Col("state", "state", label="over_now"),
+        Col("kind", "term", label="over_kind", terms=W.OVER_KIND), Col("email", "user"), Col("amount", "usd_strong", label="over_amount"),
+        Col("at", "day", label="over_at"), Col("prev_amount", "usd_sub", label="over_prev_amount"),
+    ), chips_by="basis", chips=tuple(Chip(b, n) for b, n in W.OVER_BASIS.items()), chips_present=True, search="{email}", fold=_FOLD),
     dataclasses.replace(COST_TAB, fold=_FOLD, long=dataclasses.replace(COST_TAB.long, fold=_FOLD)),
     Tab("models", "models[rows]", (
         *_MODEL_HEAD, Col("share", "pct"), Col("prev", "usd_sub", label="prev_spend"), Col("diff", "usd_delta", label="spend_diff"),

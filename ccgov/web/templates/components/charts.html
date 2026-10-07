@@ -100,6 +100,14 @@
 <span class="legend">{% for state, text in v.legend %}<span><i class="st-{{ state }}"></i>{{ text }}</span>{% endfor %}</span>
 {%- endmacro %}
 
+{# 基準を超えた利用者: 要確認と注意の 2 つの数字と、その下の新規・離脱のチップ、注意⇄要確認の移動 #}
+{% macro over(v) -%}
+<span class="over">{% for c in v.cols %}<span class="over-col" data-state="{{ c.state }}"><span class="over-name">{{ c.name }}</span>
+<span class="over-num">{{ c.value }}<span class="u">{{ c.unit }}</span></span>{% for line in c.lines %}<span class="over-line">{{ line }}</span>{% endfor %}
+<span class="over-chips">{% for tone, text in c.chips %}<span class="change{{ ' ' ~ tone if tone }}">{{ text }}</span>{% endfor %}</span></span>{% endfor %}</span>
+<span class="over-move">{{ v.move }}</span>
+{%- endmacro %}
+
 {% macro viz(v) -%}
 {%- if v.kind == "spark" -%}{{ spark(v.geo) }}
 {%- elif v.kind == "forecast" -%}{{ forecast(v) }}
@@ -108,6 +116,7 @@
 {%- elif v.kind == "dist" -%}{{ dist(v) }}
 {%- elif v.kind == "cum" -%}{{ cum_card(v) }}
 {%- elif v.kind == "bands" -%}{{ bands(v) }}
+{%- elif v.kind == "over" -%}{{ over(v) }}
 {%- elif v.kind == "pair" -%}
 {%- for label, pct, tone in v.rows %}<span class="pair"><span>{{ label }}</span>{{ hbar(pct, tone) }}</span>{% endfor -%}
 {%- elif v.kind == "stack" -%}

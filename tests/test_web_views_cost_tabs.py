@@ -23,12 +23,19 @@ def _tabs(html: str) -> list:
 
 
 def test_tabs_of_7_days(cost_client):
-    assert _tabs(html_of(cost_client)) == ["user_cost", "cost", "models", "month"]
+    assert _tabs(html_of(cost_client)) == [
+        "user_cost",
+        "over_users",
+        "cost",
+        "models",
+        "month",
+    ]
 
 
 def test_tabs_of_12_months_add_months(cost_client):
     assert _tabs(html_of(cost_client, "?period=12m")) == [
         "user_cost",
+        "over_users",
         "weeks_cost",
         "models",
         "month",
