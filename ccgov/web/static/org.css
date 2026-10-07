@@ -13,7 +13,7 @@
 .org-line { display: grid; grid-template-columns: 2em minmax(0, 1fr); align-items: start; }
 .org-head { font-size: var(--fs-xs); color: var(--muted); padding-top: var(--sp-2xs); }
 .org-chips { display: flex; flex-wrap: wrap; gap: var(--sp-2xs) var(--sp-s); }
-.org-chips.secs { gap: var(--sp-2xs) var(--sp-m); }
+.org-secs { gap: var(--sp-2xs) var(--sp-m); }
 .org-chip { font: inherit; font-size: var(--fs-sm); padding: var(--sp-3xs) var(--sp-s); border: 1px solid var(--tone); border-radius: var(--r-m); background: var(--card); color: var(--ink-2); cursor: pointer; }
 .org-chip[data-sec] { border-color: var(--tone-2); }
 .org-chip[data-dept][aria-pressed="true"] { background: var(--tone); color: var(--on-ink); }

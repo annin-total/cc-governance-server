@@ -8,7 +8,7 @@
     {%- for d in o.depts %}<button type="button" class="org-chip {{ d.tone }}" data-dept="{{ d.key }}" aria-pressed="false">{{ d.label }}</button>{% endfor -%}
   </div></div>
   {%- if o.depts|selectattr("secs")|list %}
-  <div class="org-line"><span class="org-head">{{ L.ORG_FILTER.sec }}</span><div class="org-chips secs">
+  <div class="org-line"><span class="org-head">{{ L.ORG_FILTER.sec }}</span><div class="org-chips org-secs">
     {%- for d in o.depts %}{% for s in d.secs %}<button type="button" class="org-chip {{ d.tone }}" data-sec="{{ s.key }}" data-in="{{ d.key }}" aria-pressed="false">{{ s.label }}</button>{% endfor %}{% endfor -%}
   </div></div>
   {%- endif %}
