@@ -15,6 +15,7 @@ from ccgov.web.screens import (
     table,
     viz_activity,
     viz_cost,
+    viz_depts,
 )
 from ccgov.web.screens import words as W
 
@@ -33,6 +34,7 @@ CONSTANTS = {
         "EFFECT_PROVIDER",
         "FORECAST_MIN_BUSINESS_DAYS",
         "TOP_SPENDERS",
+        "TOP_SECTIONS",
         "USER_COST_ELEVATED",
         "USER_COST_HIGH",
     )
@@ -180,6 +182,8 @@ def _viz(card: Card, words: dict, ctx: dict) -> Optional[dict]:
     viz = card.viz
     if viz.kind in viz_cost.KINDS:
         return viz_cost.build(viz, words, ctx)
+    if viz.kind in viz_depts.KINDS:
+        return viz_depts.build(viz, words, ctx)
     if viz.kind in viz_activity.KINDS:
         return viz_activity.build(viz, words, ctx)
     src = text.lookup(ctx, viz.src)

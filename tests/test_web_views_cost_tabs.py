@@ -29,6 +29,7 @@ def test_tabs_of_7_days(cost_client):
         "cost",
         "models",
         "month",
+        "depts",
     ]
 
 
@@ -40,6 +41,7 @@ def test_tabs_of_12_months_add_months(cost_client):
         "models",
         "month",
         "months",
+        "depts",
     ]
 
 

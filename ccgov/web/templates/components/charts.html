@@ -100,6 +100,13 @@
 <span class="legend">{% for state, text in v.legend %}<span><i class="st-{{ state }}"></i>{{ text }}</span>{% endfor %}</span>
 {%- endmacro %}
 
+{# コストの多い課: 課ごとに人数の割合とコストの割合の 2 本の横棒。課の名前の前に部の色の印 #}
+{% macro secs(v) -%}
+<span class="secs"><span class="sec-row sec-head"><span></span>{% for h in v.heads %}<span>{{ h }}</span>{% endfor %}</span>
+{%- for r in v.rows %}<span class="sec-row"><span class="sec-name"><i class="{{ r.tone }}"></i>{{ r.name }}</span>
+{%- for b in r.bars %}<span class="sec-bar" data-tip="{{ b.tip }}" title="{{ b.tip }}">{{ hbar(b.pct, b.tone) }}<span class="num">{{ b.text }}</span></span>{% endfor %}</span>{% endfor %}</span>
+{%- endmacro %}
+
 {# 基準を超えた利用者: 要確認と注意の 2 つの数字と、その下の新規・離脱のチップ、注意⇄要確認の移動 #}
 {% macro over(v) -%}
 <span class="over">{% for c in v.cols %}<span class="over-col" data-state="{{ c.state }}"><span class="over-name">{{ c.name }}</span>
@@ -117,6 +124,7 @@
 {%- elif v.kind == "cum" -%}{{ cum_card(v) }}
 {%- elif v.kind == "bands" -%}{{ bands(v) }}
 {%- elif v.kind == "over" -%}{{ over(v) }}
+{%- elif v.kind == "secs" -%}{{ secs(v) }}
 {%- elif v.kind == "pair" -%}
 {%- for label, pct, tone, tip in v.rows %}<span class="pair" data-tip="{{ tip }}" title="{{ tip }}"><span>{{ label }}</span>{{ hbar(pct, tone) }}</span>{% endfor -%}
 {%- elif v.kind == "stack" -%}

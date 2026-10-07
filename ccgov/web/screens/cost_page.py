@@ -51,6 +51,7 @@ CARDS = (
          long=Card("retention", "billed", "months", "{retention[rate]:dec1}", viz=_cols("retention[cols]", "dec1"),
                    words="retention_year")),
     Card("conc", "billed", "user_cost", wide=True, viz=Viz("bands", "conc[bands]")),
+    Card("conc_depts", "billed", "depts", wide=True, viz=Viz("secs", "depts[top]"), long=SAME),
 )
 
 _USER_COLS = (
@@ -63,6 +64,11 @@ _USER_TAIL = (
 )
 _MODEL_HEAD = (Col("model", "text"), Col("cost", "usd_strong", label="spend"), Col("cost", "bar", label="bar", sort=None))
 _MODEL_TAIL = (Col("users", "num", label="model_users", unit="person"), Col("cache", "pct"))
+_DEPT_HEAD = (
+    Col("dept", "unit", label="dept_unit", sort=None), Col("users", "num", unit="person", sort=None),
+    Col("cost", "usd_strong", label="spend", sort=None),
+)
+_DEPT_TAIL = (Col("share", "pct", label="spend_share", sort=None), Col("per_user_bd", "usd", sort=None))
 _SEARCH = USER_SEARCH + " {model}"
 _STATES = ("ng", "warn", "ok")
 
@@ -92,6 +98,10 @@ TABS = (
         Col("day", "month", label="month"), Col("cost", "usd_strong", label="spend"), Col("cost", "bar", label="bar", sort=None),
         Col("users", "num", unit="person"), Col("new", "num", label="new_users", unit="person"), Col("bd", "num"), Col("per_bd", "usd"),
     ), sort=("day", "asc"), fold=_FOLD, only_long=True, long=SAME),
+    Tab("depts", "depts[rows]", (
+        *_DEPT_HEAD, Col("diff", "usd_delta", label="spend_diff", sort=None), Col("rate", "pct_delta", label="spend_rate", sort=None),
+        *_DEPT_TAIL, Col("over", "num", label="dept_over", unit="person", sort=None),
+    ), org=True, long=Tab("depts", "depts[rows]", (*_DEPT_HEAD, *_DEPT_TAIL), org=True, words="depts_year")),
 )
 # fmt: on
 

@@ -12,7 +12,7 @@ from ccgov.constants import (
     USERS_DROP_HIGH,
 )
 from ccgov.metrics import business_days as bd
-from ccgov.metrics import over, rates, series, spend, states
+from ccgov.metrics import depts, over, rates, series, spend, states
 from ccgov.metrics import roster as names
 from ccgov.metrics.windows import Period
 from ccgov.reports import cost, cost_months, cost_users, month, roster
@@ -119,6 +119,7 @@ def _days(conn, w: Period, spent: dict) -> dict:
             "rate": rates.rate(kept, len(prev_users)), "kept": kept, "prev": len(prev_users), "lost": len(prev_users) - kept,
         },
         "conc": cost_users.concentration(user_rows),
+        "depts": depts.build(users, people, w.days, days),
         "over": _named_over(over.build(found, w.start, w.days), people),
         "users": user_rows,
     }  # fmt: skip
@@ -157,6 +158,7 @@ def _months(conn, w: Period, spent: dict) -> dict:
         "billed": {"recent": len(user_rows), "cols": _month_cols(months, "users")},
         "new_users": {"count": len(firsts), "cols": _month_cols(months, "new")},
         "retention": cost_months.retention(months),
+        "depts": depts.build(users, people, None, days),
         "users": user_rows,
         "months": months,
     }  # fmt: skip

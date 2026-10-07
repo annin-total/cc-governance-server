@@ -40,6 +40,7 @@
 {%- elif k == "measure_sub" -%}<span class="sub">{{ measure(v, row) }}</span>
 {%- elif k == "last_day" -%}{{ last_day(v, row) }}
 {%- elif k == "user" -%}{{ user(row) }}
+{%- elif k == "unit" -%}{% if row.level == "sec" %}<span class="unit-sec">{{ row.sec or "—" }}</span>{% elif row.level == "dept" %}{{ row.dept or "—" }}{% else %}{{ L.UNLISTED }}{% endif %}
 {%- elif k == "dot" -%}{{ dot(v) }}
 {%- elif k == "bar" -%}{{ hbar(v) }}
 {%- elif k == "state" -%}{% if v %}{{ mark(v, L.STATE[v]) }}{% else %}{{ sub("—") }}{% endif %}

@@ -46,6 +46,8 @@ TABLE_FOLD_ROWS = 10
 CALL_TOP = 3
 # コストの多い利用者のカードに並べる人数
 TOP_SPENDERS = 5
+# コストの多い課のカードに並べる課の数（名簿に無い利用者は並べない）
+TOP_SECTIONS = 5
 
 # コンテキストトークン数の分布のビン幅
 CONTEXT_BIN = 20000

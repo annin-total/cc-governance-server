@@ -25,3 +25,12 @@
 tr.lv-dept td { background: var(--track); }
 tr.lv-dept .c-unit { font-weight: 700; }
 .unit-sec { padding-left: var(--sp-l); }
+
+/* コストの多い課: 課の名前（前に部の色の印）・人数の割合の棒・コストの割合の棒 */
+.secs { display: grid; gap: var(--sp-3xs); }
+.sec-row { display: grid; grid-template-columns: minmax(0, 1fr) 37% 37%; align-items: center; gap: var(--sp-m); font-size: var(--fs-sm); color: var(--ink-2); line-height: 1.55; }
+.sec-head { font-size: var(--fs-xs); color: var(--muted); }
+.sec-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sec-name i { display: inline-block; width: var(--hbar-h); height: var(--hbar-h); margin-right: var(--sp-xs); border-radius: var(--r-xs); background: var(--tone); }
+.sec-bar { display: grid; grid-template-columns: minmax(0, 1fr) 3.6em; align-items: center; gap: var(--sp-s); }
+.sec-bar .num { text-align: right; font-variant-numeric: tabular-nums; color: var(--muted); }
