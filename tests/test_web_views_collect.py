@@ -12,6 +12,7 @@ from known_data import TODAY, insert_cost_daily, insert_event
 
 from ccgov.constants import CSV_STALE_DAYS
 from ccgov.store import db
+from ccgov.web.screens import collect as collect_screen
 
 _SILENT = "記録が途絶えた利用者"
 _ERRORS = "プラグインのエラー"
@@ -137,6 +138,7 @@ def test_errors_count_people_not_terminals(known_db, today_client):
     """同じ利用者の 2 台は 1 人。カードは件数で、利用者数を添える。1 件から注意。"""
     assert _WARN not in card(_html(today_client), _ERRORS)
     _insert_error(known_db, "x1", "u1", "h1", "send")
+    assert _WARN in card(_html(today_client), _ERRORS)
     _insert_error(known_db, "x2", "u1", "h1b", "send")
     html = _html(today_client)
     assert [r["cells"] for r in table_rows(html, "errors")] == [
@@ -197,3 +199,9 @@ def test_error_table_lists_stage_and_error_type(known_db, today_client):
     ]
     assert card_value(html, _ERRORS) == "3"
     assert _WARN in card(html, _ERRORS)
+
+
+def test_went_silent_has_no_state_badge():
+    """途絶えた利用者は異動・休暇でも出るため、状態の判定を持たない（増減のチップだけで見る）。"""
+    [silent] = [c for c in collect_screen.CARDS if c.id == "went_silent"]
+    assert silent.state == ""
