@@ -6,6 +6,7 @@
 from ccgov.constants import ERROR_COUNT_ELEVATED, RECENT_DAYS
 from ccgov.metrics import asof_calendar, delivery, health, rates, series, states
 from ccgov.metrics.windows import recent_window
+from ccgov.reports import roster
 from ccgov.store import queries_cost, queries_delivery, queries_errors, queries_events
 
 
@@ -117,7 +118,7 @@ def build(conn, today: int) -> dict:
             "users": recent["terminals"],
         },
         "silent": found["silent"],
-        "delivery": found["rows"],
+        "delivery": roster.named(conn, found["rows"], today),
         "reconciliation": reconciliation,
         "errors": errors(conn, today),
         "nulls": _nulls(recent["null_rates"]),

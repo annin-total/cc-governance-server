@@ -151,16 +151,16 @@ _USER_COST_NOTE = (
 TAB.update({
     "over_users": {"label": "基準を超えた利用者", "hint": "{over[rows]:count} 行 · 利用明細", "title": "基準を超えた利用者", "unit": "行",
                    "scope": "利用明細 {cost[start]:md}〜{cost[end]:md} と前の {period[days]} 日 · 今か前の期間に注意以上だった利用者 × 基準",
-                   "search": "利用者で絞り込み",
+                   "search": "氏名・メールで絞り込み",
                    "note": "新規・離脱は注意以上への出入りで、新規は今の状態、離脱は前の状態で数えます。注意と要確認の間を移った人は継続です。"
                            "金額は、日次は期間で最も多い 1 日（日付はその日）、週次・月次は期間の合計です。",
                    "na": "12 か月では出しません。基準は 7 日・28 日の期間で判定します。"},
     "user_cost": {"label": "利用者ごとのコスト", "hint": "{billed[recent]:num} 人 · 利用明細", "title": "利用者ごとのコストと順位", "unit": "人",
                   "scope": "利用明細 {cost[start]:md}〜{cost[end]:md} と前の {period[days]} 日 · コストの多い順 · 割合と累積は期間のコストのうち",
-                  "search": "利用者・モデルで絞り込み", "note": _USER_COST_NOTE},
+                  "search": "氏名・メール・モデルで絞り込み", "note": _USER_COST_NOTE},
     "user_cost_year": {"label": "利用者ごとのコスト", "hint": "{billed[recent]:num} 人 · 利用明細", "title": "利用者ごとのコストと順位",
                        "unit": "人", "scope": "利用明細 {cost[start]:day}〜{cost[end]:day} · コストの多い順 · 割合と累積は期間のコストのうち",
-                       "search": "利用者・モデルで絞り込み"},
+                       "search": "氏名・メール・モデルで絞り込み"},
     "models": {"label": "モデル", "hint": "{models[rows]:count} 種類 · 利用明細", "title": "モデルごとのコスト", "unit": "行",
                "scope": "利用明細 {cost[start]:md}〜{cost[end]:md} と前の {period[days]} 日 · 割合は期間のコストのうち · "
                         "キャッシュ読み込みの割合はそのモデルのトークンのうち"},
@@ -175,7 +175,7 @@ COL = {
     "day": "日付", "period": "期間", "users": "利用者数", "sessions": "セッション数", "sessions_bar": "セッション数の比較",
     "total": "合計", "bar": "", "field": "区分", "value": "値", "count": "件数", "share": "割合", "group": "区分",
     "item": "項目", "diff": "差", "state": "状態", "stage": "処理段階",
-    "error_type": "エラーの種類", "version": "最後に起きたバージョン", "status": "状態", "email": "利用者",
+    "error_type": "エラーの種類", "version": "最後に起きたバージョン", "status": "状態", "user": "利用者 · 部署",
     "last_day": "最終報告日", "setting": "設定", "ratio": "適用済み / 対象", "rate": "適用率",
     "kind": "種類", "versions": "バージョン",
     "week": "週の始まり", "month_day": "日付", "n": "営業日", "cost": "その日のコスト", "cum": "今月の累積",

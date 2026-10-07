@@ -22,7 +22,7 @@ CARD = {
 TAB = {
     "policy_users": {"label": "利用者ごとの適用状況", "hint": "{denominator:num} 人", "title": "利用者ごとの適用状況", "unit": "人",
                      "scope": "対象 {denominator:num} 人 · 本体とプラグインのバージョンと最終報告日は、利用者ごとに最も古い・最も遅れたもの",
-                     "search": "利用者で絞り込み",
+                     "search": "氏名・メールで絞り込み",
                      "note": "端末が複数ある利用者は、1 台でも違う値の端末があれば未適用と数えます。"
                              "古いバージョンは、本体かプラグインが直近 {POLICY_DAYS} 日に報告された最新のバージョンでない人です。{basis:basis_note}"},
     "policy_settings": {"label": "設定ごと", "hint": "{counts[items]:num} 設定", "title": "設定ごとの適用率", "unit": "行",

@@ -45,3 +45,8 @@ def people(conn, end: int) -> dict:
         email: dict(zip(keys, values))
         for email, values in queries_roster.people(conn, month).items()
     }
+
+
+def named(conn, rows: list, end: int) -> list:
+    """利用者の行に、`end` の月に使う名簿の氏名・部・課を足す。"""
+    return roster.named(people(conn, end), rows)

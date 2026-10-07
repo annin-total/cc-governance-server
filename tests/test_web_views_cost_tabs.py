@@ -46,15 +46,15 @@ def test_tabs_of_12_months_add_months(cost_client):
 def test_user_cost_rows(cost_client):
     html = html_of(cost_client)
     assert _head(html, "user_cost") == [
-        "状態", "順位", "利用者", "コスト", "前の期間", "前との差", "増減率",
+        "状態", "順位", "利用者 · 部署", "コスト", "前の期間", "前との差", "増減率",
         "コストに占める割合", "累積", "日数", "1 日あたり", "主なモデル", "キャッシュ読み",
     ]  # fmt: skip
     rows = table_rows(html, "user_cost")
     assert [r["cells"] for r in rows] == [
-        ["要確認", "1", "a@example.com", "$120.00", "$20.00", "+$100.00", "+500.0%", "54.5%", "54.5%", "1 日", "$120.00", "opus", "60.0%"],
-        ["注意", "2", "b@example.com", "$80.00", "—", "+$80.00", "—", "36.4%", "90.9%", "2 日", "$40.00", "sonnet", "—"],
-        ["正常", "3", "c@example.com", "$15.00", "$10.00", "+$5.00", "+50.0%", "6.8%", "97.7%", "2 日", "$7.50", "sonnet", "—"],
-        ["正常", "4", "e@example.com", "$5.00", "—", "+$5.00", "—", "2.3%", "100.0%", "1 日", "$5.00", "haiku", "—"],
+        ["要確認", "1", "a@example.com 不明", "$120.00", "$20.00", "+$100.00", "+500.0%", "54.5%", "54.5%", "1 日", "$120.00", "opus", "60.0%"],
+        ["注意", "2", "b@example.com 不明", "$80.00", "—", "+$80.00", "—", "36.4%", "90.9%", "2 日", "$40.00", "sonnet", "—"],
+        ["正常", "3", "c@example.com 不明", "$15.00", "$10.00", "+$5.00", "+50.0%", "6.8%", "97.7%", "2 日", "$7.50", "sonnet", "—"],
+        ["正常", "4", "e@example.com 不明", "$5.00", "—", "+$5.00", "—", "2.3%", "100.0%", "1 日", "$5.00", "haiku", "—"],
     ]  # fmt: skip
     assert [r["tags"] for r in rows] == [["ng"], ["warn"], ["ok"], ["ok"]]
 
@@ -62,11 +62,11 @@ def test_user_cost_rows(cost_client):
 def test_user_cost_of_12_months_drops_state_and_comparison(cost_client):
     html = html_of(cost_client, "?period=12m")
     assert _head(html, "user_cost") == [
-        "順位", "利用者", "コスト", "コストに占める割合", "累積", "日数", "1 日あたり", "主なモデル", "キャッシュ読み",
+        "順位", "利用者 · 部署", "コスト", "コストに占める割合", "累積", "日数", "1 日あたり", "主なモデル", "キャッシュ読み",
     ]  # fmt: skip
     rows = table_rows(html, "user_cost")
     assert [r["cells"][1] for r in rows] == [
-        "a@example.com", "b@example.com", "d@example.com", "c@example.com", "e@example.com",
+        "a@example.com 不明", "b@example.com 不明", "d@example.com 不明", "c@example.com 不明", "e@example.com 不明",
     ]  # fmt: skip
     assert rows[0]["cells"][2:4] == ["$140.00", "43.8%"]
     assert [r["cells"][-1] for r in rows] == ["60.0%", "—", "—", "—", "—"]

@@ -75,8 +75,8 @@ def rows(users: dict, models: dict, days: Optional[int]) -> list:
 
 
 def top(user_rows: list) -> list:
-    """コストの多い利用者（カードの行）。"""
-    return [{**r, "key": r["email"]} for r in user_rows[:TOP_SPENDERS]]
+    """コストの多い利用者（カードの行。名前は氏名）。"""
+    return [{**r, "key": r["name"]} for r in user_rows[:TOP_SPENDERS]]
 
 
 def concentration(user_rows: list) -> dict:

@@ -157,13 +157,13 @@ def test_tab_rows_and_columns(over_client):
     html = html_of(over_client)
     head = table_body(html, "over_users").split("</thead>")[0]
     names = [_text(th) for th in re.findall(r"<th\b[^>]*>(.*?)</th>", head, re.DOTALL)]
-    assert names[:5] == ["基準", "前の状態", "今の状態", "区分", "利用者"]
+    assert names[:5] == ["基準", "前の状態", "今の状態", "区分", "利用者 · 部署"]
     rows = table_rows(html, "over_users")
     assert len(rows) == 14
     first = rows[0]["cells"]
-    assert first[:5] == ["日次", "要確認", "要確認", "継続", "u7@example.com"]
+    assert first[:5] == ["日次", "要確認", "要確認", "継続", "u7@example.com 不明"]
     assert "$200.00" in first and "2024-10-07" in first
-    gone = next(r["cells"] for r in rows if r["cells"][4] == "u6@example.com")
+    gone = next(r["cells"] for r in rows if r["cells"][4] == "u6@example.com 不明")
     assert gone[1:4] == ["注意", "正常", "離脱"]
 
 

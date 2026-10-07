@@ -49,6 +49,8 @@ FILTER_GROUP = "区分"
 FOLD_MORE = "さらに表示（残り {} 件）"
 FOLD_CLOSE = "閉じる"
 STATE = {"ok": "正常", "warn": "注意", "ng": "要確認", "neutral": "—"}
+# 名簿に無い利用者の部署
+UNLISTED = "不明"
 WEEKDAYS = "月火水木金土日"
 RECENT = "直近 {period[days]} 日"
 PREV = "前の {period[days]} 日"

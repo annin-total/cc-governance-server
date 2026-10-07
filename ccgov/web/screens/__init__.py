@@ -10,6 +10,8 @@ from dataclasses import dataclass
 from typing import Any, Optional
 
 SAME = "same"
+# 利用者の並ぶタブの文字入力は、氏名とメールアドレスのどちらでも当たる
+USER_SEARCH = "{name} {email}"
 
 
 @dataclass(frozen=True)

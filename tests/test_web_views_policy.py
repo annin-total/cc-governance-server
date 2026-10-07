@@ -33,7 +33,7 @@ def _html(client, query: str = "") -> str:
 
 def _users(html: str) -> dict:
     """利用者ごとの表を、利用者 -> 行にする。最後の 3 列は本体・プラグインのバージョンと最終報告日。"""
-    return {r["cells"][1]: r for r in table_rows(html, "policy_users")}
+    return {r["cells"][1].split()[0]: r for r in table_rows(html, "policy_users")}
 
 
 def _settings(html: str) -> dict:
@@ -163,7 +163,7 @@ def test_not_introduced_user_row(today_client):
     """未導入の区分の行は 1 行（u4）で、カードの人数と一致する。"""
     html = _html(today_client)
     rows = [r for r in table_rows(html, "policy_users") if r["tags"] == ["none"]]
-    assert [r["cells"][1] for r in rows] == ["u4"]
+    assert [r["cells"][1] for r in rows] == ["u4 不明"]
     assert card_value(html, "プラグイン未導入") == "1"
 
 

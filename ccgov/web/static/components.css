@@ -171,7 +171,9 @@ th[aria-sort="descending"] .arrow::after { content: "↓"; opacity: 1; }
 .sub { color: var(--muted); }
 .sub.key { display: block; font-size: var(--fs-xs); }
 .code { font-family: var(--mono); font-size: var(--fs-sm); }
-.u-id { font-weight: 600; }
+.who { display: flex; flex-direction: column; }
+.who b { font-weight: 600; }
+.who .sub { font-size: var(--fs-xs); }
 .empty { color: var(--muted); font-size: var(--fs-label); padding: var(--sp-l) 0; margin: 0; }
 .empty[hidden] { display: none; }
 [data-folded] { display: none; }

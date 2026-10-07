@@ -5,7 +5,7 @@ import dataclasses
 from ccgov.constants import TABLE_FOLD_ROWS
 from ccgov.metrics.spend import BASES
 from ccgov.web import labels as L
-from ccgov.web.screens import SAME, Card, Chip, Col, Screen, Tab, Viz
+from ccgov.web.screens import SAME, USER_SEARCH, Card, Chip, Col, Screen, Tab, Viz
 from ccgov.web.screens import words as W
 from ccgov.web.screens.overview import COST_TAB, MONTH_TAB
 from ccgov.web.text import HIGHER_IS_BETTER as UP
@@ -54,7 +54,7 @@ CARDS = (
 )
 
 _USER_COLS = (
-    Col("rank", "num"), Col("email", "user"), Col("cost", "usd_strong", label="spend"),
+    Col("rank", "num"), Col("name", "user", label="user"), Col("cost", "usd_strong", label="spend"),
 )
 _USER_TAIL = (
     Col("share", "pct", label="spend_share"), Col("cum", "pct", label="cum_share", sort=None),
@@ -63,7 +63,7 @@ _USER_TAIL = (
 )
 _MODEL_HEAD = (Col("model", "text"), Col("cost", "usd_strong", label="spend"), Col("cost", "bar", label="bar", sort=None))
 _MODEL_TAIL = (Col("users", "num", label="model_users", unit="person"), Col("cache", "pct"))
-_SEARCH = "{email} {model}"
+_SEARCH = USER_SEARCH + " {model}"
 
 TABS = (
     Tab("user_cost", "users", (
@@ -75,9 +75,9 @@ TABS = (
                  fold=_FOLD, words="user_cost_year")),
     Tab("over_users", "over[rows]", (
         Col("basis", "term", terms=W.OVER_BASIS), Col("prev_state", "state", label="over_prev"), Col("state", "state", label="over_now"),
-        Col("kind", "term", label="over_kind", terms=W.OVER_KIND), Col("email", "user"), Col("amount", "usd_strong", label="over_amount"),
+        Col("kind", "term", label="over_kind", terms=W.OVER_KIND), Col("name", "user", label="user"), Col("amount", "usd_strong", label="over_amount"),
         Col("at", "day", label="over_at"), Col("prev_amount", "usd_sub", label="over_prev_amount"),
-    ), chips_by="basis", chips=tuple(Chip(b, n) for b, n in W.OVER_BASIS.items()), chips_present=True, search="{email}", fold=_FOLD),
+    ), chips_by="basis", chips=tuple(Chip(b, n) for b, n in W.OVER_BASIS.items()), chips_present=True, search=USER_SEARCH, fold=_FOLD),
     dataclasses.replace(COST_TAB, fold=_FOLD, long=dataclasses.replace(COST_TAB.long, fold=_FOLD)),
     Tab("models", "models[rows]", (
         *_MODEL_HEAD, Col("share", "pct"), Col("prev", "usd_sub", label="prev_spend"), Col("diff", "usd_delta", label="spend_diff"),
