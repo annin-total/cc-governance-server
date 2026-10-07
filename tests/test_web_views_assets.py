@@ -58,7 +58,7 @@ def test_null_command_source_is_not_shown_as_none(known_db, today_client):
         (
             "ev-null-src",
             1,
-            TODAY,
+            TODAY - 1,
             "u1",
             "h1",
             "UserPromptExpansion",

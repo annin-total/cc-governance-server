@@ -10,7 +10,7 @@ from ccgov.web.labels import HOLIDAY, IMPORT, PREV, RECENT, SETTING, STALE_NOTE
 # 群: id -> (見出し, 期間と母集団)
 GROUP = {
     "use": ("利用", "直近 {period[days]} 日と、その前の {period[days]} 日"),
-    "data": ("データの届き具合", "直近 {period[days]} 日と、その前の {period[days]} 日（照合率は利用明細の最終日までの {period[days]} 日）"),
+    "data": ("データの届き具合", "直近 {period[days]} 日と、その前の {period[days]} 日"),
     "who": ("利用者", "直近 {POLICY_DAYS} 日 · 対象は{basis:basis} {denominator:num} 人"),
     "set": ("設定と更新", "直近 {POLICY_DAYS} 日 · 端末ごとに最新の報告 1 件"),
     "work": ("設定は働いているか", "{REFERENCE_KEY:setting}を {REFERENCE_VALUE} にした前後 {EVENT_STUDY_SPAN} 日 · 前後の境は各利用者が守り始めた日"),

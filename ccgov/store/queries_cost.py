@@ -5,15 +5,17 @@ from typing import Optional
 from ccgov.store import db
 
 
-def cost_window_end(conn, today: int) -> Optional[int]:
-    """`cost_daily` を数える集計期間の終了日。`today` と CSV の最終日の早いほう（空なら None）。
-
-    CSV は 1〜2 週ごとに取り込むため、今日で終えると CSV の無い日が集計期間に入り、コストの記録がある日が減る。
-    """
+def day_range(conn) -> tuple:
+    """`cost_daily` の最初と最後の `day`（空なら `(None, None)`）。"""
     cur = conn.cursor()
-    cur.execute(db.q("SELECT MAX(day) FROM cost_daily"))
-    (last_day,) = cur.fetchone()
-    return None if last_day is None else min(today, last_day)
+    cur.execute(db.q("SELECT MIN(day), MAX(day) FROM cost_daily"))
+    return tuple(cur.fetchone())
+
+
+def cost_window_end(conn, end: int) -> Optional[int]:
+    """`cost_daily` を数える集計期間の終了日。`end` と CSV の最終日の早いほう（空なら None）。"""
+    _, last_day = day_range(conn)
+    return None if last_day is None else min(end, last_day)
 
 
 def daily_cost(conn, start: Optional[int] = None, end: Optional[int] = None) -> list:

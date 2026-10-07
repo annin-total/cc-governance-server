@@ -243,6 +243,8 @@ def seed_known_data(conn) -> None:
 
 
 # `/effect` 専用。(event_id, day, user_email, prev_value) と (day, user_email, provider, cost)
+# EFFECT_END は利用明細の最終日で、画面が既定で使う期間の終わり
+EFFECT_END = 20021
 _EFFECT_POLICY_ROWS = (
     ("q1", 20010, "u1", "60"),
     ("q2", 20012, "u1", "60"),

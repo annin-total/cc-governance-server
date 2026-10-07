@@ -1,4 +1,4 @@
 {% set here = "admin.index" %}
 {% extends "screen.html" %}
-{% from "components/period.html" import switcher %}
-{% block head_actions %}<div class="head-act">{{ switcher(period, "admin.index") }}</div>{% endblock %}
+{% from "components/period.html" import switcher, span as period_span %}
+{% block head_actions %}<div class="head-act">{{ switcher(period, "admin.index", keep_asof) }}{{ period_span(span) }}</div>{% endblock %}

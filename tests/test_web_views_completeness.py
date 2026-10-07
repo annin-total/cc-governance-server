@@ -90,7 +90,7 @@ def test_import_results_is_referenced_by_settings(today_app):
         ("overview", (windows.period("28", TODAY),), False),
         ("overview", (windows.period("12m", TODAY),), True),
         ("policy", (TODAY,), False),
-        ("effect", (), False),
+        ("effect", (TODAY,), False),
         ("assets", (windows.period("7", TODAY),), False),
         ("assets", (windows.period("12m", TODAY),), True),
     ],

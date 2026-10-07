@@ -176,7 +176,7 @@ DAYS_AGO = "{} 日前"
 LATEST = "最新"
 VERSION_KIND = {"plugin": "プラグイン", "core": "Claude Code 本体"}
 BASIS = {
-    "csv": f"利用明細（CSV）の最終日までの {POLICY_DAYS} 日にコストがある",
+    "csv": f"今日までの {POLICY_DAYS} 日に利用明細（CSV）でコストがある",
     "policy": f"直近 {POLICY_DAYS} 日に設定の報告があった",
 }
 BASIS_NOTE = {

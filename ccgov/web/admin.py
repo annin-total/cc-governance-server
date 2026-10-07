@@ -1,17 +1,19 @@
 """管理画面の Blueprint。Basic 認証・CSRF の検証・取込の大きさの上限と、4 画面（概況・policy・effect・assets）・データと設定を持つ。"""
 
+import datetime
 import hmac
+import re
 import time
-from typing import Callable
+from typing import Callable, Optional
 
-from flask import Blueprint, Response, current_app, render_template, request
+from flask import Blueprint, Response, current_app, g, render_template, request
 
 from ccgov.constants import CSV_UPLOAD_MAX_BYTES
 from ccgov.metrics import windows
-from ccgov.reports import assets, effect, overview, policy
+from ccgov.reports import assets, effect, overview, period_end, policy
 from ccgov.store import db
 from ccgov.vendor import contract
-from ccgov.web import csrf, csv_files, export, labels, settings
+from ccgov.web import csrf, csv_files, export, filters, labels, settings
 from ccgov.web.screens import assets as assets_screen
 from ccgov.web.screens import effect as effect_screen
 from ccgov.web.screens import overview as overview_screen
@@ -22,6 +24,9 @@ from ccgov.web.screens import view
 admin = Blueprint("admin", __name__, static_folder="static")
 # 期間を切り替える画面。ナビのリンクに選んだ期間を引き継ぐ
 PERIOD_SCREENS = ("admin.index", "admin.assets_view")
+# `date.fromisoformat` は 3.11 から `20241001` なども受けるため、受け取る形はここで決める
+_ASOF_FORMAT = re.compile(r"[0-9]{4}-[0-9]{2}-[0-9]{2}")
+_EPOCH = datetime.date(1970, 1, 1)
 
 
 def _build(build: Callable, *args) -> dict:
@@ -56,9 +61,32 @@ def _require_admin_password():
     return None
 
 
+def _asof_arg() -> Optional[int]:
+    """`?asof=YYYY-MM-DD` の epoch 日。日付の形でなければ None。"""
+    raw = request.args.get("asof", "")
+    if not _ASOF_FORMAT.fullmatch(raw):
+        return None
+    try:
+        return (datetime.date.fromisoformat(raw) - _EPOCH).days
+    except ValueError:
+        return None
+
+
+def _basis() -> dict:
+    """今日・選んだ基準日（範囲の外なら None）・期間のページの終わり。1 リクエストで 1 回だけ数える。"""
+    if "basis" not in g:
+        today = _today()
+        first, last = _build(period_end.bounds, today)
+        asof = windows.pick(_asof_arg(), first, last)
+        g.basis = {"today": today, "asof": asof, "end": last if asof is None else asof}
+    return g.basis
+
+
 @admin.context_processor
-def _asof() -> dict:
-    return {"asof": _today()}
+def _keep_asof() -> dict:
+    """リンクに引き継ぐ基準日。検証済みの日を書き直して付ける（受け取った文字列を URL に戻さない）。"""
+    asof = _basis()["asof"]
+    return {"keep_asof": {} if asof is None else {"asof": filters.day(asof)}}
 
 
 def _period_key() -> str:
@@ -67,15 +95,16 @@ def _period_key() -> str:
     return key if key in windows.KEYS else windows.DEFAULT
 
 
-def _overview_view(key: str) -> dict:
-    period = windows.period(key, _today())
-    return view.build(overview_screen.SCREEN, _build(overview.build, period))
+def _period() -> windows.Period:
+    """`?period=` の期間を、期間のページの終わりで切ったもの。"""
+    return windows.period(_period_key(), _basis()["end"])
 
 
 @admin.route("/", strict_slashes=False)
 def index() -> str:
-    key = _period_key()
-    return render_template("overview.html", view=_overview_view(key), period=key)
+    period = _period()
+    screen = view.build(overview_screen.SCREEN, _build(overview.build, period))
+    return render_template("overview.html", view=screen, period=period.key, span=period)
 
 
 def _today() -> int:
@@ -84,23 +113,25 @@ def _today() -> int:
 
 @admin.route("/policy")
 def policy_view() -> str:
-    data = _build(policy.build, _today())
-    return render_template("policy.html", view=view.build(policy_screen.SCREEN, data))
+    today = _basis()["today"]
+    data = _build(policy.build, today)
+    screen = view.build(policy_screen.SCREEN, data)
+    return render_template("policy.html", view=screen, at=today)
 
 
 @admin.route("/effect")
 def effect_view() -> str:
-    """相対日は準拠開始日が基準のため、基準日（`_today()`）を使わない。"""
-    data = _build(effect.build)
-    return render_template("effect.html", view=view.build(effect_screen.SCREEN, data))
+    end = _basis()["end"]
+    data = _build(effect.build, end)
+    screen = view.build(effect_screen.SCREEN, data)
+    return render_template("effect.html", view=screen, at=end)
 
 
 @admin.route("/assets")
 def assets_view() -> str:
-    key = _period_key()
-    data = _build(assets.build, windows.period(key, _today()))
-    screen = view.build(assets_screen.SCREEN, data)
-    return render_template("assets.html", view=screen, period=key)
+    period = _period()
+    screen = view.build(assets_screen.SCREEN, _build(assets.build, period))
+    return render_template("assets.html", view=screen, period=period.key, span=period)
 
 
 admin.add_url_rule("/settings", "settings", settings.page)
