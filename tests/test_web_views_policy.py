@@ -95,6 +95,8 @@ def test_oldest_versions_per_user(known_db, today_client):
     assert users["u4"]["cells"][-3:-1] == ["—", "—"]
     assert "old" in users["u3"]["tags"]
     assert "old" not in users["u1"]["tags"]
+    assert "古いバージョン" in users["u3"]["cells"][0]
+    assert "古いバージョン" not in users["u1"]["cells"][0]
 
 
 def test_outdated_cards_count_people(known_db, today_client):
@@ -103,6 +105,7 @@ def test_outdated_cards_count_people(known_db, today_client):
     html = _html(today_client)
     assert card_value(html, _PLUGIN_OLD) == "2"
     assert card_value(html, _CORE_OLD) == "1"
+    assert _WARN in card(html, _PLUGIN_OLD)
 
 
 def test_outdated_card_warns_from_one_person(known_db, today_client):
