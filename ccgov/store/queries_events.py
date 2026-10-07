@@ -15,6 +15,16 @@ _HEALTH_NULL_SCOPES = {
 _DISTRIBUTION_COLUMNS = ("permission_mode", "effort_level", "source")
 
 
+def days(conn, start: int, end: int) -> list:
+    """`start`〜`end` に記録がある日（昇順）。"""
+    cur = conn.cursor()
+    cur.execute(
+        db.q("SELECT DISTINCT day FROM events WHERE day BETWEEN ? AND ? ORDER BY day"),
+        (start, end),
+    )
+    return [row[0] for row in cur.fetchall()]
+
+
 def _usage_with_trend(
     conn, today: int, days: int, filter_column: str, group_columns: tuple
 ) -> list:

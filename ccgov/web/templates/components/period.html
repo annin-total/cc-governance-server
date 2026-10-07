@@ -5,11 +5,74 @@
 </nav>
 {%- endmacro %}
 
-{# 期間の表示。期間のページは「MM/DD〜MM/DD」（12 か月は始まりに年を付ける）、期間を持たないページは「MM/DD 時点」 #}
-{% macro span(p) -%}
-<span class="asof" data-range>{{ p.start|day if p.long else p.start|md }}〜{{ p.end|md }}</span>
+{# 期間の表示。期間のページは「MM/DD〜MM/DD」（12 か月は始まりに年を付ける）、期間を持たないページは「MM/DD 時点」。
+   cal があれば、押すとカレンダーが開く（endpoint と args は日のリンクの行き先と、基準日のほかに引き継ぐ引数） #}
+{% macro span(p, cal=none, endpoint=none, args={}) -%}
+{{ display((p.start|day if p.long else p.start|md) ~ "〜" ~ p.end|md, cal, endpoint, args) }}
 {%- endmacro %}
 
-{% macro at(day) -%}
-<span class="asof" data-range>{{ L.ASOF.format(day|md) }}</span>
+{% macro at(day, cal=none, endpoint=none, args={}) -%}
+{{ display(L.ASOF.format(day|md), cal, endpoint, args) }}
+{%- endmacro %}
+
+{% macro display(text, cal, endpoint, args) -%}
+{%- if cal -%}
+<details class="cal-wrap" data-cal>
+<summary title="{{ L.CAL_OPEN }}"><span class="asof" data-range>{{ text }}</span></summary>
+{{ calendar(cal, endpoint, args) }}
+</details>
+{%- else -%}
+<span class="asof" data-range>{{ text }}</span>
+{%- endif -%}
+{%- endmacro %}
+
+{# 日のリンク。利用明細の最終日（既定）には asof を付けない #}
+{% macro href(day, cal, endpoint, args) -%}
+{{ url_for(endpoint, **args) if day == cal.last else url_for(endpoint, asof=day|day, **args) }}
+{%- endmacro %}
+
+{# 基準日のカレンダー。左によく使う選択肢、右に月の格子。格子はすべてサーバが描き、JS は 1 か月ずつ見せる送りと開閉だけを受け持つ #}
+{% macro calendar(cal, endpoint, args) -%}
+<div class="cal" role="group" aria-label="{{ L.CAL_OPEN }}">
+  <ul class="cal-picks">
+    {%- for key, day, ok in cal.picks %}
+    {%- set body %}{{ L.CAL_PICKS[key] }}<span class="cal-pick-day">{{ day|md }}</span>{% endset %}
+    <li>{% if ok %}<a href="{{ href(day, cal, endpoint, args) }}" data-pick="{{ key }}"{% if day == cal.end %} aria-current="true"{% endif %}>{{ body }}</a>
+    {%- else %}<span data-pick="{{ key }}" aria-disabled="true">{{ body }}</span>{% endif %}</li>
+    {%- endfor %}
+  </ul>
+  <div class="cal-main">
+    <div class="cal-head">
+      <button type="button" class="cal-nav" data-cal-move="-1" aria-label="{{ L.CAL_PREV }}" hidden>‹</button>
+      <button type="button" class="cal-nav" data-cal-move="1" aria-label="{{ L.CAL_NEXT }}" hidden>›</button>
+    </div>
+    <div class="cal-months">
+      {%- for m in cal.months %}
+      <section class="cal-month" data-month="{{ m.first|ym }}"{% if m.current %} data-current{% endif %}>
+        <p class="cal-name">{{ m.first|ym }}</p>
+        <div class="cal-grid">
+          {%- for w in L.WEEKDAYS %}<span class="cal-wd">{{ w }}</span>{% endfor %}
+          {%- for c in m.cells %}
+          {%- if c is none %}<span></span>
+          {%- else %}
+          {%- set cls = "cal-day cal-" ~ c.kind ~ (" in-range" if c.in else "") ~ (" is-sel" if c.sel else "") %}
+          {%- if c.ok %}<a class="{{ cls }}" href="{{ href(c.day, cal, endpoint, args) }}" data-day="{{ c.day|day }}" data-kind="{{ c.kind }}" aria-label="{{ c.day|day }}"{% if c.sel %} aria-current="date"{% endif %}>{{ c.mday }}</a>
+          {%- else %}<span class="{{ cls }} is-off" data-day="{{ c.day|day }}" data-kind="{{ c.kind }}"{% if c.sel %} aria-current="date"{% endif %}>{{ c.mday }}</span>
+          {%- endif %}
+          {%- endif %}
+          {%- endfor %}
+        </div>
+      </section>
+      {%- endfor %}
+    </div>
+    <ul class="cal-legend">
+      {%- for key, text in L.CAL_LEGEND.items() %}<li><i class="cal-key cal-{{ key }}"></i>{{ text }}</li>{% endfor -%}
+    </ul>
+  </div>
+</div>
+{%- endmacro %}
+
+{# 利用明細の古さの警告（期間の表示の横）。押すとデータと設定へ移る #}
+{% macro stale(s, keep) -%}
+{%- if s %}<a class="stale" href="{{ url_for('admin.settings', **keep) }}" data-stale>{{ fill(L.CSV_STALE, s) }}</a>{% endif -%}
 {%- endmacro %}

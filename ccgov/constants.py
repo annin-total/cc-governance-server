@@ -12,6 +12,10 @@ PERIOD_DAYS = (RECENT_DAYS, 28)
 LONG_MONTHS = 12
 # 基準日に選べる最初の日は、利用明細の最初の日からこの日数の窓が満ちる日
 ASOF_FILLED_DAYS = max(PERIOD_DAYS)
+# カレンダーに描く月の数（選んだ日の月の前後それぞれ）。それより先へは、端の月の日を選んで移る
+CALENDAR_MONTHS_AROUND = 2
+# 利用明細の最終日が今日からこの日数以上前なら、期間の表示の横に古さの警告を出す
+CSV_STALE_DAYS = 3
 
 # 月末のコストの見込みを出すのに要る経過営業日の数（仮の基準）
 FORECAST_MIN_BUSINESS_DAYS = 3

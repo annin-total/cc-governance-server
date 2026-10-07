@@ -53,6 +53,13 @@ PERIOD_NAV = "期間"
 LONG_NAME = f"{LONG_MONTHS} か月"
 PERIOD_NAMES = {key: LONG_NAME if key == LONG_KEY else f"{key} 日" for key in KEYS}
 NOT_LONG = f"{LONG_NAME}では出しません"
+# 基準日のカレンダー（期間の表示を押すと開く）と、利用明細の古さの警告
+CAL_OPEN = "基準日を選ぶ"
+CAL_PREV = "前の月"
+CAL_NEXT = "次の月"
+CAL_PICKS = {"latest": "最新", "prev": "1 つ前の期間", "month_end": "先月末", "month_end2": "前の月末"}
+CAL_LEGEND = {"has": "利用明細あり", "wait": "利用明細の取り込み待ち", "none": "利用明細なし"}
+CSV_STALE = "利用明細は {day:md} まで（{age} 日前）"
 NOT_LONG_CARDS = "{names}は、記録から数えるため " + LONG_NAME + "では出しません"
 NOT_LONG_PANEL = (
     NOT_LONG + "。記録から数える項目は "

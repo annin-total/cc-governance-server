@@ -95,6 +95,11 @@
   --name-w: 240px;
   --caret-h: 4px;
   --caret-w: 5px;
+  --cal-w: 264px;
+  --cal-picks-w: 9em;
+  --cal-day-h: 2.2em;
+  --cal-key: 1.4em;
+  --cal-max-h: 340px;
   --month-cols: minmax(0, 1fr) 9em 7em var(--col-bar) 7.5em;
   --month-table-cols: 9.5em 6em minmax(0, 1fr);
 }

@@ -1,0 +1,50 @@
+/* 基準日のカレンダー（期間の表示を押すと開く details）と利用明細の古さの警告。日の 3 区分に状態の色（注意・要確認）を使わない */
+.cal-wrap { position: relative; }
+.cal-wrap > summary { display: inline-flex; align-items: center; gap: var(--sp-2xs); list-style: none; cursor: pointer; padding: var(--sp-3xs) var(--sp-s); border: 1px solid var(--rule); border-radius: var(--r-m); background: var(--card); }
+.cal-wrap > summary::-webkit-details-marker { display: none; }
+.cal-wrap > summary::after { content: "▾"; color: var(--muted); font-size: var(--fs-sm); }
+.cal-wrap > summary:hover { border-color: var(--accent); }
+.cal-wrap[open] > summary { border-color: var(--ink-2); }
+
+.cal { position: absolute; top: calc(100% + var(--sp-xs)); right: 0; z-index: 6; display: flex; gap: var(--sp-l); padding: var(--sp-m); background: var(--card); border: 1px solid var(--rule); border-radius: var(--r-l); box-shadow: var(--shadow-tip); }
+.cal ul { margin: 0; padding: 0; list-style: none; }
+.cal-picks { display: grid; align-content: start; gap: var(--sp-2xs); min-width: var(--cal-picks-w); padding-right: var(--sp-l); border-right: 1px solid var(--rule); }
+.cal-picks a, .cal-picks span[data-pick] { display: flex; justify-content: space-between; gap: var(--sp-m); padding: var(--sp-2xs) var(--sp-s); border-radius: var(--r-s); font-size: var(--fs-sm); color: var(--ink); text-decoration: none; white-space: nowrap; }
+.cal-pick-day { color: var(--muted); font-variant-numeric: tabular-nums; }
+.cal-picks a:hover { background: var(--chip); }
+.cal-picks a[aria-current] { font-weight: 700; box-shadow: inset 0 0 0 1px var(--ink); }
+.cal-picks span[data-pick], .cal-picks span[data-pick] .cal-pick-day { color: var(--ghost); }
+
+.cal-main { width: var(--cal-w); }
+.cal-head { position: relative; height: 0; }
+.cal-nav { position: absolute; top: calc(var(--sp-3xs) * -1); border: 0; background: none; padding: 0 var(--sp-s); font-size: var(--fs-h2); line-height: 1; color: var(--ink-2); cursor: pointer; }
+.cal-nav[data-cal-move="-1"] { left: 0; }
+.cal-nav[data-cal-move="1"] { right: 0; }
+.cal-nav:disabled { color: var(--ghost); cursor: default; }
+/* JS が無ければ描いた月がすべて縦に並ぶ。高さを抑えて枠の中で送る */
+.cal-months { display: grid; gap: var(--sp-l); max-height: var(--cal-max-h); overflow-y: auto; }
+.cal-name { margin: 0 0 var(--sp-xs); text-align: center; font-size: var(--fs-label); font-weight: 700; }
+.cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: var(--sp-3xs); }
+.cal-wd { text-align: center; font-size: var(--fs-xs); color: var(--muted); }
+.cal-day { position: relative; display: flex; align-items: center; justify-content: center; height: var(--cal-day-h); border-radius: var(--r-s); font-size: var(--fs-sm); color: var(--ink); text-decoration: none; font-variant-numeric: tabular-nums; }
+a.cal-day:hover { box-shadow: inset 0 0 0 1px var(--accent); }
+.cal-day.in-range { background: var(--chip); }
+.cal-day.is-sel { box-shadow: inset 0 0 0 2px var(--ink); font-weight: 700; }
+.cal-day.is-off:not(.cal-wait) { color: var(--ghost); }
+/* 利用明細あり: 下に点。取り込み待ち: 斜線（押せない）。利用明細なし: 無地 */
+.cal-has::after { content: ""; position: absolute; left: 50%; bottom: var(--sp-3xs); width: var(--mark-dot); height: var(--mark-dot); margin-left: calc(var(--mark-dot) / -2); border-radius: 50%; background: var(--accent); }
+.cal-wait { background: repeating-linear-gradient(135deg, var(--ghost) 0 2px, transparent 2px 6px); color: var(--muted); }
+.cal-none { color: var(--muted); }
+.cal-legend { display: grid; gap: var(--sp-3xs); margin-top: var(--sp-s); font-size: var(--fs-xs); color: var(--muted); }
+.cal-legend li { display: flex; align-items: center; gap: var(--sp-xs); }
+.cal-key { position: relative; display: inline-block; width: var(--cal-key); height: var(--cal-key); border: 1px solid var(--rule); border-radius: var(--r-xs); }
+
+.stale { font-size: var(--fs-sm); color: var(--warn); text-decoration: none; white-space: nowrap; }
+.stale::before { content: "● "; }
+.stale:hover { text-decoration: underline; }
+
+/* 狭い幅では重ねずに流し、開いた分だけ下を押し下げる（右端の期間の表示から開くと画面の外にはみ出すため） */
+@media (max-width: 960px) {
+  .cal { position: static; margin-top: var(--sp-xs); flex-wrap: wrap; }
+  .cal-picks { padding-right: 0; border-right: 0; }
+}
