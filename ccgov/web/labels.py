@@ -184,7 +184,7 @@ USER_STATE = {"off": ("ng", "未適用あり"), "none": ("warn", "未導入"), "
 OFF_ITEMS = "未適用 {} 項目"
 # 利用者ごとの届き方（途絶えたは異動・休暇でも起きるため、判定でない灰の印）と、利用明細にいたか
 DELIVERY = {"silent": ("neutral", "途絶えた"), "ok": ("ok", "届いている")}
-BILLED = {True: "いた", False: "いない"}
+BILLED = {True: "あり", False: "なし"}
 DOT = {True: "適用", False: "未適用", None: "報告なし"}
 DOT_LEGEND = {True: "配布した値", False: "違う値か未設定", None: "報告なし（未導入）"}
 NO_REPORT = "報告なし"

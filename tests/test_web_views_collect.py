@@ -100,7 +100,7 @@ def test_reconciliation_window_ends_at_the_last_csv_day(known_db, today_client):
 
 
 def test_billed_column_uses_the_reconciliation_window(known_db, today_client):
-    """照合の窓より前（10/01）にだけコストがある u8 は「いない」。"""
+    """照合の窓より前（10/01）にだけコストがある u8 は「なし」。"""
     insert_cost_daily(known_db, day=TODAY - 8, user_email="u8", provider="p", cost=1.0)
     rows = _delivery(_html(today_client))
     assert "unbilled" in rows["u8"]["tags"]
@@ -205,3 +205,22 @@ def test_went_silent_has_no_state_badge():
     """途絶えた利用者は異動・休暇でも出るため、状態の判定を持たない（増減のチップだけで見る）。"""
     [silent] = [c for c in collect_screen.CARDS if c.id == "went_silent"]
     assert silent.state == ""
+
+
+def test_reconciliation_card_opens_the_same_numbers(known_db, today_client):
+    """照合率のカードは受信と項目の欠けの表を開き、その照合率の行はカードと同じ人数。
+
+    届き方の一覧は母集団が違う（記録か報告の届いた人）ため、同じ語を使わず、カードからも開かない。
+    """
+    insert_event(known_db, event_id="x1", day=TODAY, user_email="u6", hook_event="Stop")
+    html = _html(today_client)
+    body = card(html, _RECON)
+    assert 'data-open="health:recv"' in body
+    [row] = [r for r in table_rows(html, "health") if r["cells"][1].startswith(_RECON)]
+    assert row["cells"][2] == "75.0% 3 / 4 人"
+    assert "利用明細にもいた 3 人 / 送信した 4 人" in body
+    delivery = html.split('data-panel="user_delivery"')[1].split('data-panel="health"')[
+        0
+    ]
+    assert "利用明細にもいた" not in delivery and "利用明細にいない" not in delivery
+    assert len(_delivery(html)) == 8

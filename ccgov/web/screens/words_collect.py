@@ -4,7 +4,7 @@
 _RECENT = "直近 {RECENT_DAYS} 日"
 _PREV = "前の {RECENT_DAYS} 日"
 PAIR = {"prev": _PREV, "recent": _RECENT}
-BILLED_CHIPS = {"billed": "利用明細にいる", "unbilled": "利用明細にいない"}
+BILLED_CHIPS = {"billed": "利用明細あり", "unbilled": "利用明細なし"}
 
 GROUP = {
     "rec7": ("受信", _RECENT + "（{window[start]:md}〜{window[end]:md}）と" + _PREV + " · 記録を送った利用者"),
@@ -32,7 +32,8 @@ TAB = {
                       "scope": _RECENT + "と" + _PREV + "に記録か設定の報告があった利用者 · 利用明細は最終日までの {RECENT_DAYS} 日",
                       "search": "利用者で絞り込み",
                       "note": "途絶えた = " + _PREV + "に記録か設定の報告があり、" + _RECENT + "に無い人。異動・休暇でも途絶えます。"
-                              "「利用明細にいない」は、記録か報告はあるが、利用明細の最終日までの {RECENT_DAYS} 日に利用明細の行が無い人です。"},
+                              "利用明細のあり・なしは、利用明細の最終日までの {RECENT_DAYS} 日に行があるかです。一覧は記録か報告の届いた人を並べるため、"
+                              "利用明細との照合率（その {RECENT_DAYS} 日に記録を送った人で数える）とは人数が合いません。"},
     "health": {"label": "受信と項目の欠け", "hint": _RECENT + "と" + _PREV, "title": "受信と項目の欠け",
                "scope": _RECENT + "と" + _PREV + " · 欠けの分母は、その項目が送られるはずの記録", "unit": "行",
                "note": "欠けは {NULL_RATE_ELEVATED}% 未満を正常、{NULL_RATE_ELEVATED}% 以上を注意、{NULL_RATE_HIGH}% 以上を要確認とします（仮の基準）。100% に跳ねたら上流の仕様変更を疑います。"},

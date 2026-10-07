@@ -25,7 +25,7 @@ CARDS = (
          viz=Viz("stack", "errors[stages]", tone="warn", terms=L.STAGE)),
     Card("null_rate", "rec7", "health", "{nulls[rate]:dec1}", state="nulls[state]", chip="null",
          viz=Viz("rates", "nulls[fields]", "rate", terms=L.HEALTH_ITEM)),
-    Card("reconciliation", "match7", "user_delivery", "{reconciliation[rate]:dec1}", chip="unbilled",
+    Card("reconciliation", "match7", "health", "{reconciliation[rate]:dec1}", chip="recv",
          viz=Viz("meter", "reconciliation[numerator]", den="reconciliation[denominator]")),
     Card("csv_freshness", "now", "", "{freshness[age]:num}", state="freshness[state]"),
 )
