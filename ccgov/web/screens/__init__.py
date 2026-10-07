@@ -17,7 +17,7 @@ class Viz:
     """カードの小さなグラフ。`kind` は spark・meter・pair・stack・rates・cols・dist・cum・bands。
 
     pair は `terms` の順に 2 本の棒を並べ、最初を薄くする（`field` があれば `src[キー][field]` を比べる）。
-    棒のツールチップはカードの文言の `bar_tip`（`label` と `value` で埋める。無ければ出さない）。
+    棒のツールチップはカードの文言の `bar_tip`（`label` と `value` で埋める）。
     spark は `src` の行の `day` と `field` を点にし、ツールチップの値を `fmt`（`text.FORMATS` の名前）で書く。
     rates の棒は `top` なら行の最大に対する長さ、偽なら百分率。cols・dist・cum・bands は `viz_cost.py`。
     """

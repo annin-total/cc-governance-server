@@ -198,9 +198,7 @@ def _viz(card: Card, words: dict, ctx: dict) -> Optional[dict]:
         rows = []
         for i, (k, label) in enumerate(viz.terms.items()):
             name = text.fill(label, ctx)
-            tip = text.fill(
-                words.get("bar_tip", ""), {"label": name, "value": values[k]}
-            )
+            tip = text.fill(words["bar_tip"], {"label": name, "value": values[k]})
             rows.append((name, charts.pct(values[k], top), "" if i else "ghost", tip))
         return {"kind": "pair", "rows": rows}
     if viz.kind == "stack":
