@@ -8,7 +8,7 @@ from known_data import (
     duplicate_policy_state,
     insert_compliant_policy,
     insert_cost_daily,
-    insert_precompact,
+    insert_session_event,
     seed_effect_data,
 )
 
@@ -163,51 +163,77 @@ def test_event_study_row_count_excludes_zero_day_and_zero_denominator(effect_db)
     assert len(rows) == len(relative_days)
 
 
-def test_context_distribution_first_rollout_has_no_before(db_conn):
-    """初回展開: 準拠前の PreCompact 行が無いため 'before' キー自体を返さない。"""
+def _sessions(conn, end: int = EFFECT_END) -> list:
+    starts = queries_policy.compliance_start_dates(conn, K, "60", end)
+    return sorted(queries_policy.session_sizes(conn, starts, end))
+
+
+def test_session_sizes_take_max_and_autocompact_per_session(db_conn):
+    """セッションごとに最初の記録の日・応答終了のコンテキストの最大・自動コンパクト（auto だけ）の有無。
+
+    守り始めていない人と、セッションの無い記録は数えない。応答終了の無いセッションは最大が None。
+    """
     insert_compliant_policy(db_conn, "cq1", 20010, "u1", "h1")
-    insert_precompact(db_conn, "ce1", 20011, 120000)
-    insert_precompact(db_conn, "ce2", 20012, 130000)
+    for row in (
+        ("a1", 20008, "s1", "Stop", 30000), ("a2", 20009, "s1", "Stop", 50000),
+        ("a3", 20009, "s1", "PreCompact", 45000, "auto"),
+        ("b1", 20011, "s2", "Stop", 120000), ("b2", 20011, "s2", "PreCompact", 110000, "manual"),
+        ("c1", 20012, "s3", "PreCompact", 90000, "auto"),
+        ("d1", 20012, None, "Stop", 999000),
+    ):  # fmt: skip
+        insert_session_event(db_conn, *row)
+    insert_session_event(db_conn, "x1", 20011, "s9", "Stop", 70000, user_email="u9")
+    assert _sessions(db_conn) == [
+        (20010, 20008, 50000, 1),
+        (20010, 20011, 120000, 0),
+        (20010, 20012, None, 1),
+    ]
+
+
+def test_session_crossing_the_start_day_keeps_its_first_day(db_conn):
+    """守り始めた日をまたぐセッションは、最初の記録の日（前）のまま、後の記録も最大に入れる。"""
+    insert_compliant_policy(db_conn, "cq1", 20010, "u1", "h1")
+    insert_session_event(db_conn, "a1", 20009, "s1", "Stop", 40000)
+    insert_session_event(db_conn, "a2", 20011, "s1", "Stop", 90000)
+    assert _sessions(db_conn) == [(20010, 20009, 90000, 0)]
+
+
+def test_session_sizes_are_cut_at_the_span_and_the_end(db_conn):
+    """前後 `EVENT_STUDY_SPAN` 日の外と、期間の終わりより後の記録は数えない。"""
+    insert_compliant_policy(db_conn, "cq1", 20010, "u1", "h1")
+    for event_id, day in (("a", 19995), ("b", 19996), ("c", 20024), ("d", 20025)):
+        insert_session_event(db_conn, event_id, day, "s" + event_id, "Stop", 10000)
+    assert [r[1] for r in _sessions(db_conn, 20030)] == [19996, 20024]
+    assert [r[1] for r in _sessions(db_conn, 20023)] == [19996]
+
+
+def test_session_sizes_unchanged_after_duplicate_injection(db_conn):
+    insert_compliant_policy(db_conn, "cq1", 20010, "u1", "h1")
+    insert_session_event(db_conn, "a1", 20008, "s1", "Stop", 30000)
+    insert_session_event(db_conn, "a2", 20008, "s1", "PreCompact", 20000, "auto")
+    insert_session_event(db_conn, "b1", 20011, "s2", "Stop", 60000)
+    before = _sessions(db_conn)
+    duplicate_events(db_conn)
+    assert _sessions(db_conn) == before
+
+
+def test_first_rollout_has_no_sessions_before(db_conn):
+    """初回展開: 適用前のセッションが無ければ、適用前の中央値と区間の件数は 0 ではなく None。"""
+    insert_compliant_policy(db_conn, "cq1", 20010, "u1", "h1")
+    insert_session_event(db_conn, "a1", 20011, "s1", "Stop", 120000)
     starts = queries_policy.compliance_start_dates(db_conn, K, "60", EFFECT_END)
-    result = effect.context_distribution(db_conn, "PreCompact", starts, EFFECT_END)
-    assert "before" not in result
-    assert result["after"] == [(120000, 2)]
+    result = effect.session_sizes(db_conn, starts, EFFECT_END)
+    assert result["before"]["median"] is None
+    assert result["after"]["median"] == 120000
+    assert result["rows"] == [
+        {"bin": 120000, "before": None, "before_share": None, "after": 1, "after_share": 100.0}
+    ]  # fmt: skip
 
 
 def test_effect_is_cut_at_the_end(effect_db):
-    """期間の終わりより後に守り始めた人（u2 の 20020）と、終わりより後の記録・コストは数えない。"""
+    """期間の終わりより後に守り始めた人（u2 の 20020）と、終わりより後のコストは数えない。"""
     assert queries_policy.compliance_start_dates(effect_db, K, "60", 20019) == {
         "u1": 20010
     }
     rows = effect.event_study(effect_db, K, "60", "aws-bedrock", 20010)
     assert max(r[0] for r in rows) == -1
-    insert_precompact(effect_db, "ce1", 20011, 120000)
-    insert_precompact(effect_db, "ce2", 20012, 160000)
-    starts = {"u1": 20010}
-    assert effect.context_distribution(effect_db, "PreCompact", starts, 20011)["after"] == [(120000, 1)]  # fmt: skip
-
-
-def test_context_distribution_second_change_has_both_sides(db_conn):
-    """2 回目以降: 準拠前 80000 台に 1 件、準拠後 120000 台に 1 件。"""
-    insert_compliant_policy(db_conn, "cq2", 20010, "u1", "h1")
-    insert_precompact(db_conn, "ce3", 20008, 90000)
-    insert_precompact(db_conn, "ce4", 20011, 120000)
-    starts = queries_policy.compliance_start_dates(db_conn, K, "60", EFFECT_END)
-    result = effect.context_distribution(db_conn, "PreCompact", starts, EFFECT_END)
-    assert result["before"] == [(80000, 1)]
-    assert result["after"] == [(120000, 1)]
-
-    def compute():
-        return effect.context_distribution(db_conn, "PreCompact", starts, EFFECT_END)
-
-    before_dup = compute()
-    duplicate_events(db_conn)
-    after_dup = compute()
-    assert before_dup == after_dup
-
-    # 対照実験: distinct を通さないと重複後に度数が 2 倍になる
-    cur = db_conn.cursor()
-    cur.execute(
-        "SELECT COUNT(*) FROM events WHERE hook_event = 'PreCompact' AND context_tokens = 90000"
-    )
-    assert cur.fetchone()[0] == 2

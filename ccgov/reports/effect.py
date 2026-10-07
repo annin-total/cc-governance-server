@@ -1,7 +1,7 @@
 """`/effect` 画面の組み立て。相対日は準拠開始日が基準で、期間の終わり（`end`）より後は数えない。"""
 
 from ccgov.constants import EFFECT_PROVIDER, REFERENCE_KEY, REFERENCE_VALUE
-from ccgov.metrics import context, effect
+from ccgov.metrics import effect
 from ccgov.store import queries_cost, queries_policy
 
 
@@ -20,10 +20,9 @@ def event_study(
     return effect.event_study(start_dates, cost_by_key, min_day, max_day)
 
 
-def context_distribution(conn, hook_event: str, start_dates: dict, end: int) -> dict:
-    """`context_tokens` の分布を準拠開始日の前後に分けて返す（`metrics.context.bin_counts`）。"""
-    samples = queries_policy.context_samples(conn, hook_event, start_dates, end)
-    return context.bin_counts(samples)
+def session_sizes(conn, start_dates: dict, end: int) -> dict:
+    """準拠開始日の前後のセッションの大きさと自動コンパクトの割合（`metrics.effect.sessions`）。"""
+    return effect.sessions(queries_policy.session_sizes(conn, start_dates, end))
 
 
 def build(conn, end: int) -> dict:
@@ -33,8 +32,5 @@ def build(conn, end: int) -> dict:
     return {
         "adopters": len(start_dates),
         "study": effect.summary(study),
-        "precompact": context.summary(
-            context_distribution(conn, "PreCompact", start_dates, end)
-        ),
-        "stop": context.summary(context_distribution(conn, "Stop", start_dates, end)),
+        "sessions": session_sizes(conn, start_dates, end),
     }

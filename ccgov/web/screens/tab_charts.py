@@ -2,7 +2,7 @@
 
 from typing import Optional
 
-from ccgov.metrics import context, session_size
+from ccgov.metrics import effect, session_size
 from ccgov.web import charts, charts_hist, filters, text
 from ccgov.web import labels as L
 from ccgov.web.screens import Tab, month_view
@@ -34,7 +34,7 @@ def build(tab: Tab, rows: list, ctx: dict) -> Optional[dict]:
     if tab.chart == "hist" and rows:
         return {
             "kind": "hist",
-            "geo": charts_hist.hist(rows, context.SIDES, *HIST_CHART),
+            "geo": charts_hist.hist(rows, effect.SIDES, *HIST_CHART),
             "series": list(L.SIDE.values()),
         }
     if tab.chart == "sizes" and rows:

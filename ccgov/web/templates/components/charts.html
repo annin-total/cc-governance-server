@@ -118,7 +118,7 @@
 {%- elif v.kind == "bands" -%}{{ bands(v) }}
 {%- elif v.kind == "over" -%}{{ over(v) }}
 {%- elif v.kind == "pair" -%}
-{%- for label, pct, tone in v.rows %}<span class="pair"><span>{{ label }}</span>{{ hbar(pct, tone) }}</span>{% endfor -%}
+{%- for label, pct, tone, tip in v.rows %}<span class="pair"{% if tip %} data-tip="{{ tip }}" title="{{ tip }}"{% endif %}><span>{{ label }}</span>{{ hbar(pct, tone) }}</span>{% endfor -%}
 {%- elif v.kind == "stack" -%}
 <span class="stack">{% for p in v.parts %}<i class="{{ p.cls }}" style="flex: {{ p.value }}"></i>{% endfor %}</span>
 <span class="legend">{% for p in v.parts %}<span><i class="{{ p.cls }}"></i>{{ p.label }} {{ p.value|num }}</span>{% endfor %}</span>
@@ -127,9 +127,6 @@
   <line class="spark-guide" x1="0" x2="0" y1="0" y2="{{ v.geo.h }}" vector-effect="non-scaling-stroke"/>
   {{ hits(v.geo.bars, v.geo.h) }}</svg>
 <span class="legend">{% for name in v.legend %}<span><i class="{{ 'bar-hi' if loop.last else 'bar-old' }}"></i>{{ name }}</span>{% endfor %}</span>
-{%- elif v.kind == "hist" -%}
-<svg class="spark" viewBox="0 0 {{ v.geo.w }} {{ v.geo.h }}" preserveAspectRatio="none" aria-hidden="true">{% for b in v.geo.bars %}{{ hist_segs(v.geo, b) }}{% endfor %}</svg>
-<span class="legend">{% for name in v.terms.values() %}<span><i class="{{ 'bar-hi' if loop.last else 'bar-old' }}"></i>{{ name }}</span>{% endfor %}</span>
 {%- elif v.kind == "rates" -%}
 <span class="rates{{ ' wide' if v.wide }}">{% for r in v.rows %}<span class="rate{{ ' marked' if r.state }}"><span>{{ r.label }}</span>{{ hbar(r.pct) }}
 {%- for right in r.right %}<span class="num{{ ' strong' if loop.last }}">{{ right }}</span>{% endfor %}{% if r.state %}{{ mark(*r.state) }}{% endif %}</span>{% endfor %}</span>

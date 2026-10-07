@@ -14,6 +14,7 @@ from ccgov.web.labels import (
 )
 from ccgov.web.screens import words_activity as _activity
 from ccgov.web.screens import words_collect as _collect
+from ccgov.web.screens import words_effect as _effect
 from ccgov.web.screens import words_policy as _policy
 
 _BILL = "利用明細 {cost[start]:md}〜{cost[end]:md} と前の {period[days]} 日 · 利用明細にコストがあった利用者"
@@ -22,8 +23,6 @@ _MONTH = "{month[month]:ym} · 利用明細の最終日（{month[as_of]:md}）�
 # 群: id -> (見出し, 期間と母集団)
 GROUP = {
     "use": ("利用", "直近 {period[days]} 日と、その前の {period[days]} 日"),
-    "work": ("設定は働いているか", "{REFERENCE_KEY:setting}を {REFERENCE_VALUE} にした前後 {EVENT_STUDY_SPAN} 日 · 前後の境は各利用者が守り始めた日"),
-    "spend": ("コストの前後差", "1 人 1 日あたり · {EFFECT_PROVIDER:provider} · 時期の変動を含むため、前後差を施策の効果と読まない"),
     "bill": ("コスト", _BILL),
     "month": ("今月", _MONTH),
     "billed": ("利用者", _BILL),
@@ -62,19 +61,6 @@ CARD = {
                  "empty": "month[as_of]", "cap_empty": ("今月（{month[month]:mon} 月）の利用明細はまだありません",)},
     "bypass": {"label": "確認なしモードの記録", "unit": "%", "sub": "{bypass[numerator]:num} 件 / 全 {bypass[denominator]:num} 件",
                "cap": ("権限モード「確認なし」の割合",)},
-    "precompact": {"label": "コンパクト直前のコンテキスト（中央の区間）", "unit": "トークン",
-                   "sub": "適用前 {precompact[median][before]:bin} · 記録 {precompact[total][before]:num} → {precompact[total][after]:num} 件",
-                   "cap": ("区間の幅 {CONTEXT_BIN:tok} トークン · 縦は各期間の中の割合",)},
-    "stop": {"label": "応答終了時のコンテキスト（中央の区間）", "unit": "トークン",
-             "sub": "適用前 {stop[median][before]:bin} · 記録 {stop[total][before]:num} → {stop[total][after]:num} 件",
-             "cap": ("区間の幅 {CONTEXT_BIN:tok} トークン · 縦は各期間の中の割合",)},
-    "adopters": {"label": "設定を守り始めた利用者", "unit": "人", "sub": "日ごとの対象者 {study[people_min]:num}〜{study[people_max]:num} 人",
-                 "cap": ("その日が利用明細の期間に入る人だけを数える",)},
-    "per_cost": {"label": "1 人 1 日あたりのコスト",
-                 "sub": "適用前 {study[before][cost]:usd} · のべ {study[before][person_days]:num} → {study[after][person_days]:num} 人日",
-                 "cap": ("0 日目（守り始めた当日）を除く",)},
-    "per_tokens": {"label": "1 人 1 日あたりのトークン", "unit": "トークン", "sub": "適用前 {study[before][tokens]:tok}",
-                   "cap": ("入力とキャッシュの読み書き（出力は含まない）",)},
     "cost_total": {"label": "コスト（利用明細）", "sub": "前 {cost[prev]:usd}",
                    "cap": ("{cost[spark_start]:md}", "{cost[end]:md}"),
                    "foot": "日ごと · 地のある区間が直近 {period[days]} 日"},
@@ -121,8 +107,6 @@ CARD = {
              "cap": ("期間の基準の状態ごとに、コストと人数の割合を上下にそろえる",)},
 }
 PAIR = {"prev": PREV, "recent": RECENT}
-_HIST_SCOPE = " · 前後 {EVENT_STUDY_SPAN} 日 · 区間の幅 {CONTEXT_BIN:tok} トークン · 割合は各期間の中の割合"
-_HIST_NOTE = "両方の期間で 0 件の区間は出しません。しきい値が効いていれば、適用後は小さい区間に寄ります。"
 # タブ: label・hint（タブの 2 行目）・title・scope・note・search（入力欄の案内）・all（全件の区分の名前）
 TAB = {
     "daily": {"label": "日ごとの利用", "hint": "直近 {period[span]} 日", "title": "日ごとの利用者数とセッション数",
@@ -155,16 +139,6 @@ TAB = {
     "csv_files": {"label": IMPORT["title"], "hint": "", "title": IMPORT["title"], "scope": "", "unit": "件"},
     "modes": {"label": "使われ方", "hint": "直近 {period[days]} 日 · 記録", "title": "使われ方", "unit": "行",
               "scope": "直近 {period[days]} 日 · 記録の件数（開始のしかたはセッション開始の記録）· 割合は区分の中での割合"},
-    "precompact": {"label": "コンパクト直前の分布", "hint": "記録 {precompact[total][before]:num} → {precompact[total][after]:num} 件",
-                   "title": "コンパクト直前のコンテキストの大きさ", "unit": "区間", "note": _HIST_NOTE,
-                   "scope": "自動コンパクトが走る直前（PreCompact）のトークン数" + _HIST_SCOPE},
-    "stop": {"label": "応答終了時の分布", "hint": "記録 {stop[total][before]:num} → {stop[total][after]:num} 件",
-             "title": "応答終了時のコンテキストの大きさ", "unit": "区間", "note": _HIST_NOTE,
-             "scope": "各応答が終わった時点（Stop）のトークン数" + _HIST_SCOPE},
-    "study": {"label": "日ごとの 1 人あたり", "hint": "守り始めた日の前後 {EVENT_STUDY_SPAN} 日", "title": "日ごとの 1 人あたりコストとトークン",
-              "unit": "日", "scope": "守り始めた日を 0 日目とした前後 {EVENT_STUDY_SPAN} 日 · {EFFECT_PROVIDER:provider} · トークンは入力とキャッシュの読み書きの合計",
-              "note": "0 日目（守り始めた当日）は前後が混ざるため除いています。その日が利用明細（CSV）の期間に入る人だけを数えるため、日ごとに人数が変わります。"
-                      "時期による変動（繁忙・モデルの切り替えなど）を差し引いていないため、前後差を施策の効果と読まないでください。"},
 }
 _USER_COST_NOTE = (
     "状態は期間の基準の判定です（7 日は日次と週次のうち悪いほう、28 日は月次）。"
@@ -202,9 +176,6 @@ COL = {
     "error_type": "エラーの種類", "version": "最後に起きたバージョン", "status": "状態", "email": "利用者",
     "last_day": "最終報告日", "setting": "設定", "ratio": "適用済み / 対象", "rate": "適用率",
     "kind": "種類", "versions": "バージョン",
-    "bin": "トークン数の区間", "before_count": "適用前の件数", "before_share": "適用前の割合", "after_count": "適用後の件数",
-    "after_share": "適用後の割合", "rel_day": "守り始めてからの日数", "side": "期間", "people": "対象者数",
-    "per_cost": "1 人あたりコスト", "per_tokens": "1 人あたりトークン",
     "week": "週の始まり", "month_day": "日付", "n": "営業日", "cost": "その日のコスト", "cum": "今月の累積",
     "prev_cum": "前月（{month[prev_month]:mon} 月）の累積", "weekday": "曜日", "name": "名前", "delete": "",
     "file": "取り込んだファイル", "span": "期間", "bytes": "大きさ",
@@ -217,7 +188,7 @@ COL = {
     "basis": "基準", "over_prev": "前の状態", "over_now": "今の状態", "over_kind": "区分", "over_amount": "金額", "over_at": "日付",
     "over_prev_amount": "前の金額",
 }
-for _words in (_activity, _policy, _collect):
+for _words in (_activity, _policy, _collect, _effect):
     GROUP.update(_words.GROUP)
     CARD.update(_words.CARD)
     TAB.update(_words.TAB)

@@ -3,7 +3,7 @@
 import re
 
 from conftest import ADMIN, card, table_body
-from known_data import insert_precompact, seed_effect_data
+from known_data import insert_session_event, seed_effect_data
 from test_web_views_effect import _html as effect_html
 
 
@@ -53,12 +53,11 @@ def test_tab_charts_and_rows_share_keys(today_client):
 
 
 def test_effect_hist_links_bins(db_conn):
-    """効果の分布の棒と行が区間で結ばれる。"""
+    """セッションの大きさの前後の棒と行が区間で結ばれる。"""
     seed_effect_data(db_conn)
-    insert_precompact(db_conn, "ce1", 20008, 30000)
-    insert_precompact(db_conn, "ce2", 20011, 120000)
-    db_conn.commit()
+    insert_session_event(db_conn, "ce1", 20008, "s1", "Stop", 30000)
+    insert_session_event(db_conn, "ce2", 20011, "s2", "Stop", 120000)
     html = effect_html()
-    chart = _panel(html, "precompact").split('<div class="tscroll">')[0]
-    rows = _keys(table_body(html, "precompact"), "tr")
+    chart = _panel(html, "effect_sessions").split('<div class="tscroll">')[0]
+    rows = _keys(table_body(html, "effect_sessions"), "tr")
     assert rows == ["20000", "120000"] and sorted(_keys(chart, "g")) == sorted(rows)

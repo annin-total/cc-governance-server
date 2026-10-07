@@ -122,19 +122,18 @@ def cost_by_user_day(conn, provider: str) -> dict:
     return {(u, d): (c, t) for u, d, c, t in cur.fetchall()}
 
 
-def context_samples(conn, hook_event: str, start_dates: dict, end: int) -> list:
-    """利用者ごとに準拠開始日の前後（`end` まで）の `(準拠開始日, day, context_tokens, event_id)` を返す。"""
-    samples = []
+def session_sizes(conn, start_dates: dict, end: int) -> list:
+    """利用者ごとに準拠開始日の前後（`end` まで）のセッションの `(準拠開始日, 最初の日, 応答終了の最大, 自動コンパクトの有無)`。"""
+    sql = db.q(
+        "SELECT MIN(day), MAX(CASE WHEN hook_event = 'Stop' THEN context_tokens END),"
+        " MAX(CASE WHEN hook_event = 'PreCompact' AND compact_trigger = 'auto' THEN 1 ELSE 0 END)"
+        " FROM events WHERE hook_event IN ('Stop', 'PreCompact') AND user_email = ?"
+        "   AND session_id IS NOT NULL AND day BETWEEN ? AND ? GROUP BY session_id"
+    )
+    rows = []
     cur = conn.cursor()
     for user_email, start_day in start_dates.items():
         lo, hi = around(start_day)
-        cur.execute(
-            db.q(
-                "SELECT day, context_tokens, event_id FROM events"
-                " WHERE hook_event = ? AND user_email = ? AND context_tokens IS NOT NULL"
-                "   AND day BETWEEN ? AND ?"
-            ),
-            (hook_event, user_email, lo, min(hi, end)),
-        )
-        samples.extend((start_day, *row) for row in cur.fetchall())
-    return samples
+        cur.execute(sql, (user_email, lo, min(hi, end)))
+        rows.extend((start_day, *row) for row in cur.fetchall())
+    return rows

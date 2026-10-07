@@ -98,9 +98,11 @@ def test_asof_moves_every_window_of_the_overview(today_client):
 
 def test_asof_cuts_the_effect_at_the_chosen_day(today_client):
     """守り始めた日が基準日より後の利用者（u3 の 10/07・u10 の 10/08）は数えない。"""
-    assert card_value(_html(today_client, "/effect"), "設定を守り始めた利用者") == "6"
+    assert (
+        card_value(_html(today_client, "/effect"), "しきい値を守り始めた利用者") == "6"
+    )
     html = _html(today_client, "/effect", asof="2024-10-06")
-    assert card_value(html, "設定を守り始めた利用者") == "4"
+    assert card_value(html, "しきい値を守り始めた利用者") == "4"
 
 
 @pytest.mark.parametrize(

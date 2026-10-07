@@ -57,7 +57,7 @@ def test_small_values_are_not_wrapped(today_client):
 
 
 def test_effect_tokens_use_k_on_card_and_m_in_column(db_conn):
-    """トークンはカードが k、表の列は最大に合わせて全行 M（解像度未満は <0.01M）。区間の幅も k で書く。"""
+    """表のトークンの列は最大に合わせて全行 M（解像度未満は <0.01M）。区間の幅は k で書く。"""
     seed_effect_data(db_conn)
     insert_cost_daily(
         db_conn,
@@ -69,13 +69,10 @@ def test_effect_tokens_use_k_on_card_and_m_in_column(db_conn):
     )
     db_conn.commit()
     html = effect_html()
-    tokens = [r["cells"][3] for r in table_rows(html, "study")]
+    tokens = [r["cells"][3] for r in table_rows(html, "effect_daily")]
     assert tokens and all(re.fullmatch(r"(<0\.01|\d\.\d\d)M", t) for t in tokens)
     assert "<0.01M" in tokens and any(re.fullmatch(r"[1-9]\.\d\dM", t) for t in tokens)
     assert "区間の幅 20k トークン" in html
-    [(shown, full)] = _exacts(card_value(html, "1 人 1 日あたりのトークン"))
-    assert re.fullmatch(r"\d{3}k", shown) and re.fullmatch(r"\d{3},\d{3}", full)
-    assert shown == f"{round(int(full.replace(',', '')) / 1000)}k"
 
 
 def test_token_column_switches_to_m_by_largest_value():
@@ -84,6 +81,6 @@ def test_token_column_switches_to_m_by_largest_value():
         {"day": d, "side": "before", "people": 1, "tokens": t, "cost": 1.0}
         for d, t in ((-2, 835546), (-1, 1524127))
     ]
-    got = table.tab(effect.TABS[2], {**view.CONSTANTS, "study": {"rows": rows}})
+    got = table.tab(effect.TABS[1], {**view.CONSTANTS, "study": {"rows": rows}})
     (col,) = [c for c in got["cols"] if c["kind"] == "tok"]
     assert col["scale"] == "M"
