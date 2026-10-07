@@ -183,6 +183,9 @@
     }
     const [id, chip] = location.hash.slice(1).split(":");
     open(id, chip, Boolean(chip));
+    // 別の画面（概況のカード）からタブを指して来たときは、タブの見出しまで移る。
+    // ブラウザが # と同じ id の一覧（パネル）へ移すのは読み込みの後なので、その後に移し直す
+    if (states.has(id)) window.addEventListener("load", () => section.scrollIntoView({ block: "start" }));
     redraws.push(() => { for (const p of panels) filter(p, states.get(p.dataset.panel)); });
   }
 
