@@ -33,3 +33,16 @@
 .chart .month-sep { stroke: var(--rule); }
 .chart .month-name { fill: var(--muted); }
 .chart .month-total { fill: var(--ink-2); font-weight: 600; }
+
+/* コストと利用者のカード: 営業日の棒と前の平均の点線・分布と平均と中央値・状態ごとの帯 */
+.bar-lo, .bar-dist { fill: var(--accent-2); }
+.spark .avg, .spark .median { stroke: var(--ink-2); stroke-width: 1; stroke-dasharray: var(--cum-dash); }
+.spark .mean { stroke: var(--ink); stroke-width: 1.5; }
+.bands { display: grid; gap: var(--sp-2xs); }
+.band { display: grid; grid-template-columns: 3em 1fr; align-items: center; gap: var(--sp-s); font-size: var(--fs-xs); color: var(--muted); }
+.band-bar { display: flex; height: var(--meter-h); border-radius: var(--r-xs); overflow: hidden; background: var(--track); }
+.band-bar i { display: block; }
+.st-ng { background: var(--ng); }
+.st-warn { background: var(--warn); }
+.st-ok { background: var(--ghost); }
+.rates.wide .rate.marked { grid-template-columns: 1fr 30% 5.5em 3.6em 4.5em; }

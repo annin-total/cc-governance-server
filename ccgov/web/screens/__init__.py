@@ -3,6 +3,7 @@
 文言は `words.py` にあり、定義は id で引く。値の場所は `users[recent]` の形（`str.format` と同じ）で書く。
 カードとタブの `long` は 12 か月での扱い: None は出さない（カードは群の注記に名前を出し、タブは「出しません」）、
 `SAME` はそのまま出す、`Card`・`Tab` はそれに差し替える（見出しの違うカードに差し替えたら、元の名前も注記に出す）。
+タブの `only_long` は 12 か月にだけ出す（ほかの期間では並べない）。
 """
 
 from dataclasses import dataclass
@@ -13,10 +14,11 @@ SAME = "same"
 
 @dataclass(frozen=True)
 class Viz:
-    """カードの小さなグラフ。`kind` は spark・meter・pair・stack・rates・hist。
+    """カードの小さなグラフ。`kind` は spark・meter・pair・stack・rates・hist・cols・dist・cum・bands。
 
     pair は `terms` の順に 2 本の棒を並べ、最初を薄くする（`field` があれば `src[キー][field]` を比べる）。
     spark は `src` の行の `day` と `field` を点にし、ツールチップの値を `fmt`（`text.FORMATS` の名前）で書く。
+    rates の棒は `top` なら行の最大に対する長さ、偽なら百分率。cols・dist・cum・bands は `viz_cost.py`。
     """
 
     kind: str
@@ -26,6 +28,7 @@ class Viz:
     tone: str = ""
     terms: Optional[dict] = None
     fmt: str = "num"
+    top: bool = False
 
 
 @dataclass(frozen=True)
@@ -76,7 +79,10 @@ class Chip:
 
 @dataclass(frozen=True)
 class Tab:
-    """下段のタブ 1 つ。文言は `words.TAB[id]`（label・hint・title・scope・note・search・all・unit）。"""
+    """下段のタブ 1 つ。文言は `words.TAB[words or id]`（label・hint・title・scope・note・search・all・unit）。
+
+    `fold` は一覧を折りたたむ行の数（0 は畳まない）。
+    """
 
     id: str
     rows: str
@@ -89,6 +95,9 @@ class Tab:
     chart: str = ""
     chips_all: bool = True
     long: Any = None
+    fold: int = 0
+    only_long: bool = False
+    words: str = ""
 
 
 @dataclass(frozen=True)

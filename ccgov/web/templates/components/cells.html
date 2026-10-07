@@ -47,6 +47,9 @@
   {%- if row.from %}{{ sub(fill(L.BD_FROM, row)) }}{% endif %}{% if row.to %}{{ sub(fill(L.BD_TO, row)) }}{% endif %}
   {%- if row.off %}{{ sub(fill(L.MDAY_OFF, row)) }}{% endif %}
 {%- elif k == "cum" -%}{% if row.actual %}<b>{{ exact(v|usd(col.scale), v|usd_full) }}</b>{% else %}{{ sub(L.FC_FORECAST.format(v|usd(col.scale))) }}{% endif %}
+{%- elif k == "usd_delta" -%}{{ v|usd_signed(col.scale) }}
+{%- elif k == "pct_delta" -%}{{ v|signed_pct }}
+{%- elif k == "month" -%}{{ v|ym }}{% if row.partial %}{{ sub(L.MONTH_PARTIAL) }}{% endif %}
 {%- elif k == "usd_sub" -%}<span class="sub">{{ exact(v|usd(col.scale), v|usd_full) }}</span>
 {%- elif k == "delete" -%}<form method="post" action="{{ url_for('admin.delete_holiday', day=v) }}" data-confirm="{{ fill(L.HOLIDAY.confirm, row) }}">
   <input type="hidden" name="csrf" value="{{ csrf_token() }}"><button type="submit" class="btn-quiet">{{ L.HOLIDAY.delete }}</button></form>

@@ -5,8 +5,20 @@
 
 # fmt: off
 from ccgov.constants import REFERENCE_KEY
-from ccgov.web.labels import HOLIDAY, IMPORT, PREV, RECENT, SETTING, STALE_NOTE
+from ccgov.web.labels import (
+    HOLIDAY,
+    IMPORT,
+    LONG_NAME,
+    PERIOD_NAMES,
+    PREV,
+    RECENT,
+    SETTING,
+    STALE_NOTE,
+)
 
+_BILL = "利用明細 {cost[start]:md}〜{cost[end]:md} と前の {period[days]} 日 · 利用明細にコストがあった利用者"
+_BILL_LONG = "利用明細 直近 {period[months]} か月（{cost[start]:day}〜{cost[end]:day}）· 暦月 · 前の期間と比べない"
+_MONTH = "{month[month]:ym} · 利用明細の最終日（{month[as_of]:md}）まで · 前月の実績と比べる · 各月にコストがあった利用者"
 # 群: id -> (見出し, 期間と母集団)
 GROUP = {
     "use": ("利用", "直近 {period[days]} 日と、その前の {period[days]} 日"),
@@ -17,10 +29,19 @@ GROUP = {
     "calls": ("呼び出し", "直近 {period[days]} 日と、その前の {period[days]} 日"),
     "agent": ("サブエージェント", "直近 {period[days]} 日 · 分母は全記録"),
     "spend": ("コストの前後差", "1 人 1 日あたり · {EFFECT_PROVIDER:provider} · 時期の変動を含むため、前後差を施策の効果と読まない"),
+    "bill": ("コスト", _BILL),
+    "month": ("今月", _MONTH),
+    "billed": ("利用者", _BILL),
 }
 # 群の 12 か月での期間と母集団（無ければ `LONG_SCOPE`）
 LONG_SCOPE = "直近 {period[months]} か月"
-GROUP_LONG = {"use": "直近 {period[months]} か月（{cost[start]:day}〜{cost[end]:day}）· 週ごと · 利用明細の項目だけ"}
+GROUP_LONG = {
+    "use": "直近 {period[months]} か月（{cost[start]:day}〜{cost[end]:day}）· 週ごと · 利用明細の項目だけ",
+    "bill": _BILL_LONG, "month": _MONTH, "billed": _BILL_LONG,
+}
+# 12 か月で出さないカードの注記（無ければ `labels.NOT_LONG_CARDS`）
+_SHORT = "・".join(n for n in PERIOD_NAMES.values() if n != LONG_NAME)
+GROUP_NOT_LONG = {"billed": "{names}は、" + _SHORT + "の期間で基準を判定するため " + LONG_NAME + "では出しません"}
 _WEEKS_CAP = ("{cost[start]:ym}", "完了した週ごと")
 # カード: label・unit・sub（値の下の 1 行）・cap（グラフの下の注記）・row（rates の行の右端）
 CARD = {
@@ -77,6 +98,46 @@ CARD = {
     "commands": {"label": "コマンドの呼び出し", "unit": "回", "sub": "前の {period[days]} 日 {commands[prev]:num} 回 · {commands[kinds]:num} 種類",
                  "cap": ("呼び出しの多い順（定義元をまたいで合計）· 割合は直近 {period[days]} 日の全呼び出しのうち",),
                  "row": ("{calls:num} 回", "{share:pct}")},
+    "cost_total": {"label": "コスト（利用明細）", "sub": "前 {cost[prev]:usd}",
+                   "cap": ("{cost[spark_start]:md}", "日ごと · 地のある区間が直近", "{cost[end]:md}")},
+    "cost_total_year": {"label": "コスト（利用明細）", "sub": "月平均 {cost[monthly]:usd} · 前の期間と比べない", "cap": ("暦月ごと",)},
+    "per_bd": {"label": "1 営業日あたりのコスト",
+               "sub": "前 {per_bd[prev]:usd} · {per_bd[prev_days]:num} → {per_bd[days]:num} 営業日",
+               "cap": ("{cost[spark_start]:md}", "営業日ごと · 休日の分は次の営業日", "{cost[end]:md}"),
+               "note": "点線は前の 1 営業日あたり {per_bd[prev]:usd} · 直近で超えた日 {per_bd[over]:num} / {per_bd[days]:num}"},
+    "per_bd_year": {"label": "1 営業日あたりのコスト", "sub": "営業日 {per_bd[days]:num} 日 · 前の期間と比べない",
+                    "cap": ("暦月ごと",)},
+    "per_user_bd": {"label": "1 人 1 営業日あたり",
+                    "sub": "前 {per_user[prev]:usd} · {per_user[users]:num} 人 · {per_user[days]:num} 営業日",
+                    "note": "{per_user[users]:num} 人の分布 · 実線は平均 · 点線は中央値 {per_user[median]:usd}"},
+    "per_user_bd_year": {"label": "1 人 1 営業日あたり",
+                         "sub": "{per_user[users]:num} 人 · {per_user[days]:num} 営業日 · 前の期間と比べない",
+                         "note": "{per_user[users]:num} 人の分布 · 実線は平均 · 点線は中央値 {per_user[median]:usd}"},
+    "top_spenders": {"label": "コストの多い利用者", "sub": "上位 {TOP_SPENDERS} 人 · 割合は期間のコストのうち",
+                     "row": ("{cost:usd}", "{share:pct}")},
+    "model_mix": {"label": "モデル別の内訳", "unit": "%", "sub": "最も多いのは {models[top]} · 使った人 {models[users]:num} 人",
+                  "row": ("{cost:usd}", "{share:pct}"), "cap": ("割合は期間のコストのうち",)},
+    "cache_read_share": {"label": "キャッシュ読み込みの割合", "unit": "%", "sub": "全 {models[cache][tokens]:tok} トークンのうち",
+                         "tip": "キャッシュ読み込み  {models[cache][read]:tok} / {models[cache][tokens]:tok} トークン",
+                         "cap": ("トークンは入力・出力・キャッシュの読み書きの合計",)},
+    "cost_forecast": {"label": "月末のコスト見込み（{month[month]:mon} 月）",
+                      "sub": "{month[prev_month]:mon} 月の実績 {month[prev_actual]:usd}",
+                      "legend": ("今月", "見込み", "{month[prev_month]:mon} 月"),
+                      "cap": ("実績 {month[actual]:usd} · {month[elapsed]:num} / {month[business_days]:num} 営業日",),
+                      "empty": "month[as_of]", "cap_empty": ("今月（{month[month]:mon} 月）の利用明細はまだありません",)},
+    "billed_users": {"label": "利用明細にいた利用者", "unit": "人", "sub": "前 {billed[prev]:num} 人（{billed[diff]:signed} 人）",
+                     "cap": ("日ごとの人数 · 濃い棒が直近 {period[days]} 日",)},
+    "billed_users_year": {"label": "利用明細にいた利用者", "unit": "人", "sub": "期間にコストがあった人", "cap": ("暦月ごとの人数",)},
+    "new_users": {"label": "使い始めた利用者", "unit": "人", "sub": "利用明細に初めてコストが出た人"},
+    "new_users_year": {"label": "使い始めた利用者", "unit": "人", "sub": "利用明細に初めてコストが出た人", "cap": ("暦月ごとの人数",)},
+    "retention": {"label": "継続率", "unit": "%", "sub": "前の {period[days]} 日からの離脱 {retention[lost]:num} 人",
+                  "tip": "前の期間の利用者  {retention[prev]:num} 人のうち {retention[kept]:num} 人",
+                  "cap": ("前の期間の利用者のうち、今も使った割合",)},
+    "retention_year": {"label": "継続率", "unit": "%", "sub": "{retention[month]:ym} · 前の月からの離脱 {retention[lost]:num} 人",
+                       "cap": ("暦月ごと · 前の月の利用者のうち、その月も使った割合",)},
+    "conc": {"label": "コストの集中", "sub": "利用者ごとのコストの偏り", "bands": ("コスト", "人数"),
+             "band_legend": "{name} {people:num} 人 · コストの {cost_pct:pct}",
+             "cap": ("期間の基準の状態ごとに、コストと人数の割合を上下にそろえる",)},
     "agent": {"label": "サブエージェントの中の記録", "unit": "%", "sub": "{agent[numerator]:num} 件 / 全 {agent[denominator]:num} 件",
               "cap": ("サブエージェントの中で起きた記録の割合",)},
 }
@@ -153,6 +214,29 @@ TAB = {
               "scope": "直近 {period[days]} 日 · 分母は全記録 {agent[denominator]:num} 件",
               "note": "サブエージェントの中で起きた記録にだけ、サブエージェントの識別子が付きます。"},
 }
+_USER_COST_NOTE = (
+    "状態は期間の基準の判定です（7 日は日次と週次のうち悪いほう、28 日は月次）。"
+    "日次はいずれかの 1 日、週次・月次は期間の合計で比べます。"
+    "注意は日次 {USER_COST_ELEVATED[day]:usd0}・週次 {USER_COST_ELEVATED[week]:usd0}・月次 {USER_COST_ELEVATED[month]:usd0} 以上、"
+    "要確認は日次 {USER_COST_HIGH[day]:usd0}・週次 {USER_COST_HIGH[week]:usd0}・月次 {USER_COST_HIGH[month]:usd0} 以上です（仮の基準）。"
+)
+TAB.update({
+    "user_cost": {"label": "利用者ごとのコスト", "hint": "{billed[recent]:num} 人 · 利用明細", "title": "利用者ごとのコストと順位", "unit": "人",
+                  "scope": "利用明細 {cost[start]:md}〜{cost[end]:md} と前の {period[days]} 日 · コストの多い順 · 割合と累積は期間のコストのうち",
+                  "search": "利用者・モデルで絞り込み", "note": _USER_COST_NOTE},
+    "user_cost_year": {"label": "利用者ごとのコスト", "hint": "{billed[recent]:num} 人 · 利用明細", "title": "利用者ごとのコストと順位",
+                       "unit": "人", "scope": "利用明細 {cost[start]:day}〜{cost[end]:day} · コストの多い順 · 割合と累積は期間のコストのうち",
+                       "search": "利用者・モデルで絞り込み"},
+    "models": {"label": "モデル", "hint": "{models[rows]:count} 種類 · 利用明細", "title": "モデルごとのコスト", "unit": "行",
+               "scope": "利用明細 {cost[start]:md}〜{cost[end]:md} と前の {period[days]} 日 · 割合は期間のコストのうち · "
+                        "キャッシュ読み込みの割合はそのモデルのトークンのうち"},
+    "models_year": {"label": "モデル", "hint": "{models[rows]:count} 種類 · 利用明細", "title": "モデルごとのコスト", "unit": "行",
+                    "scope": "利用明細 {cost[start]:day}〜{cost[end]:day} · 割合は期間のコストのうち · "
+                             "キャッシュ読み込みの割合はそのモデルのトークンのうち"},
+    "months": {"label": "月ごとの推移", "hint": "{months:count} か月 · 利用明細", "title": "月ごとのコストと利用者", "unit": "月",
+               "scope": "利用明細 {cost[start]:day}〜{cost[end]:day} · 暦月 · 端の月は期間の中の日だけ",
+               "note": "1 営業日あたりは、その月のコストを、その月の期間の中の営業日の数で割った値です。"},
+})
 COL = {
     "day": "日付", "period": "期間", "users": "利用者数", "sessions": "セッション数", "sessions_bar": "セッション数の比較",
     "total": "合計", "bar": "", "field": "区分", "value": "値", "count": "件数", "share": "割合", "group": "区分",
@@ -169,6 +253,10 @@ COL = {
     "week": "週の始まり", "month_day": "日付", "n": "営業日", "cost": "その日のコスト", "cum": "今月の累積",
     "prev_cum": "前月（{month[prev_month]:mon} 月）の累積", "weekday": "曜日", "name": "名前", "delete": "",
     "file": "取り込んだファイル", "span": "期間", "bytes": "大きさ",
+    "rank": "順位", "spend": "コスト", "prev_spend": "前の期間", "spend_diff": "前との差", "spend_rate": "増減率",
+    "spend_share": "コストに占める割合", "cum_share": "累積", "cost_days": "日数", "per_day": "1 日あたり", "main_model": "主なモデル",
+    "model": "モデル", "model_users": "利用者数", "cache": "キャッシュ読み込みの割合", "month": "月", "new_users": "使い始めた利用者",
+    "bd": "営業日", "per_bd": "1 営業日あたり",
 }
 COL_EACH_SUB = "{numerator:num} / {denominator:num} 人"
 MONTH_CHIPS = {"bd": "営業日", "cal": "暦日"}

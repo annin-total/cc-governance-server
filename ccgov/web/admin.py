@@ -1,4 +1,4 @@
-"""管理画面の Blueprint。Basic 認証・CSRF の検証・取込の大きさの上限と、4 画面（概況・policy・effect・assets）・データと設定を持つ。"""
+"""管理画面の Blueprint。Basic 認証・CSRF の検証・取込の大きさの上限と、5 画面（概況・コストと利用者・policy・effect・assets）・データと設定を持つ。"""
 
 import datetime
 import hmac
@@ -10,11 +10,12 @@ from flask import Blueprint, Response, current_app, g, render_template, request
 
 from ccgov.constants import CSV_UPLOAD_MAX_BYTES
 from ccgov.metrics import asof_calendar, windows
-from ccgov.reports import assets, effect, overview, period_end, policy
+from ccgov.reports import assets, cost_page, effect, overview, period_end, policy
 from ccgov.store import db
 from ccgov.vendor import contract
 from ccgov.web import csrf, csv_files, export, filters, labels, settings
 from ccgov.web.screens import assets as assets_screen
+from ccgov.web.screens import cost_page as cost_screen
 from ccgov.web.screens import effect as effect_screen
 from ccgov.web.screens import overview as overview_screen
 from ccgov.web.screens import policy as policy_screen
@@ -23,7 +24,7 @@ from ccgov.web.screens import view
 # CSS を認証つきで配るため、静的配信はアプリ直下ではなくこの Blueprint が持つ。
 admin = Blueprint("admin", __name__, static_folder="static")
 # 期間を切り替える画面。ナビのリンクに選んだ期間を引き継ぐ
-PERIOD_SCREENS = ("admin.index", "admin.assets_view")
+PERIOD_SCREENS = ("admin.index", "admin.cost_view", "admin.assets_view")
 # `date.fromisoformat` は 3.11 から `20241001` なども受けるため、受け取る形はここで決める
 _ASOF_FORMAT = re.compile(r"[0-9]{4}-[0-9]{2}-[0-9]{2}")
 _EPOCH = datetime.date(1970, 1, 1)
@@ -127,6 +128,19 @@ def index() -> str:
     screen = view.build(overview_screen.SCREEN, _build(overview.build, period))
     return render_template(
         "overview.html",
+        view=screen,
+        period=period.key,
+        span=period,
+        cal=_calendar(period),
+    )
+
+
+@admin.route("/cost")
+def cost_view() -> str:
+    period = _period()
+    screen = view.build(cost_screen.SCREEN, _build(cost_page.build, period))
+    return render_template(
+        "cost.html",
         view=screen,
         period=period.key,
         span=period,

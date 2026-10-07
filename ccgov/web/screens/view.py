@@ -6,7 +6,7 @@ from ccgov import constants
 from ccgov.metrics import context
 from ccgov.web import charts, charts_hist, filters, text
 from ccgov.web import labels as L
-from ccgov.web.screens import SAME, Card, Screen, month_view, table
+from ccgov.web.screens import SAME, Card, Screen, month_view, table, viz_cost
 from ccgov.web.screens import words as W
 
 CONSTANTS = {
@@ -22,6 +22,9 @@ CONSTANTS = {
         "REFERENCE_VALUE",
         "EFFECT_PROVIDER",
         "FORECAST_MIN_BUSINESS_DAYS",
+        "TOP_SPENDERS",
+        "USER_COST_ELEVATED",
+        "USER_COST_HIGH",
     )
 }
 _SHADES = 3
@@ -34,8 +37,10 @@ def is_long(data: dict) -> bool:
 
 
 def pick(item, long: bool):
-    """期間で出すカード・タブ。12 か月で出さないものは None。"""
-    if not long or item.long == SAME:
+    """期間で出すカード・タブ。その期間で出さないものは None。"""
+    if not long:
+        return None if getattr(item, "only_long", False) else item
+    if item.long == SAME:
         return item
     return item.long
 
@@ -62,6 +67,7 @@ def build(screen: Screen, data: dict) -> dict:
     for g in screen.groups:
         cards = [pick(c, long) for c in screen.cards if c.group == g]
         missing = _missing(screen, g) if long else []
+        note = W.GROUP_NOT_LONG.get(g, L.NOT_LONG_CARDS)
         scope = W.GROUP_LONG.get(g, W.LONG_SCOPE) if long else W.GROUP[g][1]
         groups.append(
             {
@@ -69,14 +75,13 @@ def build(screen: Screen, data: dict) -> dict:
                 "label": W.GROUP[g][0],
                 "scope": text.fill(scope, ctx),
                 "cards": [_card(c, ctx) for c in cards if c],
-                "note": L.NOT_LONG_CARDS.format(names=L.LIST_SEP.join(missing))
-                if missing
-                else "",
+                "note": note.format(names=L.LIST_SEP.join(missing)) if missing else "",
             }
         )
     tabs = [
         table.tab(shown, ctx) if shown else table.unavailable(t, ctx)
         for t, shown in ((t, pick(t, long)) for t in screen.tabs)
+        if long or not t.only_long
     ]
     return {"groups": groups, "tabs": tabs}
 
@@ -96,8 +101,10 @@ def sources(screen: Screen, long: bool = False) -> set:
             names |= text.fields(template)
         paths = [card.state] + ([card.viz.src, card.viz.den] if card.viz else [])
         names |= {p.split("[")[0] for p in paths if p}
+        names |= text.fields(words.get("note", "")) | text.fields(words.get("tip", ""))
+        names |= {n for t in words.get("legend", ()) for n in text.fields(t)}
     for tab in filter(None, (pick(t, long) for t in screen.tabs)):
-        words = W.TAB[tab.id]
+        words = W.TAB[tab.words or tab.id]
         for template in (words["hint"], words["scope"], words.get("note", "")):
             names |= text.fields(template)
         names |= {p.split("[")[0] for p in [tab.rows] + [c.each for c in tab.cols] if p}
@@ -145,6 +152,8 @@ def _tip(row: dict, value: float, fmt: str, words: dict) -> str:
 
 def _viz(card: Card, words: dict, ctx: dict) -> Optional[dict]:
     viz = card.viz
+    if viz.kind in viz_cost.KINDS:
+        return viz_cost.build(viz, words, ctx)
     src = text.lookup(ctx, viz.src)
     if viz.kind == "spark":
         values = [r[viz.field] for r in src]
@@ -158,7 +167,13 @@ def _viz(card: Card, words: dict, ctx: dict) -> Optional[dict]:
         return month_view.card(src, words)
     if viz.kind == "meter":
         whole = text.lookup(ctx, viz.den)
-        return {"kind": "meter", "pct": charts.pct(src, whole), "tone": viz.tone}
+        tip = text.fill(words["tip"], ctx) if "tip" in words else ""
+        return {
+            "kind": "meter",
+            "pct": charts.pct(src, whole),
+            "tone": viz.tone,
+            "tip": tip,
+        }
     if viz.kind == "pair":
         values = {k: src[k][viz.field] if viz.field else src[k] for k in viz.terms}
         top = max((v or 0 for v in values.values()), default=0)
@@ -186,11 +201,13 @@ def _viz(card: Card, words: dict, ctx: dict) -> Optional[dict]:
             for i, (k, n) in enumerate(src)
         ]
         return {"kind": "stack", "parts": parts} if parts else None
+    whole = max((r[viz.field] or 0 for r in src), default=0) if viz.top else 100
     rows = [
         {
             "label": text.term(viz.terms, r["key"]),
-            "pct": charts.pct(r[viz.field], 100),
+            "pct": charts.pct(r[viz.field], whole),
             "right": [text.fill(t, r) for t in words["row"]],
+            "state": (r["state"], L.STATE[r["state"]]) if r.get("state") else None,
         }
         for r in src
     ]

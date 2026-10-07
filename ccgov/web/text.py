@@ -58,6 +58,9 @@ FORMATS = {
     "signed_pct": lambda v: (
         filters.EM_DASH if v is None else filters.signed(v, 1) + "%"
     ),
+    "signed_pt": lambda v: (
+        filters.EM_DASH if v is None else f"{filters.signed(v, 1)} {labels.UNIT['pt']}"
+    ),
     "field": lambda v: term(labels.HEALTH_ITEM, v),
     "setting": lambda v: term(labels.SETTING, v),
     "provider": lambda v: term(labels.PROVIDER, v),

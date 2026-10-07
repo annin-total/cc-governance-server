@@ -21,6 +21,7 @@ FOOTER = "端末から送られた値です。コストとトークンは全社�
 # endpoint -> (見出し, 説明)
 SCREENS = {
     "admin.index": ("概況", "全体の利用量と、データの届き具合"),
+    "admin.cost_view": ("コストと利用者", "いくらかかり、誰に集まり、何人が使っているか"),
     "admin.policy_view": ("設定の適用状況", "配布した設定が各端末で有効になっているか"),
     "admin.effect_view": ("設定の効果", "設定を守り始めた前後で、コンテキストの大きさとコストを比べる"),
     "admin.assets_view": ("スキル・コマンドの利用", "配布したスキルやコマンドが使われているか"),
@@ -36,6 +37,10 @@ EXACT = "正確な値"
 # カードの小さなグラフのツールチップ。2 つの空白の前が見出し、後ろが値（app.js が組む）
 SPARK_TIP = "{day:md}（{day:weekday}）  {value}"
 SPARK_TIP_WEEK = "{day:md}〜{end:md}  {value}"
+SPARK_TIP_MONTH = "{day:ym}  {value}"
+# 分布の区間と、状態ごとの帯のツールチップ
+BIN_TIP = "{lo}〜{hi}  {n} 人"
+BAND_TIP = "{state}  {value} · {pct:pct}"
 SEARCH = "絞り込み"
 ALL = "すべて"
 EMPTY = "条件に合う行はありません。"
@@ -193,7 +198,7 @@ BASIS_NOTE = {
     "policy": "CSV を取り込んでいないため、分母は設定の報告があった利用者だけです。プラグインを入れていない人は含みません。",
 }
 STALE_NOTE = f"報告停止 = 最後の報告から {STALE_DAYS} 日以上経った端末。{POLICY_DAYS} 日を過ぎると一覧から外れます。"
-UNIT = {"person": "人", "item": "件", "terminal": "台", "pt": "pt", "times": "回"}
+UNIT = {"person": "人", "item": "件", "terminal": "台", "pt": "pt", "times": "回", "day": "日"}
 
 # データと設定: 会社の休日
 SETTINGS_ENTRY = PAGES["admin.settings"][0]

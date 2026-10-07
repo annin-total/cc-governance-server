@@ -8,9 +8,10 @@ from ccgov.web import labels as L
 from ccgov.web.screens import Col, Tab, tab_charts
 from ccgov.web.screens import words as W
 
-SCALED = {"usd", "usd_strong", "usd_sub", "cum", "tok"}
+SCALED = {"usd", "usd_strong", "usd_sub", "usd_delta", "cum", "tok"}
 NUMERIC = {"num", "pct", "pct_strong", "measure", "measure_sub"} | SCALED
 NUMERIC |= {"diff", "last_day", "ratio", "count_of", "dash_num", "num_sub", "bytes"}
+NUMERIC |= {"pct_delta"}
 
 
 def _sort_key(value: Any) -> tuple:
@@ -33,8 +34,12 @@ def _filled(terms: Any, ctx: dict) -> Any:
     }
 
 
+def _words(tab: Tab) -> dict:
+    return W.TAB[tab.words or tab.id]
+
+
 def _head(tab: Tab, ctx: dict) -> dict:
-    words = W.TAB[tab.id]
+    words = _words(tab)
     return {
         "id": tab.id,
         "label": words["label"],
@@ -46,7 +51,7 @@ def _head(tab: Tab, ctx: dict) -> dict:
 
 def unavailable(tab: Tab, ctx: dict) -> dict:
     """12 か月で出せないタブ。同じ場所に残し、中身の代わりに注記を出す（集計していないので値を参照しない）。"""
-    words = W.TAB[tab.id]
+    words = _words(tab)
     return {
         "id": tab.id,
         "label": words["label"],
@@ -63,7 +68,7 @@ def unavailable(tab: Tab, ctx: dict) -> dict:
 
 def tab(tab: Tab, ctx: dict) -> dict:
     """タブ 1 つ分の表示用の値（見出し・区分・列・行・グラフ）。"""
-    words = W.TAB[tab.id]
+    words = _words(tab)
     source = list(text.lookup(ctx, tab.rows))
     rows = list(source)
     if tab.sort:
@@ -91,6 +96,7 @@ def tab(tab: Tab, ctx: dict) -> dict:
             for r in rows
         ],
         "chart": chart,
+        "fold": tab.fold,
     }
 
 
