@@ -9,7 +9,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{{ screen_title }} — {{ L.APP }}</title>
-{%- for sheet in ("tokens.css", "layout.css", "components.css", "charts.css", "calendar.css", "org.css") %}
+{%- for sheet in ("tokens.css", "layout.css", "components.css", "charts.css", "calendar.css", "org.css", "summary.css") %}
 <link rel="stylesheet" href="{{ url_for('admin.static', filename=sheet) }}">
 {%- endfor %}
 <script src="{{ url_for('admin.static', filename='app.js') }}" defer></script>
@@ -23,7 +23,9 @@
     {%- endfor %}
   </nav>
   <span class="bar-end">
-    <a href="{{ url_for('admin.settings', **keep_asof) }}"{% if here == "admin.settings" %} aria-current="page"{% endif %}>{{ L.SETTINGS_ENTRY }}</a>
+    {%- for entry in L.ENTRIES %}
+    <a href="{{ url_for(entry, **keep_asof) }}"{% if L.ENTRY_OF.get(here, here) == entry %} aria-current="page"{% endif %}>{{ L.PAGES[entry][0] }}</a>
+    {%- endfor %}
   </span>
 </div></header>
 <main class="wrap">

@@ -213,3 +213,20 @@ def test_every_column_has_a_meaning_in_the_note():
     for table in _TABLES:
         for name in _COLUMNS[table]:
             assert export_notes.meaning(table, name), (table, name)
+
+
+def test_summaries_are_not_exported(export_client, db_conn):
+    """サマリーは書き出しに含めない（画面で読める）。"""
+    from ccgov.reports import summary
+
+    summary.create(
+        db_conn,
+        {"asof": _day("2026-08-12"), "title": "八月のまとめ", "body": "本文"},
+        _day("2026-08-12") * 86400,
+    )
+    zf = _zip(export_client, "2026-08")
+    assert sorted(zf.namelist()) == sorted(
+        [f"{t}.csv" for t in _TABLES] + ["README.txt"]
+    )
+    for name in zf.namelist():
+        assert "八月のまとめ" not in zf.read(name).decode("utf-8"), name

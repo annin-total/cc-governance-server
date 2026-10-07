@@ -1,0 +1,29 @@
+/* サマリー: 一覧（書き出すの月の一覧と同じ行の部品）・本文・作成と編集のフォーム・概況の先頭。本文の改行は white-space で保つ */
+.sm-panel-head { display: flex; justify-content: space-between; align-items: flex-start; gap: var(--sp-l); }
+.sm-panel-head .btn { text-decoration: none; white-space: nowrap; }
+.sm-list .m-row { grid-template-columns: var(--summary-cols); }
+.sm-title { overflow-wrap: anywhere; }
+.sm-acts { display: flex; justify-content: flex-end; gap: var(--sp-xs); }
+.sm-acts .btn-quiet { text-decoration: none; }
+.sm-text { white-space: pre-wrap; overflow-wrap: anywhere; }
+.sm-list .sm-text { padding: var(--sp-s) 0 var(--sp-m) var(--sp-l); border-bottom: 1px solid var(--rule); }
+
+.sm-form { display: grid; gap: var(--sp-l); margin: var(--sp-l) 0 0; }
+.sm-fields { display: flex; flex-wrap: wrap; gap: var(--sp-l); }
+.sm-form label { display: grid; gap: var(--sp-2xs); font-size: var(--fs-sm); color: var(--muted); }
+.sm-fields .grow { flex: 1; }
+.sm-form input, .sm-form textarea { font: inherit; font-size: var(--fs-label); padding: var(--sp-2xs) var(--sp-s); border: 1px solid var(--rule); border-radius: var(--r-m); background: var(--bg); color: var(--ink); }
+.sm-form textarea { resize: vertical; line-height: var(--lh); }
+.sm-form input:focus, .sm-form textarea:focus { outline: 2px solid var(--accent); outline-offset: -1px; background: var(--card-hover); }
+.sm-buttons { display: flex; align-items: center; gap: var(--sp-m); margin: var(--sp-l) 0 0; }
+.sm-form .sm-buttons { margin: 0; }
+.sm-buttons .btn-sub { border: 0; cursor: pointer; }
+.sm-buttons .sm-draft { order: -1; }
+.sm-buttons a { font-size: var(--fs-sm); color: var(--ink-2); }
+
+.sm-top { margin-bottom: var(--sp-2xl); }
+.sm-head { display: flex; justify-content: space-between; align-items: baseline; gap: var(--sp-l); }
+.sm-go { font-size: var(--fs-sm); color: var(--muted); text-decoration: none; white-space: nowrap; }
+.sm-go::after { content: " →"; }
+.sm-go:hover { color: var(--accent); }
+.sm-box { background: var(--card); border-radius: var(--r-l); padding: var(--sp-xl) var(--sp-2xl); font-size: var(--fs-label); }

@@ -39,6 +39,11 @@ EXPORT_BYTES_PER_ROW = {
     "cost_daily": 30,
 }
 
+# サマリーのタイトルと本文の文字数の上限。`summaries` の桁（タイトルの VARCHAR・本文の TEXT〔MySQL は 65,535 バイト〕）に
+# 4 バイトの文字でも収まる長さにし、超える入力は保存の前に断る（MySQL の strict は桁あふれで書き込みを失敗させる）
+SUMMARY_TITLE_MAX = 100
+SUMMARY_BODY_MAX = 10000
+
 # 長い一覧が初めに出す行の数。残りは「さらに表示」で開く（一覧ごとに変えられる）
 TABLE_FOLD_ROWS = 10
 

@@ -1,0 +1,23 @@
+{# サマリーの一覧。行（summary）を押すと本文が開く（書き出すの月の一覧と同じ部品）。新しい順で、長い一覧は畳む。 #}
+{% extends "base.html" %}
+{% from "components/table.html" import fold_attrs %}
+{% block content %}
+<section class="panel section" aria-labelledby="sm-list-title">
+  <header class="p-head sm-panel-head">
+    <div><h2 id="sm-list-title">{{ L.SUMMARY.title }}</h2><p class="scope">{{ L.SUMMARY.lead }}</p></div>
+    <a class="btn" href="{{ url_for('admin.summary_new', **keep_asof) }}">{{ L.SUMMARY.new }}</a>
+  </header>
+  <div class="months sm-list" data-testid="summaries"{{ fold_attrs(rows|length, TABLE_FOLD_ROWS) }}>
+    <div class="m-row m-head"><span>{{ L.SUMMARY.created }}</span><span>{{ L.SUMMARY.name }}</span><span class="num">{{ L.SUMMARY.asof }}</span><span class="num">{{ L.SUMMARY.updated }}</span><span></span></div>
+    {%- for r in rows %}
+    <details class="m-item">
+      <summary class="m-row"><span class="m-month">{{ r.created|day }}</span><span class="sm-title">{{ r.title }}</span><span class="num">{{ r.asof|md }}</span><span class="num">{{ r.updated|day }}</span><span class="sm-acts"><a class="btn-sub" href="{{ url_for('admin.summary_edit', sid=r.id) }}">{{ L.SUMMARY.edit }}</a><a class="btn-quiet" href="{{ url_for('admin.summary_delete', sid=r.id) }}">{{ L.SUMMARY.delete }}</a></span></summary>
+      <div class="sm-text">{{ r.body }}</div>
+    </details>
+    {%- endfor %}
+  </div>
+  {%- if not rows %}
+  <p class="empty">{{ L.SUMMARY.empty }}</p>
+  {%- endif %}
+</section>
+{% endblock %}

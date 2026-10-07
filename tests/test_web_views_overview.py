@@ -102,6 +102,32 @@ def test_only_the_main_heading_without_a_summary(today_client, period):
 
 
 @pytest.mark.parametrize("query", ["", "?period=28", "?period=12m", "?asof=2024-10-03"])
+def test_latest_summary_heads_the_overview(today_client, known_db, query):
+    """最新の 1 件のタイトルを見出しに（横に基準日と作成日、右端に一覧へ）、本文を枠に出す。そのあとに「主な指標」。"""
+    from ccgov.reports import summary
+
+    values = {"asof": 19999, "body": "1 行目\n2 行目"}
+    summary.create(known_db, {**values, "title": "古い題"}, (TODAY - 2) * 86400)
+    summary.create(known_db, {**values, "title": "新しい題"}, (TODAY - 1) * 86400)
+    html = _html(today_client, query)
+    assert re.findall(r"<h2\b[^>]*>(.*?)</h2>", html, re.DOTALL)[0].startswith(
+        "新しい題<span>基準日 10/03 の値 · 作成 2024-10-08</span>"
+    )
+    assert [
+        re.sub(r"<span>.*", "", h)
+        for h in re.findall(r"<h2\b[^>]*>(.*?)</h2>", html, re.DOTALL)
+    ] == ["新しい題", "主な指標"]
+    head, rest = html.split('<div class="sm-text">', 1)
+    assert rest.split("</div>", 1)[0] == "1 行目\n2 行目"
+    assert '<div class="cards">' not in head and "古い題" not in html
+    to_list = re.search(r'<a class="sm-go" href="([^"]*)">一覧へ</a>', head)
+    asof = parse_qs(urlparse(query).query).get("asof")
+    assert to_list and unescape(to_list.group(1)) == ADMIN + "/summary" + (
+        f"?asof={asof[0]}" if asof else ""
+    )
+
+
+@pytest.mark.parametrize("query", ["", "?period=28", "?period=12m", "?asof=2024-10-03"])
 def test_cards_are_the_same_as_on_the_dedicated_pages(today_client, query):
     """カードの中身（値・差・添える数字・グラフ・札）は専用ページのカードと同じ。設定の 5 枚は頭に今日の時点を添える。"""
     html = _html(today_client, query)
