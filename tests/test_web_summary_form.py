@@ -12,6 +12,7 @@ from summary_data import (
     field,
     html_of,
     make,
+    post,
     save,
     stored,
     textarea,
@@ -60,6 +61,13 @@ def test_save_stores_the_row_dated_today_and_returns_to_the_list(
         "created": TODAY,
         "updated": TODAY,
     }
+
+
+def test_post_without_an_action_saves(today_client, known_db):
+    """`action` が draft のときだけ下書きを作り、ほかは保存する。"""
+    response = post(today_client, "/summary/new", title="題", body="本文")
+    assert response.status_code == 303
+    assert [r["title"] for r in stored(known_db)] == ["題"]
 
 
 @pytest.mark.parametrize(
