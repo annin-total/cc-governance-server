@@ -4,6 +4,7 @@ import sqlite3
 from urllib.parse import urlparse
 
 from ccgov.config import db_dsn
+from ccgov.constants import ROSTER_TEXT_MAX
 from ccgov.vendor.contract import (
     CSV_COLUMNS,
     ERROR_COLUMNS,
@@ -17,11 +18,21 @@ _SQLITE_PATH_PREFIX = "sqlite:///"
 
 _TABLES = ("events", "policy_state", "cost_daily")
 
+_TEXT = f"VARCHAR({ROSTER_TEXT_MAX})"
 # サーバ専用の表。契約の表ではないため、起動時の列の突き合わせ（`_required_columns`）には入れない
 _SERVER_DDL = (
     (
         "CREATE TABLE IF NOT EXISTS company_holidays"
         " (day INTEGER PRIMARY KEY, name VARCHAR(255) NOT NULL)"
+    ),
+    (
+        "CREATE TABLE IF NOT EXISTS org_roster (month INTEGER NOT NULL,"
+        f" email {_TEXT} NOT NULL, name {_TEXT}, department {_TEXT}, section {_TEXT})"
+    ),
+    (
+        "CREATE TABLE IF NOT EXISTS org_roster_files (month INTEGER NOT NULL,"
+        " source_file VARCHAR(255) NOT NULL, row_count INTEGER NOT NULL,"
+        " imported_day INTEGER NOT NULL)"
     ),
 )
 
