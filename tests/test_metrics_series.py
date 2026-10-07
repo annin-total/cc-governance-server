@@ -48,3 +48,9 @@ def test_above_boundaries():
     assert states.above(None, 0, states.WARN) is None
     assert states.above(0, 0, states.WARN) == states.OK
     assert states.above(1, 0, states.WARN) == states.WARN
+
+
+def test_at_least_boundaries():
+    assert states.at_least(None, 20, states.WARN) is None
+    assert states.at_least(19.9, 20, states.WARN) == states.OK
+    assert states.at_least(20, 20, states.WARN) == states.WARN

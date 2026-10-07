@@ -7,13 +7,11 @@
   --tabs: #dedad3;
   --track: #ebe7e1;
   --chip: #e3e0da;
-  --chip-up: #dde6ea;
   /* 色: 文字と線。--muted は --card・--bg・--tabs のどの面でも WCAG AA（4.5:1）を満たす */
   --ink: #2b2926;
   --ink-2: #4a4640;
   --muted: #625c53;
   --rule: #d6d1c9;
-  --chip-up-ink: #2f4b58;
   --on-ink: #f6f4f0;
   /* 色: 強調とグラフ */
   --accent: #4c6a78;
@@ -41,11 +39,12 @@
   --sans: "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic UI", "Yu Gothic", "Meiryo", system-ui, sans-serif;
   --fig: "Avenir Next", "Helvetica Neue", "Segoe UI", var(--sans);
   --mono: ui-monospace, "SF Mono", Menlo, monospace;
+  /* 文字の大きさは 12・14・16・22・40px の 5 段に限る。名前は使う場所ごとの枠で、同じ段を共有する */
   --fs: 14px;
-  --fs-label: 13px;
+  --fs-label: 14px;
   --fs-sm: 12px;
-  --fs-xs: 11px;
-  --fs-unit: 15px;
+  --fs-xs: 12px;
+  --fs-unit: 16px;
   --fs-h1: 22px;
   --fs-h2: 16px;
   --fs-val: 40px;

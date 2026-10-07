@@ -114,3 +114,15 @@ def fields(template: str) -> set:
         if name:
             names.add(name.split("[")[0].split(".")[0])
     return names
+
+
+HIGHER_IS_BETTER = "up"
+LOWER_IS_BETTER = "down"
+
+
+def chip_tone(delta: str, better: str) -> str:
+    """書いた差（`signed` の符号つき）とカードの向きから、チップの色の区分 `better`・`worse`。向きが無いか 0 なら空。"""
+    sign = {"+": HIGHER_IS_BETTER, "−": LOWER_IS_BETTER}.get(delta[:1])
+    if not better or sign is None:
+        return ""
+    return "better" if sign == better else "worse"

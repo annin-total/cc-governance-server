@@ -25,7 +25,8 @@ button { font: inherit; color: inherit; }
 .k-sub { font-size: var(--fs-sm); color: var(--muted); margin-top: var(--sp-2xs); font-variant-numeric: tabular-nums; }
 .k-viz { margin-top: auto; padding-top: var(--sp-m); display: grid; gap: var(--sp-2xs); }
 .change { display: inline-block; font-weight: 700; padding: 0 var(--sp-xs); border-radius: var(--r-s); margin-right: var(--sp-xs); background: var(--chip); color: var(--ink); }
-.change.up { background: var(--chip-up); color: var(--chip-up-ink); }
+.change.better { background: var(--ok-bg); color: var(--ok); }
+.change.worse { background: var(--ng-bg); color: var(--ng); }
 .cap { display: flex; justify-content: space-between; gap: var(--sp-s); font-size: var(--fs-xs); color: var(--muted); font-variant-numeric: tabular-nums; }
 
 /* 小さなグラフ */
@@ -111,7 +112,7 @@ svg text { font: var(--fs-xs) var(--sans); fill: var(--muted); font-variant-nume
 .btn-sub { display: inline-block; background: var(--chip); color: var(--ink); border-radius: var(--r-m); font-size: var(--fs-sm); font-weight: 600; padding: var(--sp-3xs) var(--sp-m); text-decoration: none; white-space: nowrap; }
 .btn-sub:hover { background: var(--tabs); }
 
-/* 書き出す: 月の一覧。行（summary）を押すと、同じ地のまま表ごとの行数と列が開く */
+/* 書き出す: 月の一覧。行（summary）を押すと、その行だけに薄い地が付き、地の無い中身に表ごとの行数と列が開く */
 .months { margin-top: var(--sp-s); font-size: var(--fs-label); font-variant-numeric: tabular-nums; }
 .m-row { display: grid; grid-template-columns: var(--month-cols); align-items: center; gap: var(--sp-m); padding: var(--cell-y) 0; border-bottom: 1px solid var(--rule); }
 .m-head { font-size: var(--fs-sm); font-weight: 600; color: var(--muted); padding-top: var(--sp-xs); border-bottom-color: var(--ink-2); }
@@ -122,8 +123,7 @@ svg text { font: var(--fs-xs) var(--sans); fill: var(--muted); font-variant-nume
 .m-month { white-space: nowrap; }
 .m-month::before { content: ""; display: inline-block; margin: 0 var(--sp-xs) 1px 0; border-style: solid; border-width: var(--caret-h) 0 var(--caret-h) var(--caret-w); border-color: transparent transparent transparent var(--muted); vertical-align: middle; transition: transform .15s; }
 .m-item[open] .m-month::before { transform: rotate(90deg); }
-.m-item[open] summary { font-weight: 600; border-bottom-style: dashed; }
-.m-item[open] summary .sub { font-weight: 400; }
+.m-item[open] summary { background: var(--track); border-bottom-style: dashed; }
 .m-tables { margin: 0; padding: var(--sp-2xs) 0 var(--sp-s) var(--sp-l); border-bottom: 1px solid var(--rule); font-size: var(--fs-sm); }
 .m-tables > div { display: grid; grid-template-columns: var(--month-table-cols); gap: var(--sp-m); align-items: baseline; padding: var(--sp-xs) 0; }
 .m-tables > div + div { border-top: 1px dotted var(--rule); }

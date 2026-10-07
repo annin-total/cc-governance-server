@@ -37,15 +37,15 @@ def test_null_rates_per_column():
     [
         (None, None),
         (0.0, "ok"),
-        (20.0, "ok"),
-        (20.1, "warn"),
-        (50.0, "warn"),
-        (50.1, "ng"),
+        (19.9, "ok"),
+        (20.0, "warn"),
+        (49.9, "warn"),
+        (50.0, "ng"),
         (100.0, "ng"),
     ],
 )
 def test_null_rate_status_boundaries(null_rate, status):
-    """しきい値ちょうどは下の区分（`>` で判定する）。"""
+    """しきい値ちょうどは上の区分（「以上」で判定する）。"""
     assert health.null_rate_status(null_rate) == status
 
 

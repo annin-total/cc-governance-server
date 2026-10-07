@@ -134,7 +134,7 @@ HEALTH_ITEM = {
     "reconciliation": ("CSV との照合率", "利用明細の最終日までの {period[days]} 日"),
     "tool_name": ("ツール名", "ツール実行の記録が分母"),
     "skill_name": ("スキル名", "Skill ツールの実行記録が分母"),
-    "context_tokens": ("コンテキストのトークン数", "圧縮直前と応答終了の記録が分母"),
+    "context_tokens": ("コンテキストのトークン数", "コンパクト直前と応答終了の記録が分母"),
     "command_source": ("コマンドの定義元", "コマンド展開の記録が分母"),
 }
 HEALTH_GROUP = {"recv": "受信", "null": "項目の欠け"}
@@ -151,13 +151,13 @@ USAGE_VALUE = {
         "startup": ("新規起動",),
         "resume": ("再開", "前のセッションを続けた"),
         "clear": ("クリア後",),
-        "compact": ("圧縮後",),
+        "compact": ("コンパクト後",),
     },
 }
 PROVIDER = {"aws-bedrock": "AWS Bedrock", "google-vertex": "Google Vertex AI"}
 # 設定のキー -> (名前, 表の列に出す短い名前)
 SETTING = {
-    "env.CLAUDE_AUTOCOMPACT_PCT_OVERRIDE": ("自動圧縮のしきい値", "しきい値"),
+    "env.CLAUDE_AUTOCOMPACT_PCT_OVERRIDE": ("自動コンパクトのしきい値", "しきい値"),
     "extraKnownMarketplaces.cc-marketplace-governance-bmsd.autoUpdate": ("プラグインの自動更新", "プラグイン更新"),
     "autoUpdatesChannel": ("本体の更新チャネル", "更新チャネル"),
     "env.DISABLE_AUTOUPDATER": ("自動更新の無効化を打ち消す", "自動更新"),

@@ -3,6 +3,8 @@
 from ccgov.web import labels as L
 from ccgov.web.screens import SAME, Card, Chip, Col, Screen, Tab, Viz
 from ccgov.web.screens import words as W
+from ccgov.web.text import HIGHER_IS_BETTER as UP
+from ccgov.web.text import LOWER_IS_BETTER as DOWN
 
 GROUPS = ("use", "data")
 
@@ -12,10 +14,10 @@ _PROVIDERS = Col("providers", "usd", each="cost[providers]", terms=L.PROVIDER)
 _COST_SPARK = Viz("spark", "cost[spark]", "total", fmt="usd")
 
 CARDS = (
-    Card("users", "use", "daily", "{users[recent]:num}", "{users[delta]:signed}", viz=Viz("spark", "trend[rows]", "users"),
+    Card("users", "use", "daily", "{users[recent]:num}", "{users[delta]:signed}", better=UP, viz=Viz("spark", "trend[rows]", "users"),
          long=Card("cost_users", "use", "weeks_users", "{cost_users[total]:num}", viz=Viz("spark", "cost_users[spark]", "users"))),
-    Card("sessions", "use", "daily", "{sessions[recent]:dec1}", "{sessions[delta]:signed1}", viz=Viz("spark", "trend[rows]", "sessions")),
-    Card("cost", "use", "cost", "{cost[recent]:usd}", "{cost[change]:signed_pct}", viz=_COST_SPARK,
+    Card("sessions", "use", "daily", "{sessions[recent]:dec1}", "{sessions[delta]:signed1}", better=UP, viz=Viz("spark", "trend[rows]", "sessions")),
+    Card("cost", "use", "cost", "{cost[recent]:usd}", "{cost[change]:signed_pct}", better=DOWN, viz=_COST_SPARK,
          long=Card("cost", "use", "weeks_cost", "{cost[recent]:usd}", viz=_COST_SPARK, words="cost_year")),
     Card("forecast", "use", "month", "{month[forecast]:usd}", viz=Viz("forecast", "month"), long=SAME),
     Card("bypass", "use", "modes", "{bypass[rate]:dec1}", viz=Viz("meter", "bypass[numerator]", den="bypass[denominator]")),

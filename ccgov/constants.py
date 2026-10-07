@@ -36,7 +36,7 @@ ASSET_CARD_ROWS = 3
 # コンテキストトークン数の分布のビン幅
 CONTEXT_BIN = 20000
 
-# 状態の判定。値は仮の基準であり、運用で見直す。いずれもこの値を超えたら該当する
+# 状態の判定。値は仮の基準であり、運用で見直す。率はこの値以上、件数と人数はこの値を超えたら該当する
 NULL_RATE_HIGH = 50
 NULL_RATE_ELEVATED = 20
 ERROR_COUNT_ELEVATED = 0

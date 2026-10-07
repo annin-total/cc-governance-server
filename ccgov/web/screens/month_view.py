@@ -35,14 +35,13 @@ def card(month: dict, words: dict) -> Optional[dict]:
     stats = []
     for label, key in words["stats"]:
         change = month[f"{key}_change"]
+        change = "" if change is None else text.fill("{v:signed_pct}", {"v": change})
         stats.append(
             {
                 "label": label,
                 "now": text.parts("{v:usd}", {"v": month[key]}),
-                "change": ""
-                if change is None
-                else text.fill("{v:signed_pct}", {"v": change}),
-                "up": bool(change and change > 0),
+                "change": change,
+                "tone": text.chip_tone(change, text.LOWER_IS_BETTER),
                 "prev": text.fill(
                     L.FC_PREV,
                     {
