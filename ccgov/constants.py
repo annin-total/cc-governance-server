@@ -32,6 +32,9 @@ EXPORT_BYTES_PER_ROW = {
     "cost_daily": 30,
 }
 
+# 長い一覧が初めに出す行の数。残りは「さらに表示」で開く（一覧ごとに変えられる）
+TABLE_FOLD_ROWS = 10
+
 # スキル・コマンドの利用のカードに並べる名前の数
 ASSET_CARD_ROWS = 3
 
