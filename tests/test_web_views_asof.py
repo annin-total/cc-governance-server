@@ -1,6 +1,6 @@
 """期間の終わり（利用明細の最終日）と基準日（`?asof=`）の検証。
 
-基準日は 20005（2024-10-09）、利用明細の最終日は 20004（10/08）、データの最初の日は 19970（09/04。u20 の利用明細）。
+基準日は 20005（2024-10-09）、利用明細の最終日は 20004（10/08）、最初の日は 19970（09/04。u20）で、選べる最初の日はその 27 日後の 10/01。
 """
 
 import re
@@ -9,7 +9,7 @@ import pytest
 from conftest import ADMIN, card, card_value, table_rows
 from known_data import TODAY, insert_event
 
-ASOF = "2024-09-30"
+ASOF = "2024-10-03"
 
 
 def _html(client, path="/", **args) -> str:
@@ -42,9 +42,9 @@ def _links(html: str) -> list:
         ("/assets", {}, "10/02〜10/08"),
         ("/effect", {}, "10/08 時点"),
         ("/policy", {}, "10/09 時点"),
-        ("/", {"asof": ASOF}, "09/24〜09/30"),
-        ("/assets", {"asof": ASOF, "period": "28"}, "09/03〜09/30"),
-        ("/effect", {"asof": ASOF}, "09/30 時点"),
+        ("/", {"asof": ASOF}, "09/27〜10/03"),
+        ("/assets", {"asof": ASOF, "period": "28"}, "09/06〜10/03"),
+        ("/effect", {"asof": ASOF}, "10/03 時点"),
         ("/policy", {"asof": ASOF}, "10/09 時点"),
     ],
 )
@@ -80,18 +80,17 @@ def test_without_csv_the_period_ends_today(known_db, today_client):
     html = _html(today_client)
     assert _span(html) == "10/03〜10/09"
     assert card_value(html, "受信した記録") == "14"
-    # 選べる範囲は記録の最初の日（e17 の 09/22）から。それより前は既定に戻す
-    assert _span(_html(today_client, asof="2024-09-22")) == "09/16〜09/22"
-    assert _span(_html(today_client, asof="2024-09-21")) == "10/03〜10/09"
+    # 利用明細が無ければ基準日を選べない
+    assert _span(_html(today_client, asof=ASOF)) == "10/03〜10/09"
 
 
 def test_asof_moves_every_window_of_the_overview(today_client):
-    """基準日 09/30 で終わる 7 日（09/24〜09/30）は e14〜e16 の 3 件、前の 7 日は e17 の 1 件。今月の見込みは 9 月。"""
+    """基準日 10/03 で終わる 7 日（09/27〜10/03）は e14〜e16 の 3 件、前の 7 日は e17 の 1 件。見込みは 10/03 まで。"""
     html = _html(today_client, asof=ASOF)
     assert card_value(html, "受信した記録") == "3"
     assert "前の 7 日 1 件" in card(html, "受信した記録")
     assert card_value(html, "コスト（利用明細）") == "$0.00"
-    assert "2024-09 · 利用明細（CSV）" in html
+    assert "10/03 まで" in card(html, "月末のコスト見込み（10 月）")
 
 
 def test_asof_cuts_the_effect_at_the_chosen_day(today_client):
@@ -105,7 +104,7 @@ def test_asof_cuts_the_effect_at_the_chosen_day(today_client):
     "value",
     [
         "2024-10-09",  # 今日（利用明細の最終日より後）
-        "2024-09-03",  # データの最初の日より前
+        "2024-09-30",  # 利用明細の最初の日の 27 日後より前
         "2024-02-30",
         "2024-10-1",
         "20241001",
@@ -122,7 +121,7 @@ def test_invalid_asof_falls_back_to_the_default(today_client, path, value):
 
 
 def test_edges_of_the_range_are_accepted(today_client):
-    assert _span(_html(today_client, asof="2024-09-04")) == "08/29〜09/04"
+    assert _span(_html(today_client, asof="2024-10-01")) == "09/25〜10/01"
     last = _html(today_client, asof="2024-10-08")
     assert _span(last) == "10/02〜10/08"
     assert all("asof=2024-10-08" in href for href in _links(last))

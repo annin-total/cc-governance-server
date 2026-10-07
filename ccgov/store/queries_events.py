@@ -1,7 +1,5 @@
 """`/` `/assets` 画面の集計クエリ。"""
 
-from typing import Optional
-
 from ccgov.constants import RECENT_DAYS
 from ccgov.metrics.windows import previous_window, recent_window
 from ccgov.store import db
@@ -15,13 +13,6 @@ _HEALTH_NULL_SCOPES = {
     "command_source": "hook_event = 'UserPromptExpansion'",
 }
 _DISTRIBUTION_COLUMNS = ("permission_mode", "effort_level", "source")
-
-
-def first_day(conn) -> Optional[int]:
-    """`events` の最初の `day`（空なら None）。`day` が先頭のインデックスで引く。"""
-    cur = conn.cursor()
-    cur.execute(db.q("SELECT MIN(day) FROM events"))
-    return cur.fetchone()[0]
 
 
 def _usage_with_trend(
