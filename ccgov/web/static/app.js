@@ -399,6 +399,12 @@
   document.addEventListener("click", (e) => {
     for (const cal of all(document, "details[data-cal][open]")) if (!cal.contains(e.target)) cal.open = false;
   });
+
+  // タブの外の表は、表を囲む節を単位に並べ替える（タブの中は setup が受け持つ）
+  document.addEventListener("click", (e) => {
+    const sorter = e.target.closest("[data-sort]");
+    if (sorter && !sorter.closest("[data-tabs]")) sort(sorter.closest("section"), sorter);
+  });
   document.addEventListener("keydown", (e) => {
     if (e.key !== "Escape") return;
     closeOrg(null);
