@@ -89,7 +89,7 @@ def test_empty_db_shows_dash_without_state(db_conn):
     assert card_value(html, "項目の欠け（最大）") == "—"
     assert card_value(html, "コスト（利用明細）") == "—"
     assert ">None<" not in html
-    for path in ("/policy", "/assets"):
+    for path in ("/policy", "/activity"):
         assert client.get(ADMIN + path).status_code == 200
 
 

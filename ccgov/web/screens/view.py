@@ -6,7 +6,15 @@ from ccgov import constants
 from ccgov.metrics import context, states
 from ccgov.web import charts, charts_hist, filters, text
 from ccgov.web import labels as L
-from ccgov.web.screens import SAME, Card, Screen, month_view, table, viz_cost
+from ccgov.web.screens import (
+    SAME,
+    Card,
+    Screen,
+    month_view,
+    table,
+    viz_activity,
+    viz_cost,
+)
 from ccgov.web.screens import words as W
 
 CONSTANTS = {
@@ -162,6 +170,8 @@ def _viz(card: Card, words: dict, ctx: dict) -> Optional[dict]:
     viz = card.viz
     if viz.kind in viz_cost.KINDS:
         return viz_cost.build(viz, words, ctx)
+    if viz.kind in viz_activity.KINDS:
+        return viz_activity.build(viz, words, ctx)
     src = text.lookup(ctx, viz.src)
     if viz.kind == "spark":
         values = [r[viz.field] for r in src]

@@ -39,11 +39,11 @@ def _links(html: str) -> list:
         ("/", {}, "10/02〜10/08"),
         ("/", {"period": "28"}, "09/11〜10/08"),
         ("/", {"period": "12m"}, "2023-10-09〜10/08"),
-        ("/assets", {}, "10/02〜10/08"),
+        ("/activity", {}, "10/02〜10/08"),
         ("/effect", {}, "10/08 時点"),
         ("/policy", {}, "10/09 時点"),
         ("/", {"asof": ASOF}, "09/27〜10/03"),
-        ("/assets", {"asof": ASOF, "period": "28"}, "09/06〜10/03"),
+        ("/activity", {"asof": ASOF, "period": "28"}, "09/06〜10/03"),
         ("/effect", {"asof": ASOF}, "10/03 時点"),
         ("/policy", {"asof": ASOF}, "10/09 時点"),
     ],
@@ -65,8 +65,8 @@ def test_events_after_the_last_csv_day_are_not_counted(known_db, today_client):
     html = _html(today_client)
     assert card_value(html, "受信した記録") == "13"
     assert table_rows(html, "daily")[0]["cells"][0].startswith("2024-10-08")
-    skills = {r["cells"][0]: r["cells"] for r in table_rows(_html(today_client, "/assets"), "skills")}  # fmt: skip
-    assert skills["pdf"][1] == "3 回"
+    calls = table_rows(_html(today_client, "/activity"), "calls")
+    assert [r["cells"][3] for r in calls if r["cells"][1] == "pdf"] == ["3 回"]
 
 
 def test_without_csv_the_period_ends_today(known_db, today_client):
@@ -128,13 +128,13 @@ def test_edges_of_the_range_are_accepted(today_client):
 
 
 @pytest.mark.parametrize(
-    "path", ["/", "/cost", "/assets", "/effect", "/policy", "/settings"]
+    "path", ["/", "/cost", "/activity", "/effect", "/policy", "/settings"]
 )
 def test_asof_is_kept_across_pages_and_period_tabs(today_client, path):
     """状態のページとデータと設定でも、URL の基準日を消さずに引き継ぐ。"""
     links = _links(_html(today_client, path, asof=ASOF, period="28"))
     assert links and all(f"asof={ASOF}" in href for href in links), links
-    if path in ("/", "/cost", "/assets"):
+    if path in ("/", "/cost", "/activity"):
         # アプリ名・ナビの 3 画面・28 日のタブ
         assert sum("period=28" in h for h in links) == 5
 

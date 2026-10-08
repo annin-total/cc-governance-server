@@ -1,4 +1,4 @@
-"""`/` `/assets` 画面の集計クエリ。"""
+"""概況の集計クエリ（記録の日・受信・利用者とセッションの推移・使われ方・照合）。"""
 
 from ccgov.constants import RECENT_DAYS
 from ccgov.metrics.windows import previous_window, recent_window
@@ -23,77 +23,6 @@ def days(conn, start: int, end: int) -> list:
         (start, end),
     )
     return [row[0] for row in cur.fetchall()]
-
-
-def _usage_with_trend(
-    conn, today: int, days: int, filter_column: str, group_columns: tuple
-) -> list:
-    """`group_columns` の各値に続けて (直近呼出, 直近利用者, 前呼出, 前利用者) を返す。
-
-    条件付き集約 1 本で書く。CTE + LEFT JOIN だと NULL を取りうる結合キーの行が落ちる。
-    """
-    recent_start, recent_end = recent_window(today, days)
-    prev_start, prev_end = previous_window(today, days)
-    cols = ", ".join(group_columns)
-    recent_calls_col = len(group_columns) + 1
-    sql = (
-        f"SELECT {cols},"
-        f" COUNT(DISTINCT CASE WHEN day BETWEEN ? AND ? THEN event_id END),"
-        f" COUNT(DISTINCT CASE WHEN day BETWEEN ? AND ? THEN user_email END),"
-        f" COUNT(DISTINCT CASE WHEN day BETWEEN ? AND ? THEN event_id END),"
-        f" COUNT(DISTINCT CASE WHEN day BETWEEN ? AND ? THEN user_email END)"
-        f" FROM events"
-        f" WHERE {filter_column} IS NOT NULL AND day BETWEEN ? AND ?"
-        f" GROUP BY {cols}"
-        f" ORDER BY {recent_calls_col} DESC, {cols}"
-    )
-    cur = conn.cursor()
-    cur.execute(
-        db.q(sql),
-        (
-            recent_start,
-            recent_end,
-            recent_start,
-            recent_end,
-            prev_start,
-            prev_end,
-            prev_start,
-            prev_end,
-            prev_start,
-            recent_end,
-        ),
-    )
-    return cur.fetchall()
-
-
-def skill_usage(conn, today: int, days: int = RECENT_DAYS) -> list:
-    return _usage_with_trend(conn, today, days, "skill_name", ("skill_name",))
-
-
-def command_usage(conn, today: int, days: int = RECENT_DAYS) -> list:
-    """生値のまま。"""
-    return _usage_with_trend(
-        conn, today, days, "command_name", ("command_name", "command_source")
-    )
-
-
-def subagent_counts(conn, today: int, days: int = RECENT_DAYS) -> tuple:
-    """直近のイベントのうち `agent_id` が非 NULL の件数と、全件数を `(分子, 分母)` で返す。
-
-    `agent_id` はサブエージェント内のツール呼出にだけ付く。
-    """
-    recent_start, recent_end = recent_window(today, days)
-    cur = conn.cursor()
-    cur.execute(
-        db.q(
-            "SELECT COUNT(DISTINCT event_id),"
-            " COUNT(DISTINCT CASE WHEN agent_id IS NOT NULL THEN event_id END)"
-            " FROM events WHERE day BETWEEN ? AND ?"
-        ),
-        (recent_start, recent_end),
-    )
-    denominator, numerator = cur.fetchone()
-    return numerator, denominator
 
 
 def user_session_trend(conn, today: int, days: int = RECENT_DAYS) -> list:

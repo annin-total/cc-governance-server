@@ -25,6 +25,14 @@
 {%- endif -%}
 {%- endmacro %}
 
+{% macro call_name(row) -%}
+<span class="code">{{ row.name }}</span>{% if row.via == "mcp" %}{{ sub(L.MCP_NAME.format("")) }}{% endif %}
+{%- endmacro %}
+
+{% macro top(v) -%}
+{%- for t in v %}{% if t.via == "mcp" %}{{ L.MCP_NAME.format(t.key) }}{% else %}{{ t.key }}{% endif %} {{ sub(t.calls|num) }}{% if not loop.last %}{{ sub(" · ") }}{% endif %}{% endfor -%}
+{%- endmacro %}
+
 {% macro cell(c) -%}
 {%- set v, row, col, k = c.v, c.row, c.col, c.col.kind -%}
 {%- if k == "measure" -%}{{ measure(v, row) }}{% if row.ratio %} {{ sub(row.ratio.numerator|num ~ " / " ~ row.ratio.denominator|num ~ " " ~ L.UNIT.person) }}{% endif %}
@@ -37,6 +45,8 @@
 {%- elif k == "user_state" -%}{{ mark(L.USER_STATE[v][0], L.OFF_ITEMS.format(row.off) if row.off else L.USER_STATE[v][1]) }}
 {%- elif k == "terminal_state" -%}{{ mark(*L.TERMINAL_STATE[v]) }}{% if row.stale and v != "stale" %} {{ mark(*L.TERMINAL_STATE.stale) }}{% endif %}
 {%- elif k == "off_keys" -%}{% if v %}<b class="num-ng">{{ v|length }}</b> {{ sub(v|map("short", col.terms or L.SETTING)|join("、")) }}{% else %}{{ sub("—") }}{% endif %}
+{%- elif k == "top" -%}{% if v %}{{ top(v) }}{% else %}{{ sub("—") }}{% endif %}
+{%- elif k == "call_name" -%}{{ call_name(row) }}
 {%- elif k == "dash_num" -%}{% if v %}{{ v|num }}{% else %}{{ sub("—") }}{% endif %}
 {%- elif v is none -%}{{ sub(L.UNSET if k == "value" else "—") }}
 {%- elif k == "num" -%}{{ v|num }}{% if col.unit %} {{ col.unit }}{% endif %}

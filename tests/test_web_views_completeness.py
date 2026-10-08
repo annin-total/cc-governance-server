@@ -62,8 +62,8 @@ def _referenced_names(env, template_name, seen=None):
         "/cost?period=12m",
         "/policy",
         "/effect",
-        "/assets",
-        "/assets?period=12m",
+        "/activity",
+        "/activity?period=12m",
         "/settings",
     ],
 )
@@ -97,8 +97,8 @@ def test_import_results_is_referenced_by_settings(today_app):
         ("cost_page", (windows.period("12m", TODAY),), True),
         ("policy", (TODAY,), False),
         ("effect", (TODAY,), False),
-        ("assets", (windows.period("7", TODAY),), False),
-        ("assets", (windows.period("12m", TODAY),), True),
+        ("activity", (windows.period("7", TODAY),), False),
+        ("activity", (windows.period("12m", TODAY),), True),
     ],
 )
 def test_every_report_value_is_used_by_screen_definition(known_db, report, args, long):

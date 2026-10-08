@@ -22,9 +22,9 @@ FOOTER = "端末から送られた値です。コストとトークンは全社�
 SCREENS = {
     "admin.index": ("概況", "全体の利用量と、データの届き具合"),
     "admin.cost_view": ("コストと利用者", "いくらかかり、誰に集まり、何人が使っているか"),
+    "admin.activity_view": ("利用状況", "どれだけの頻度で使い、何を呼び出し、セッションはどれだけ大きいか"),
     "admin.policy_view": ("設定の適用状況", "配布した設定が各端末で有効になっているか"),
     "admin.effect_view": ("設定の効果", "設定を守り始めた前後で、コンテキストの大きさとコストを比べる"),
-    "admin.assets_view": ("スキル・コマンドの利用", "配布したスキルやコマンドが使われているか"),
 }
 # 見出し帯の右端の入口: endpoint -> (見出し, 説明)
 PAGES = {"admin.settings": ("データと設定", "利用明細（CSV）の取り込み、月ごとの全ログの書き出し、営業日の数え方に使う会社の休日")}
@@ -53,7 +53,7 @@ RECENT = "直近 {period[days]} 日"
 PREV = "前の {period[days]} 日"
 PERIOD = {"recent": RECENT, "prev": PREV}
 
-# 期間の切り替え（概況とスキル・コマンドの利用）
+# 期間の切り替え（期間のページ）
 PERIOD_NAV = "期間"
 LONG_NAME = f"{LONG_MONTHS} か月"
 PERIOD_NAMES = {key: LONG_NAME if key == LONG_KEY else f"{key} 日" for key in KEYS}
@@ -91,7 +91,8 @@ FC_UNTIL = "{} まで"
 FC_NO_CSV = "今月の利用明細はまだありません"
 SIDE = {"before": "適用前", "after": "適用後"}
 TREND = {"up": "増えた", "down": "減った", "flat": "変わらない"}
-AGENT = {"agent": ("サブエージェントの中",), "main": ("サブエージェントの外",)}
+# 外部ツールのうち MCP のサーバの名前
+MCP_NAME = "{}（MCP）"
 
 # データと設定: 取り込む（CSV）
 IMPORT = {
