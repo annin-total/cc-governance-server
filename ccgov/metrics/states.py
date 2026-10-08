@@ -8,8 +8,8 @@ NG = "ng"
 NEUTRAL = "neutral"
 
 
-def above(value: Optional[float], threshold: float, tone: str) -> Optional[str]:
-    """`value` が `threshold` を超えたら `tone`、超えなければ `OK`。値が無ければ None。"""
+def at_least(value: Optional[float], threshold: float, tone: str) -> Optional[str]:
+    """`value` が `threshold` 以上なら `tone`、未満なら `OK`。値が無ければ None。"""
     if value is None:
         return None
-    return tone if value > threshold else OK
+    return tone if value >= threshold else OK

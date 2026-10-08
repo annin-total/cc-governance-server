@@ -120,7 +120,7 @@ def _card(card: Card, ctx: dict) -> dict:
         "value": value,
         "unit": "" if value == [(filters.EM_DASH, "")] else words.get("unit", ""),
         "delta": "" if delta == filters.EM_DASH else delta,
-        "up": delta.startswith("+"),
+        "tone": text.chip_tone(delta, card.better),
         "sub": text.parts(words.get("sub", ""), ctx),
         "state": (state, L.STATE[state]) if state else None,
         "wide": card.wide,

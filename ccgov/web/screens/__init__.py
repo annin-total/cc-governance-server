@@ -30,7 +30,10 @@ class Viz:
 
 @dataclass(frozen=True)
 class Card:
-    """要点のカード 1 枚。文言は `words.CARD[words or id]`（label・unit・sub・cap・row）。"""
+    """要点のカード 1 枚。文言は `words.CARD[words or id]`（label・unit・sub・cap・row）。
+
+    `better` は増減のチップの良し悪しの向き（`text.HIGHER_IS_BETTER`・`LOWER_IS_BETTER`）。空なら向きの無い差（灰）。
+    """
 
     id: str
     group: str
@@ -39,6 +42,7 @@ class Card:
     delta: str = ""
     state: str = ""
     chip: str = ""
+    better: str = ""
     wide: bool = False
     viz: Optional[Viz] = None
     long: Any = None

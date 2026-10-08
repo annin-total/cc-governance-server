@@ -16,9 +16,9 @@ def null_rate_status(null_rate: Optional[float]) -> Optional[str]:
     """NULL 率を状態（`ng`・`warn`・`ok`）に分ける。率が無ければ None。"""
     if null_rate is None:
         return None
-    if null_rate > NULL_RATE_HIGH:
+    if null_rate >= NULL_RATE_HIGH:
         return states.NG
-    return states.above(null_rate, NULL_RATE_ELEVATED, states.WARN)
+    return states.at_least(null_rate, NULL_RATE_ELEVATED, states.WARN)
 
 
 def worst_null_rate(rates_by_column: dict) -> tuple:

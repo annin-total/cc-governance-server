@@ -96,7 +96,7 @@ def errors(conn, today: int, days: int = RECENT_DAYS) -> dict:
         "rows": rows,
         "total": total,
         "kinds": len(rows),
-        "state": states.above(total, ERROR_COUNT_ELEVATED, states.WARN),
+        "state": states.at_least(total, ERROR_COUNT_ELEVATED, states.WARN),
         "stages": series.group_totals([(r["stage"], r["count"]) for r in rows]),
     }
 

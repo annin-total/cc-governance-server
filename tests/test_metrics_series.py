@@ -1,5 +1,12 @@
 """`metrics/series.py`・`metrics/versions.py`・`metrics/states.py` の単体検査。"""
 
+import pytest
+
+from ccgov.constants import (
+    ERROR_COUNT_ELEVATED,
+    NON_COMPLIANT_USERS_HIGH,
+    NOT_INTRODUCED_ELEVATED,
+)
 from ccgov.metrics import series, states, versions
 
 
@@ -44,7 +51,17 @@ def test_version_summary_handles_empty_and_odd_versions():
     assert got["latest"] == "1.2"
 
 
-def test_above_boundaries():
-    assert states.above(None, 0, states.WARN) is None
-    assert states.above(0, 0, states.WARN) == states.OK
-    assert states.above(1, 0, states.WARN) == states.WARN
+@pytest.mark.parametrize(
+    "threshold",
+    [ERROR_COUNT_ELEVATED, NON_COMPLIANT_USERS_HIGH, NOT_INTRODUCED_ELEVATED],
+)
+def test_count_thresholds_flag_from_one(threshold):
+    """件数・人数の閾値は「以上」で判定し、0 は正常、1 から該当する。"""
+    assert states.at_least(0, threshold, states.WARN) == states.OK
+    assert states.at_least(1, threshold, states.WARN) == states.WARN
+
+
+def test_at_least_boundaries():
+    assert states.at_least(None, 20, states.WARN) is None
+    assert states.at_least(19.9, 20, states.WARN) == states.OK
+    assert states.at_least(20, 20, states.WARN) == states.WARN

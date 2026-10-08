@@ -2,6 +2,7 @@
 
 from ccgov.web import labels as L
 from ccgov.web.screens import Card, Chip, Col, Screen, Tab, Viz
+from ccgov.web.text import HIGHER_IS_BETTER as UP
 
 GROUPS = ("calls", "agent")
 _TREND_CHIPS = tuple(Chip(k, v) for k, v in L.TREND.items())
@@ -12,9 +13,9 @@ _CALLS = (
 
 # fmt: off
 CARDS = (
-    Card("skills", "calls", "skills", "{skills[recent]:num}", "{skills[delta]:signed}", wide=True,
+    Card("skills", "calls", "skills", "{skills[recent]:num}", "{skills[delta]:signed}", better=UP, wide=True,
          viz=Viz("rates", "skills[top]", "share")),
-    Card("commands", "calls", "commands", "{commands[recent]:num}", "{commands[delta]:signed}", wide=True,
+    Card("commands", "calls", "commands", "{commands[recent]:num}", "{commands[delta]:signed}", better=UP, wide=True,
          viz=Viz("rates", "commands[top]", "share")),
     Card("agent", "agent", "agent", "{agent[rate]:dec1}", viz=Viz("meter", "agent[numerator]", den="agent[denominator]")),
 )

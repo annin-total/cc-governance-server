@@ -35,7 +35,7 @@
 {% macro forecast(v) -%}
 <span class="fc-stats">
 {%- for s in v.stats %}<span class="fc-stat"><span class="fc-label">{{ s.label }}</span>
-<span class="fc-now">{{ parts(s.now) }}{% if s.change %}<span class="change{{ ' up' if s.up }}">{{ s.change }}</span>{% endif %}</span><span class="fc-prev">{{ s.prev }}</span></span>
+<span class="fc-now">{{ parts(s.now) }}{% if s.change %}<span class="change{{ ' ' ~ s.tone if s.tone }}">{{ s.change }}</span>{% endif %}</span><span class="fc-prev">{{ s.prev }}</span></span>
 {%- endfor %}</span>
 {%- set g = v.geo %}
 <svg class="fc-cum" viewBox="0 0 {{ g.w }} {{ g.h }}" preserveAspectRatio="none" aria-hidden="true">

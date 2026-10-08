@@ -99,8 +99,10 @@ def build(conn, today: int) -> dict:
         "terminals": terminals,
         "counts": counts,
         "states": {
-            "off": states.above(counts["off"], NON_COMPLIANT_USERS_HIGH, states.NG),
-            "none": states.above(counts["none"], NOT_INTRODUCED_ELEVATED, states.WARN),
+            "off": states.at_least(counts["off"], NON_COMPLIANT_USERS_HIGH, states.NG),
+            "none": states.at_least(
+                counts["none"], NOT_INTRODUCED_ELEVATED, states.WARN
+            ),
         },
         "plugin": plugin,
         "core": core,

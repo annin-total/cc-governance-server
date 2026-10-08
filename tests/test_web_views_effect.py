@@ -50,8 +50,8 @@ def test_first_rollout_shows_no_records_before(db_conn):
     assert [r["cells"] for r in table_rows(html, "precompact")] == [
         ["120k–140k", "—", "—", "1", "100.0%"]
     ]
-    assert card_value(html, "圧縮直前のコンテキスト（中央の区間）") == "120k–140k"
-    assert "適用前 —" in card(html, "圧縮直前のコンテキスト（中央の区間）")
+    assert card_value(html, "コンパクト直前のコンテキスト（中央の区間）") == "120k–140k"
+    assert "適用前 —" in card(html, "コンパクト直前のコンテキスト（中央の区間）")
     assert rows_in_table(html, "stop") == []
 
 
