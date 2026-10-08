@@ -14,12 +14,17 @@ from known_data import (
 )
 
 from ccgov.constants import POLICY_DAYS, REFERENCE_KEY
+from ccgov.metrics import compliance
 from ccgov.store import db
+from ccgov.vendor import policy
 from ccgov.web import filters
 
 _CORE_OLD = "本体が古いバージョンの利用者"
 _PLUGIN_OLD = "プラグインが古いバージョンの利用者"
+_OFF = "未適用のある利用者"
+_NONE = "プラグイン未導入"
 _WARN = 'class="mark warn"'
+_NG = 'class="mark ng"'
 
 
 def test_policy_page_returns_200(today_client):
@@ -114,6 +119,71 @@ def test_outdated_card_warns_from_one_person(known_db, today_client):
     assert _WARN not in card(_html(today_client), _CORE_OLD)
     _core(known_db, "cv3", "u3", "h3b", "2.1.281", 12)
     assert _WARN in card(_html(today_client), _CORE_OLD)
+
+
+def test_plugin_outdated_card_warns_from_one_person(known_db, today_client):
+    """1.3.0 の h2・h3b が 1.4.0 を報告すれば 0 人で札なし、h2 が 1.3.0 に戻ると 1 人で注意（閾値は「以上」）。"""
+    insert_compliant_policy(known_db, "x2", TODAY, "u2", "h2")
+    insert_compliant_policy(known_db, "x3b", TODAY, "u3", "h3b")
+    html = _html(today_client)
+    assert card_value(html, _PLUGIN_OLD) == "0"
+    assert _WARN not in card(html, _PLUGIN_OLD)
+    insert_compliant_policy(
+        known_db, "x2b", TODAY, "u2", "h2", ts=TODAY * 86400 + 1, plugin_version="1.3.0"
+    )
+    html = _html(today_client)
+    assert card_value(html, _PLUGIN_OLD) == "1"
+    assert _WARN in card(html, _PLUGIN_OLD)
+
+
+def _comply_all(conn, user: str, host: str) -> None:
+    """端末 `host` が配る設定のすべてを、準拠の値で今日に報告する。"""
+    for i, (key, value) in enumerate(compliance.targets(policy.SET)):
+        insert_compliant_policy(
+            conn,
+            f"{host}-c{i}",
+            TODAY,
+            user,
+            host,
+            key_name=key,
+            value=value,
+            prev_value=value,
+        )
+
+
+def test_off_card_fails_from_one_person(known_db, today_client):
+    """対象の全端末が全設定に準拠すれば 0 人で札なし、h2 が K を違う値に戻すと 1 人で要対応（閾値は「以上」）。"""
+    for user, host in (
+        ("u1", "h1"),
+        ("u2", "h2"),
+        ("u3", "h3"),
+        ("u3", "h3b"),
+        ("u5", "h5"),
+    ):
+        _comply_all(known_db, user, host)
+    html = _html(today_client)
+    assert card_value(html, _OFF) == "0"
+    assert _NG not in card(html, _OFF)
+    insert_compliant_policy(
+        known_db, "x2b", TODAY, "u2", "h2", ts=TODAY * 86400 + 1, prev_value="80"
+    )
+    html = _html(today_client)
+    assert card_value(html, _OFF) == "1"
+    assert _NG in card(html, _OFF)
+
+
+def test_none_card_warns_from_one_person(known_db, today_client):
+    """未導入の u4 が報告すれば 0 人で札なし、コストだけの u6 が増えると 1 人で注意（閾値は「以上」）。"""
+    insert_compliant_policy(known_db, "x4", TODAY, "u4", "h4")
+    html = _html(today_client)
+    assert card_value(html, _NONE) == "0"
+    assert _WARN not in card(html, _NONE)
+    insert_cost_daily(
+        known_db, day=TODAY, user_email="u6", provider="aws-bedrock", cost=1.0
+    )
+    html = _html(today_client)
+    assert card_value(html, _NONE) == "1"
+    assert _WARN in card(html, _NONE)
 
 
 def test_last_report_day_is_the_most_delayed_terminal(known_db, today_client):
