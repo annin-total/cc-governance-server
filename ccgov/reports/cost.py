@@ -1,4 +1,4 @@
-"""概況の、利用明細（CSV）のコストの組み立て。窓は CSV の最終日で終わる。"""
+"""利用明細（CSV）のコストの組み立て。窓は CSV の最終日で終わる。"""
 
 from ccgov.metrics import series
 from ccgov.metrics.windows import Period
@@ -13,7 +13,6 @@ _KEYS = (
     "start",
     "end",
     "spark_start",
-    "last_end",
 )
 _LISTS = ("spark", "days", "weeks", "months", "providers")
 

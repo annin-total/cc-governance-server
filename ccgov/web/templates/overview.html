@@ -1,4 +1,16 @@
 {% set here = "admin.index" %}
-{% extends "screen.html" %}
+{% extends "base.html" %}
+{#- 概況: 専用ページのカードを 1 つの格子に流す。カードを押すと専用ページのタブへ、期間（期間のページだけ）と基準日を引き継いで移る -#}
 {% from "components/period.html" import switcher, span as period_span, stale %}
-{% block head_actions %}<div class="head-act">{{ switcher(period, "admin.index", keep_asof) }}{{ period_span(span, cal, "admin.index", {} if period == PERIOD_DEFAULT else {"period": period}) }}{{ stale(csv_stale, keep_asof) }}</div>{% endblock %}
+{% from "components/card.html" import card, state_filter %}
+{% block head_actions %}<div class="head-act">{{ state_filter() }}{{ switcher(period, "admin.index", keep_asof) }}{{ period_span(span, cal, "admin.index", {} if period == PERIOD_DEFAULT else {"period": period}) }}{{ stale(csv_stale, keep_asof) }}</div>{% endblock %}
+{% block content %}
+<div class="kpis">
+{%- for g in view.groups %}
+  <section class="group" aria-label="{{ g.label }}">
+    <h2 class="glabel">{{ g.label }}</h2>
+    <div class="cards">{% for c in g.cards %}{{ card(c, url_for(c.page, **(keep if c.page in PERIOD_SCREENS else keep_asof)) ~ c.href) }}{% endfor %}</div>
+  </section>
+{%- endfor %}
+</div>
+{% endblock %}

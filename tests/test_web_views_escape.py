@@ -62,7 +62,7 @@ def test_terminal_strings_are_escaped(known_db, today_client, page, tag):
     assert f"&lt;script&gt;{tag}&lt;/script&gt;" in html
 
 
-@pytest.mark.parametrize("page", ["/", "/settings"])
+@pytest.mark.parametrize("page", ["/cost", "/settings"])
 def test_holiday_name_is_escaped(known_db, today_client, page):
     """利用者が入れた会社の休日の名前も、今月のコストの暦日の表と設定の一覧でエスケープされる。"""
     from ccgov.store import queries_holidays

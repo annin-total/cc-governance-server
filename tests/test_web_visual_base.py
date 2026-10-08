@@ -76,10 +76,12 @@ def test_chip_tone_follows_the_sign_and_the_direction(delta, better, tone):
     assert text.chip_tone(text.fill("{d:signed}", {"d": delta}), better) == tone
 
 
-def test_overview_chips_are_colored_without_arrows(today_client):
-    """利用者の増加は改善、記録の件数の差は向きを持たない。▲▼ は付けない。"""
-    html = today_client.get(ADMIN + "/").get_data(as_text=True)
-    assert '<span class="change better">+1</span>' in card(html, "送信した利用者")
+def test_chips_are_colored_without_arrows(today_client):
+    """利用日数の増加は改善、記録の件数の差は向きを持たない。▲▼ は付けない。"""
+    html = today_client.get(ADMIN + "/activity").get_data(as_text=True)
+    assert '<span class="change better">+75.0%</span>' in card(
+        html, "1 人あたりの利用日数"
+    )
     collect = today_client.get(ADMIN + "/collect").get_data(as_text=True)
     assert '<span class="change">+10</span>' in card(collect, "受信した記録")
     assert "▲" not in html and "▼" not in html
@@ -87,7 +89,7 @@ def test_overview_chips_are_colored_without_arrows(today_client):
 
 def test_forecast_rise_in_cost_is_worse(today_client):
     html = today_client.get(ADMIN + "/").get_data(as_text=True)
-    assert '<span class="change worse">+4,808.3%</span>' in card(
+    assert '<span class="change worse">+5,583.3%</span>' in card(
         html, "月末のコスト見込み（10 月）"
     )
 

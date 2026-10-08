@@ -10,7 +10,6 @@ from ccgov.web.screens import (
     SAME,
     Card,
     Screen,
-    month_view,
     org,
     table,
     viz_activity,
@@ -111,7 +110,8 @@ def _org(screen: Screen, ctx: dict, long: bool) -> dict:
 def sources(screen: Screen, long: bool = False) -> set:
     """定義が参照する集計結果の名前（`users[recent]` なら `users`）。`long` は 12 か月で出すものだけ。"""
     names: set = set()
-    for card in filter(None, (pick(c, long) for c in screen.cards)):
+    # 日数の期間のカードは、出す日数に依らず数える（基準を超えた利用者は 7 日と 28 日で別のカード）
+    for card in filter(None, (pick(c, True) if long else c for c in screen.cards)):
         words = _words(card)
         for template in (
             words["label"],
@@ -124,6 +124,7 @@ def sources(screen: Screen, long: bool = False) -> set:
         paths = [card.state] + ([card.viz.src, card.viz.den] if card.viz else [])
         names |= {p.split("[")[0] for p in paths if p}
         names |= text.fields(words.get("foot", "")) | text.fields(words.get("tip", ""))
+        names |= text.fields(L.AT_SUB) if card.at else set()
         names |= {n for t in words.get("legend", ()) for n in text.fields(t)}
     for tab in filter(None, (pick(t, long) for t in screen.tabs)):
         words = W.TAB[tab.words or tab.id]
@@ -133,6 +134,8 @@ def sources(screen: Screen, long: bool = False) -> set:
     for group in screen.groups:
         scope = W.GROUP_LONG.get(group, W.LONG_SCOPE) if long else W.GROUP[group][1]
         names |= text.fields(scope)
+    if long or any(c.days for c in screen.cards):
+        names.add("period")  # 期間でカードを出し分ける（`build`）
     return names - set(CONSTANTS)
 
 
@@ -141,16 +144,18 @@ def _card(card: Card, ctx: dict) -> dict:
     value = text.parts(card.value, ctx) if card.value else []
     delta = text.fill(card.delta, ctx) if card.delta else ""
     state = text.lookup(ctx, card.state) if card.state else None
+    sub = (L.AT_SUB if card.at else "") + words.get("sub", "")
     return {
         "group": card.group,
         "tab": card.tab,
+        "page": card.page,
         "href": f"#{card.tab}" + (f":{card.chip}" if card.chip else ""),
         "label": text.fill(words["label"], ctx),
         "value": value,
         "unit": "" if value == [(filters.EM_DASH, "")] else words.get("unit", ""),
         "delta": "" if delta == filters.EM_DASH else delta,
         "tone": text.chip_tone(delta, card.better),
-        "sub": text.parts(words.get("sub", ""), ctx),
+        "sub": text.parts(sub, ctx),
         "state": _mark(state),
         "wide": card.wide,
         "caps": [text.fill(c, ctx) for c in _caps(words, ctx)],
@@ -174,8 +179,7 @@ def _caps(words: dict, ctx: dict) -> tuple:
 def _tip(row: dict, value: float, fmt: str, words: dict) -> str:
     unit = words.get("unit", "")
     shown = text.FORMATS[fmt](value) + (f" {unit}" if unit else "")
-    template = L.SPARK_TIP_WEEK if "end" in row else L.SPARK_TIP
-    return text.fill(template, {**row, "value": shown})
+    return text.fill(L.SPARK_TIP, {**row, "value": shown})
 
 
 def _viz(card: Card, words: dict, ctx: dict) -> Optional[dict]:
@@ -195,8 +199,6 @@ def _viz(card: Card, words: dict, ctx: dict) -> Optional[dict]:
         tips = [_tip(r, r[viz.field], viz.fmt, words) for r in src]
         geo["hits"] = [{**h, "tip": t} for h, t in zip(geo["hits"], tips)]
         return {"kind": "spark", "geo": geo}
-    if viz.kind == "forecast":
-        return month_view.card(src, words)
     if viz.kind == "meter":
         whole = text.lookup(ctx, viz.den)
         tip = text.fill(words["tip"], ctx) if "tip" in words else ""

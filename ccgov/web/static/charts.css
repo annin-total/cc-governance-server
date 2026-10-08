@@ -1,14 +1,7 @@
 /* 見込みのカード・累積のグラフ・週ごとの棒の月の行。値は tokens.css の変数だけを使う */
 
-/* 見込みのカード: 営業日あたりと 1 人 1 営業日あたりを 2 列に並べ、下端に低い累積の線 */
-.fc-stats { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-m); }
-.fc-stat { display: grid; min-width: 0; line-height: 1.5; font-variant-numeric: tabular-nums; }
-.fc-label, .fc-prev { font-size: var(--fs-sm); color: var(--muted); white-space: nowrap; }
-.fc-now { display: flex; align-items: center; gap: var(--sp-xs); font-family: var(--fig); font-size: var(--fs-label); font-weight: 600; color: var(--ink); white-space: nowrap; }
-.fc-now .change { margin-right: 0; font-family: var(--sans); font-size: var(--fs-sm); }
-.fc-cum { height: var(--fc-cum-h); margin-top: var(--sp-xs); }
-.fc-cum polyline, .cum polyline { fill: none; stroke-linejoin: round; }
-.fc-cum polyline { stroke-width: 1.5; }
+/* 累積の線: 今月の実績・見込みの破線・前月 */
+.cum polyline { fill: none; stroke-linejoin: round; }
 .fc-cum-now, .cum .cum-now { stroke: var(--accent); }
 .fc-cum-fc, .cum .cum-fc { stroke: var(--accent); stroke-dasharray: var(--cum-dash); }
 .fc-cum-prev, .cum .cum-prev { stroke: var(--ghost); }

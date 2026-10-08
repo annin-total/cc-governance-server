@@ -32,25 +32,6 @@
 {%- for s in b.segs %}<rect class="{{ 'bar-hi' if loop.last else 'bar-old' }}" x="{{ s.x }}" y="{{ s.y }}" width="{{ g.bw }}" height="{{ s.h }}"/>{% endfor -%}
 {%- endmacro %}
 
-{# 見込みのカード: 営業日あたりと 1 人 1 営業日あたり（前月と比べる）と、営業日を横軸にした低い累積の線 #}
-{% macro forecast(v) -%}
-<span class="fc-stats">
-{%- for s in v.stats %}<span class="fc-stat"><span class="fc-label">{{ s.label }}</span>
-<span class="fc-now">{{ parts(s.now) }}{% if s.change %}<span class="change{{ ' ' ~ s.tone if s.tone }}">{{ s.change }}</span>{% endif %}</span><span class="fc-prev">{{ s.prev }}</span></span>
-{%- endfor %}</span>
-{%- set g = v.geo %}
-<svg class="fc-cum" viewBox="0 0 {{ g.w }} {{ g.h }}" preserveAspectRatio="none" aria-hidden="true">
-  {%- if g.prev %}<polyline class="fc-cum-prev" points="{{ g.prev }}" vector-effect="non-scaling-stroke"/>{% endif %}
-  {%- if g.fc %}<polyline class="fc-cum-fc" points="{{ g.fc }}" vector-effect="non-scaling-stroke"/>{% endif %}
-  {%- if g.now %}<polyline class="fc-cum-now" points="{{ g.now }}" vector-effect="non-scaling-stroke"/>{% endif %}
-  {%- if g.last %}<circle class="spark-dot" cx="{{ g.last[0] }}" cy="{{ g.last[1] }}" r="2.5"/>{% endif %}
-  <line class="spark-guide" x1="0" x2="0" y1="0" y2="{{ g.h }}" vector-effect="non-scaling-stroke"/>
-  {%- for c in g.cols %}
-  <rect class="hit" x="{{ c.hit_x }}" y="0" width="{{ c.hit_w }}" height="{{ g.h }}" data-tip="{{ c.tip }}" data-gx="{{ c.cx }}"><title>{{ c.tip }}</title></rect>
-  {%- endfor %}
-</svg>
-{%- endmacro %}
-
 {# 当たり判定の面。値のツールチップ（data-tip）と、JS が無いときの title を持つ #}
 {% macro hits(cols, h) -%}
 {%- for c in cols %}<rect class="hit" x="{{ c.hit_x }}" y="0" width="{{ c.hit_w }}" height="{{ h }}" data-tip="{{ c.tip }}" data-gx="{{ c.gx if c.gx is defined else c.cx }}"><title>{{ c.tip }}</title></rect>{% endfor -%}
@@ -117,7 +98,6 @@
 
 {% macro viz(v) -%}
 {%- if v.kind == "spark" -%}{{ spark(v.geo) }}
-{%- elif v.kind == "forecast" -%}{{ forecast(v) }}
 {%- elif v.kind == "meter" -%}<span class="meter {{ v.tone }}"{% if v.tip %} data-tip="{{ v.tip }}" title="{{ v.tip }}"{% endif %}><i style="width: {{ v.pct|round(1) }}%"></i></span>
 {%- elif v.kind == "cols" -%}{{ cols(v) }}
 {%- elif v.kind == "dist" -%}{{ dist(v) }}

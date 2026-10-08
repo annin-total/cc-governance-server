@@ -1,4 +1,4 @@
-"""日ごとの値の並びと、期間ごとの合計・平均・増減の計算。"""
+"""日ごとの値の並びと、期間ごとの合計・増減の計算。"""
 
 from typing import Optional
 
@@ -10,10 +10,6 @@ def by_day(values_by_day: dict, start: int, end: int, default=0) -> list:
 
 def total_between(values_by_day: dict, start: int, end: int) -> float:
     return sum(v for day, v in values_by_day.items() if start <= day <= end)
-
-
-def mean(values: list) -> Optional[float]:
-    return sum(values) / len(values) if values else None
 
 
 def change_pct(recent: float, previous: float) -> Optional[float]:

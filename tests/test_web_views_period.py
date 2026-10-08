@@ -3,7 +3,7 @@
 import re
 
 import pytest
-from conftest import ADMIN, card, card_value, table_rows
+from conftest import ADMIN, card_value, table_rows
 
 from ccgov.metrics import windows
 
@@ -50,75 +50,48 @@ def test_default_and_unknown_period_are_seven_days(today_client):
 
 
 def test_28_days_rewrites_windows_and_words(today_client):
-    html = _html(today_client, period="28")
-    assert "直近 28 日と、その前の 28 日" in _group(html, "利用")
-    assert "前の 28 日 0 人" in card(html, "送信した利用者")
-    assert card_value(html, "送信した利用者") == "6"
-    assert len(table_rows(html, "daily")) == 56
-    assert _tab_hint(html, "daily") == "直近 56 日"
-    assert "前の 28 日" in table_rows(html, "daily")[-1]["cells"][1]
+    html = _html(today_client, "/cost", period="28")
+    assert "前の 28 日" in _group(html, "コスト")
+    assert _tab_hint(html, "cost") == "直近 56 日 · 利用明細"
+    activity = _html(today_client, "/activity", period="28")
+    assert len(table_rows(activity, "daily_use")) == 56
+    assert "前の 28 日" in table_rows(activity, "daily_use")[-1]["cells"][1]
 
 
 def test_cost_tab_follows_the_period_ending_at_the_last_csv_day(today_client):
     """日ごとのコストは CSV の最終日で終わる直近と前の期間。7 日では 19991 より前の行（u20）は出ない。"""
-    rows = table_rows(_html(today_client), "cost")
+    rows = table_rows(_html(today_client, "/cost"), "cost")
     assert [r["cells"][0][:10] for r in rows] == [
         "2024-10-08", "2024-10-07", "2024-10-06", "2024-10-05", "2024-10-04",
     ]  # fmt: skip
     assert all(r["tags"] == ["recent"] for r in rows)
-    rows28 = table_rows(_html(today_client, period="28"), "cost")
+    rows28 = table_rows(_html(today_client, "/cost", period="28"), "cost")
     assert rows28[-1]["cells"][0][:10] == "2024-09-04" and rows28[-1]["tags"] == [
         "prev"
     ]
 
 
-def test_twelve_months_shows_only_cost_items(today_client):
+def test_twelve_months_counts_from_the_first_csv_day(today_client):
+    """CSV は 2024-09-04 からしか無いので、その日から数える（記録の無い週を 0 で埋めない）。"""
     html = _html(today_client, period="12m")
-    use = _group(html, "利用")
     assert card_value(html, "利用明細にいた利用者") == "6"
     assert card_value(html, "コスト（利用明細）") == "$16.50"
-    assert "月末のコスト見込み" in use
-    assert "送信した利用者</span>" not in use
-    assert (
-        "送信した利用者・1 日あたりのセッション・確認なしモードの記録は、記録から数えるため 12 か月では出しません"
-        in use
+    assert "直近 12 か月（2024-09-04〜2024-10-08）" in _group(
+        _html(today_client, "/cost", "12m"), "コスト"
     )
-    # CSV は 2024-09-04 からしか無いので、その日から数える（記録の無い週を 0 で埋めない）
-    assert "直近 12 か月（2024-09-04〜2024-10-08）" in use
-
-
-def test_twelve_months_keeps_every_tab(today_client):
-    """下段のタブは全部残し、出せないタブは同じ場所に「12 か月では出しません」。"""
-    html = _html(today_client, period="12m")
-    tabs = re.findall(r'data-tab="([^"]+)"><b>([^<]*)</b><span>([^<]*)</span>', html)
-    assert [(t, label) for t, label, _ in tabs] == [
-        ("weeks_users", "週ごとの利用者"), ("weeks_cost", "週ごとのコスト"), ("month", "今月のコスト"),
-        ("modes", "使われ方"),
-    ]  # fmt: skip
-    assert [hint for t, _, hint in tabs if t == "modes"] == ["12 か月では出しません"]
-    panel = html.split('data-panel="modes"')[1]
-    assert (
-        "12 か月では出しません。記録から数える項目は 7 日・28 日で見られます。" in panel
-    )
-    assert "<table" not in panel
 
 
 def test_twelve_months_weekly_rows_and_monthly_totals(today_client):
-    """週は月曜始まり。週の人数は重複なし、月の合計は暦月（軸の下の行）。"""
-    html = _html(today_client, period="12m")
+    """週は月曜始まり。月の合計は暦月（軸の下の行）。"""
+    html = _html(today_client, "/cost", "12m")
     weeks = table_rows(html, "weeks_cost")
     assert len(weeks) == 6
     assert weeks[0]["cells"][0] == "2024-10-07〜（2 日分）"
     assert weeks[-1]["cells"][0] == "2024-09-04〜（5 日分）"
     assert weeks[0]["cells"][-2] == "$9.50"
-    users = table_rows(html, "weeks_users")
-    assert users[0]["cells"][1] == "3 人" and users[1]["cells"][1] == "3 人"
     chart = html.split('data-panel="weeks_cost"')[1].split("</svg>")[0]
     assert re.search(r'class="month-name"[^>]*>2024-10（途中）</text>', chart)
     assert re.search(r'class="month-total"[^>]*>\$15\.50</text>', chart)
-    users_chart = html.split('data-panel="weeks_users"')[1].split("</svg>")[0]
-    # 10 月の週の人数の合計は 6 人だが、u1 が 2 つの週にいるので月は 5 人
-    assert re.search(r'class="month-total"[^>]*>5 人</text>', users_chart)
 
 
 def test_activity_twelve_months_is_all_unavailable(today_client):

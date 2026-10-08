@@ -1,4 +1,4 @@
-"""12 か月の、利用明細（CSV）の週ごと（月曜始まり）と暦月ごとのコスト・利用者数。
+"""12 か月の、利用明細（CSV）の週ごと（月曜始まり）と暦月ごとのコスト。
 
 CSV が 12 か月に満たなければ、CSV の最初の日から数える（記録の無い週を 0 で埋めない）。
 """
@@ -7,11 +7,8 @@ import dataclasses
 
 from ccgov.metrics import calendar
 from ccgov.metrics.windows import Period
-from ccgov.store import queries_cost
 
 _WEEK_DAYS = 7
-_USER_KEYS = ("total", "start", "end", "last_start", "last_end", "last_users")
-_USER_LISTS = ("spark", "weeks", "months")
 
 
 def _week_rows(weeks: list, values: list) -> list:
@@ -68,7 +65,6 @@ def cost(found: dict, providers: list, window: Period) -> dict:
         weeks, [{"total": t, "providers": p} for t, p in zip(week_totals, by_provider)]
     )
     total = sum(totals.values())
-    full = [r for r in rows if not r["partial"]]
     covered = window.end - window.start + 1
     month_days = (
         calendar.add_months(window.end, window.months) - window.end
@@ -78,42 +74,9 @@ def cost(found: dict, providers: list, window: Period) -> dict:
         "monthly": total / covered * month_days if totals else None,
         "start": window.start,
         "end": window.end,
-        "spark": full,
-        "last_end": full[-1]["end"] if full else None,
         "weeks": rows,
         "months": _month_rows(
             months, weeks, [{"total": t} for t in calendar.sum_by_spans(totals, months)]
         ),
         "providers": providers,
-    }
-
-
-def users(conn, period: Period) -> dict:
-    """利用明細にコストがあった利用者の数。週・月は、その範囲の中で重複を除いた人数。"""
-    end = queries_cost.cost_window_end(conn, period.end)
-    if end is None:
-        return {**dict.fromkeys(_USER_KEYS), **{k: [] for k in _USER_LISTS}}
-    window = period.ending(end)
-    pairs = queries_cost.cost_user_days(conn, window.start, end)
-    window = _from_data(window, [day for day, _ in pairs])
-    weeks, months = _spans(window)
-    rows = _week_rows(
-        weeks, [{"users": n} for n in calendar.distinct_by_spans(pairs, weeks)]
-    )
-    full = [r for r in rows if not r["partial"]]
-    last = full[-1] if full else {}
-    return {
-        "total": len({user for _, user in pairs}),
-        "start": window.start,
-        "end": window.end,
-        "last_start": last.get("day"),
-        "last_end": last.get("end"),
-        "last_users": last.get("users"),
-        "spark": full,
-        "weeks": rows,
-        "months": _month_rows(
-            months,
-            weeks,
-            [{"users": n} for n in calendar.distinct_by_spans(pairs, months)],
-        ),
     }

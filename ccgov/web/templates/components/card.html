@@ -1,11 +1,13 @@
-{# 上段の要点のカード。群ごとに見出しと期間・母集団を付ける。カードを押すと、対応するタブ（と区分）が開く。タブの無いカードは押せない。 #}
+{# 上段の要点のカード。群ごとに見出しと期間・母集団を付ける。カードを押すと、対応するタブ（と区分）が開く。タブの無いカードは押せない。
+   link があれば別の画面のタブへ移るリンクにし、状態の絞り込みのために札の状態（data-state）を持つ。 #}
 {% from "components/marks.html" import mark %}
 {% from "components/charts.html" import viz, caps %}
 {% from "components/values.html" import parts %}
 
-{% macro card(c) -%}
-{%- if c.tab %}<a class="card{{ ' wide' if c.wide }}" href="#{{ c.tab }}" data-open="{{ c.href[1:] }}">{% else %}<div class="card still{{ ' wide' if c.wide }}">{% endif %}
-  <span class="k-label"><span>{{ c.label }}</span>{% if c.state %}{{ mark(*c.state) }}{% elif c.tab %}<span class="go">{{ L.OPEN_LIST }}</span>{% endif %}</span>
+{% macro card(c, link=none) -%}
+{%- if link %}<a class="card{{ ' wide' if c.wide }}" href="{{ link }}" data-state="{{ c.state[0] if c.state }}">
+{%- elif c.tab %}<a class="card{{ ' wide' if c.wide }}" href="#{{ c.tab }}" data-open="{{ c.href[1:] }}">{% else %}<div class="card still{{ ' wide' if c.wide }}">{% endif %}
+  <span class="k-label"><span>{{ c.label }}</span>{% if c.state %}{{ mark(*c.state) }}{% elif c.tab %}<span class="go{{ ' away' if link }}">{{ L.OPEN_LIST }}</span>{% endif %}</span>
   {%- if c.value %}
   <span class="k-value">{{ parts(c.value) }}<span class="u">{{ c.unit }}</span></span>
   {%- endif %}
@@ -27,5 +29,12 @@
     {%- endif %}
   </section>
 {%- endfor %}
+</div>
+{%- endmacro %}
+
+{# 状態の絞り込み（概況の見出しの右）。当たらないカードを薄くするのは JS で、JS が無ければ出さない #}
+{% macro state_filter() -%}
+<div class="chipbar states" role="group" aria-label="{{ L.STATE_FILTER_GROUP }}" data-states hidden>
+  {%- for level, label in L.STATE_FILTER.items() %}<button type="button" data-level="{{ level }}" aria-pressed="{{ 'true' if loop.first else 'false' }}">{% if not loop.first %}<i class="dot {{ level }}"></i>{% endif %}{{ label }}</button>{% endfor -%}
 </div>
 {%- endmacro %}

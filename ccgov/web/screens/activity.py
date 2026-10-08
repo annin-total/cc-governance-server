@@ -3,13 +3,10 @@
 すべて記録から数えるため、12 か月ではカードを出さず、タブは「出しません」にする（`long` を持たない）。
 """
 
-import dataclasses
-
 from ccgov.constants import TABLE_FOLD_ROWS
 from ccgov.web import labels as L
 from ccgov.web.screens import USER_SEARCH, Card, Chip, Col, Screen, Tab, Viz
 from ccgov.web.screens import words as W
-from ccgov.web.screens.overview import TABS as _OVERVIEW_TABS
 from ccgov.web.text import HIGHER_IS_BETTER as UP
 from ccgov.web.text import LOWER_IS_BETTER as DOWN
 
@@ -71,7 +68,10 @@ TABS = (
         Col("bin", "bin"), Col("prev", "num", label="prev_n"), Col("prev_share", "pct", label="prev_share"),
         Col("recent", "num", label="recent_n"), Col("recent_share", "pct", label="recent_share"),
     ), sort=("bin", "asc"), chart="sizes"),
-    dataclasses.replace(next(t for t in _OVERVIEW_TABS if t.id == "modes"), id="usage_modes"),
+    Tab("usage_modes", "usage", (
+        Col("field", "tag", terms=L.USAGE_FIELD), Col("value", "term", terms=L.USAGE_VALUE, by="field"),
+        Col("count", "num"), Col("share", "pct"), Col("share", "bar", label="bar", sort=None, den="100"),
+    ), chips_by="field", chips=tuple(Chip(k, v) for k, v in L.USAGE_FIELD.items())),
 )
 # fmt: on
 

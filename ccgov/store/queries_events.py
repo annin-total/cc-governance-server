@@ -25,21 +25,6 @@ def days(conn, start: int, end: int) -> list:
     return [row[0] for row in cur.fetchall()]
 
 
-def user_session_trend(conn, today: int, days: int = RECENT_DAYS) -> list:
-    """`day` 別の利用者数・セッション数を、直近と前の `days` 日の集計期間で返す（`day` の昇順）。"""
-    window_start, _ = previous_window(today, days)
-    _, window_end = recent_window(today, days)
-    cur = conn.cursor()
-    cur.execute(
-        db.q(
-            "SELECT day, COUNT(DISTINCT user_email), COUNT(DISTINCT session_id)"
-            " FROM events WHERE day BETWEEN ? AND ? GROUP BY day ORDER BY day"
-        ),
-        (window_start, window_end),
-    )
-    return cur.fetchall()
-
-
 def distribution(conn, today: int, column: str, days: int = RECENT_DAYS) -> list:
     """`column` 別の直近の件数（生値）。`column` は SQL に埋め込むため `_DISTRIBUTION_COLUMNS` で検査する。"""
     if column not in _DISTRIBUTION_COLUMNS:

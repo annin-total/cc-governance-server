@@ -2,7 +2,7 @@
 
 from typing import Optional
 
-from ccgov.metrics import calendar, forecast, series
+from ccgov.metrics import calendar, forecast
 from ccgov.store import queries_cost, queries_holidays
 
 
@@ -11,10 +11,6 @@ def _as_of(last_csv: Optional[int], first: int, last: int) -> Optional[int]:
     if last_csv is None or last_csv < first:
         return None
     return min(last_csv, last)
-
-
-def _change(now: Optional[float], prev: Optional[float]) -> Optional[float]:
-    return None if now is None or prev is None else series.change_pct(now, prev)
 
 
 def _merge(mode: str, cur: list, prev: list) -> list:
@@ -44,7 +40,7 @@ def _merge(mode: str, cur: list, prev: list) -> list:
 
 
 def build(conn, today: int) -> dict:
-    """見込み・営業日あたり・1 人 1 営業日あたり（前月と比べる）と、営業日ごと・暦日ごとの行。"""
+    """見込みと前月の実績と、営業日ごと・暦日ごとの行。"""
     last_csv = queries_cost.cost_window_end(conn, today)
     first, last = calendar.month_bounds(today)
     prev_first, prev_last = calendar.month_bounds(first - 1)
@@ -58,12 +54,6 @@ def build(conn, today: int) -> dict:
     )
     cur = forecast.month(totals, first, last, as_of, company)
     prev = forecast.month(totals, prev_first, prev_last, prev_as_of, company)
-    users = queries_cost.cost_user_count(conn, first, as_of) if as_of else 0
-    prev_users = (
-        queries_cost.cost_user_count(conn, prev_first, prev_as_of) if prev_as_of else 0
-    )
-    per_user = forecast.per_user(cur["per_bd"], users)
-    prev_per_user = forecast.per_user(prev["per_bd"], prev_users)
     return {
         "month": first,
         "prev_month": prev_first,
@@ -72,14 +62,6 @@ def build(conn, today: int) -> dict:
         "forecast": cur["forecast"],
         "business_days": cur["business_days"],
         "elapsed": cur["elapsed"],
-        "per_bd": cur["per_bd"],
-        "prev_per_bd": prev["per_bd"],
-        "per_bd_change": _change(cur["per_bd"], prev["per_bd"]),
-        "users": users,
-        "prev_users": prev_users,
-        "per_user": per_user,
-        "prev_per_user": prev_per_user,
-        "per_user_change": _change(per_user, prev_per_user),
         "prev_actual": prev["actual"],
         "rows": _merge("bd", cur["bd"], prev["bd"])
         + _merge("cal", cur["cal"], prev["cal"]),

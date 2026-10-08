@@ -8,7 +8,6 @@ import math
 from ccgov.web.charts import nice_step
 
 TAB = {"w": 1100, "h": 232, "left": 56, "top": 8, "bottom": 22}
-MINI = {"w": 300, "h": 28, "left": 0, "top": 2, "bottom": 2}
 CARD = {"w": 300, "h": 48, "left": 0, "top": 4, "bottom": 2}
 
 

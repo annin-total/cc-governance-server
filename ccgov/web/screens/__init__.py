@@ -39,6 +39,7 @@ class Card:
     """要点のカード 1 枚。文言は `words.CARD[words or id]`（label・unit・sub・cap・row）。
 
     `better` は増減のチップの良し悪しの向き（`text.HIGHER_IS_BETTER`・`LOWER_IS_BETTER`）。空なら向きの無い差（灰）。
+    `page` があれば、押すとその画面（endpoint）の `tab` へ移る。`at` なら値の下の 1 行の頭に今日の時点（集計結果の `at`）を添える。
     """
 
     id: str
@@ -54,6 +55,8 @@ class Card:
     long: Any = None
     words: str = ""
     days: tuple = ()
+    page: str = ""
+    at: bool = False
 
 
 @dataclass(frozen=True)

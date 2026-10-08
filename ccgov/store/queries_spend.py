@@ -1,6 +1,6 @@
 """コストと利用者のページの、利用明細（`cost_daily`）の利用者ごと・モデルごとの集計クエリ。
 
-利用者はその日にコスト（0 より大きい）の行がある日だけ数える（`queries_cost.cost_user_days` と同じ）。
+利用者はその日にコスト（0 より大きい）の行がある日だけ数える（`queries_cost.cost_user_count` と同じ）。
 """
 
 from ccgov.store import db

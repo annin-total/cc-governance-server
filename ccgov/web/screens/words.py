@@ -23,7 +23,7 @@ _BILL_LONG = "利用明細 直近 {period[months]} か月（{cost[start]:day}〜
 _MONTH = "{month[month]:ym} · 利用明細の最終日（{month[as_of]:md}）まで · 前月の実績と比べる · 各月にコストがあった利用者"
 # 群: id -> (見出し, 期間と母集団)
 GROUP = {
-    "use": ("利用", "直近 {period[days]} 日と、その前の {period[days]} 日"),
+    "main": ("主な指標", ""),
     "bill": ("コスト", _BILL),
     "month": ("今月", _MONTH),
     "billed": ("利用者", _BILL),
@@ -31,7 +31,7 @@ GROUP = {
 # 群の 12 か月での期間と母集団（無ければ `LONG_SCOPE`）
 LONG_SCOPE = "直近 {period[months]} か月"
 GROUP_LONG = {
-    "use": "直近 {period[months]} か月（{cost[start]:day}〜{cost[end]:day}）· 週ごと · 利用明細の項目だけ",
+    "main": "",
     "bill": _BILL_LONG, "month": _MONTH, "billed": _BILL_LONG,
 }
 # 12 か月で出さないカードの注記（無ければ `labels.NOT_LONG_CARDS`）
@@ -42,26 +42,8 @@ OVER_BASIS = {"day": "日次", "week": "週次", "month": "月次"}
 OVER_KIND = {"new": "新規", "kept": "継続", "left": "離脱"}
 OVER = {"prev": "前 {prev:num} 人（{diff:signed} 人）", "share": "コストの {share:pct}", "new": "新規 {new:num} 人",
         "left": "離脱 {left:num} 人", "move": "注意→要確認 {up:num} · 要確認→注意 {down:num}"}
-_WEEKS_CAP = ("{cost[start]:ym}", "完了した週ごと")
 # カード: label・unit・sub（値の下の 1 行）・cap（グラフの下の注記）・row（rates の行の右端）
 CARD = {
-    "users": {"label": "送信した利用者", "unit": "人", "sub": "前の {period[days]} 日 {users[prev]:num} 人",
-              "cap": ("{trend[start]:md}", "濃い部分が直近 {period[days]} 日", "{trend[end]:md}")},
-    "sessions": {"label": "1 日あたりのセッション", "unit": "件", "sub": "前の {period[days]} 日 {sessions[prev]:dec1} 件",
-                 "cap": ("{trend[start]:md}", "濃い部分が直近 {period[days]} 日", "{trend[end]:md}")},
-    "cost": {"label": "コスト（利用明細）", "sub": "前の {period[days]} 日 {cost[prev]:usd}",
-             "cap": ("{cost[spark_start]:md}", "{cost[start]:md}〜{cost[end]:md} の合計", "{cost[end]:md}")},
-    "cost_year": {"label": "コスト（利用明細）", "sub": "月平均 {cost[monthly]:usd} · 前の期間と比べない",
-                  "cap": (*_WEEKS_CAP, "{cost[last_end]:md}")},
-    "cost_users": {"label": "利用明細にいた利用者", "unit": "人",
-                   "sub": "直近の週（{cost_users[last_start]:md}〜{cost_users[last_end]:md}）{cost_users[last_users]:num} 人",
-                   "cap": (*_WEEKS_CAP, "{cost_users[last_end]:md}")},
-    "forecast": {"label": "月末のコスト見込み（{month[month]:mon} 月）",
-                 "cap": ("実績 {month[actual]:usd} · {month[elapsed]:num} / {month[business_days]:num} 営業日", "{month[as_of]:asof}"),
-                 "stats": (("営業日あたり", "per_bd"), ("1 人 1 営業日あたり", "per_user")),
-                 "empty": "month[as_of]", "cap_empty": ("今月（{month[month]:mon} 月）の利用明細はまだありません",)},
-    "bypass": {"label": "確認なしモードの記録", "unit": "%", "sub": "{bypass[numerator]:num} 件 / 全 {bypass[denominator]:num} 件",
-               "cap": ("権限モード「確認なし」の割合",)},
     "cost_total": {"label": "コスト（利用明細）", "sub": "前 {cost[prev]:usd}",
                    "cap": ("{cost[spark_start]:md}", "{cost[end]:md}"),
                    "foot": "日ごと · 地のある区間が直近 {period[days]} 日"},
@@ -116,16 +98,9 @@ CARD = {
 PAIR = {"prev": PREV, "recent": RECENT}
 # タブ: label・hint（タブの 2 行目）・title・scope・note・search（入力欄の案内）・all（全件の区分の名前）
 TAB = {
-    "daily": {"label": "日ごとの利用", "hint": "直近 {period[span]} 日", "title": "日ごとの利用者数とセッション数",
-              "scope": "直近 {period[span]} 日 · 日ごと · 濃い色が直近 {period[days]} 日", "unit": "日",
-              "charts": (("利用者数", "users"), ("セッション数", "sessions"))},
     "cost": {"label": "日ごとのコスト", "hint": "直近 {period[span]} 日 · 利用明細", "title": "日ごとのコスト", "unit": "日",
              "scope": "利用明細（CSV）{cost[spark_start]:md}〜{cost[end]:md} · 日 × 提供元（USD）· 濃い地が直近 {period[days]} 日",
              "search": "日付（例: 09-2）"},
-    "weeks_users": {"label": "週ごとの利用者", "hint": "{cost_users[weeks]:count} 週 · 利用明細", "title": "週ごとの利用者数（利用明細）",
-                    "unit": "週", "legend": ("軸の下の行は暦月の利用者数（月の中の重複なし）",),
-                    "scope": "{cost_users[start]:day}〜{cost_users[end]:day} · 月曜始まりの週 · セッション数は記録から数えるため出しません",
-                    "note": "週の人数は、その週に利用明細にコストがあった人数です。月の人数は週の人数の合計ではありません。"},
     "weeks_cost": {"label": "週ごとのコスト", "hint": "{cost[weeks]:count} 週 · 利用明細", "title": "週ごとのコスト", "unit": "週",
                    "scope": "利用明細（CSV）{cost[start]:day}〜{cost[end]:day} · 週 × 提供元（USD）",
                    "legend": ("薄い棒は途中の週 · 軸の下の行は暦月の合計",),
@@ -139,14 +114,10 @@ TAB = {
               "off": "{month[month]:mon} 月の週末・祝日・会社の休日",
               "note": "見込みは実績 × 月の営業日数 ÷ 経過した営業日数です（{month[actual]:usd} × {month[business_days]:num} ÷ {month[elapsed]:num}）。"
                       "営業日は平日から国民の祝日と会社の休日を除いた日です。見込みの累積は残りの営業日に置いています。"
-                      "1 人 1 営業日あたりは、営業日あたりをその月に利用明細でコストがあった利用者"
-                      "（{month[month]:mon} 月 {month[users]:num} 人・{month[prev_month]:mon} 月 {month[prev_users]:num} 人）で割った値です。"
                       "経過が {FORECAST_MIN_BUSINESS_DAYS} 営業日未満のあいだは見込みを出しません（仮の基準）。"},
     "holidays": {"label": HOLIDAY["title"], "hint": "", "title": HOLIDAY["title"], "scope": "", "unit": "日"},
     "csv_files": {"label": IMPORT["title"], "hint": "", "title": IMPORT["title"], "scope": "", "unit": "件"},
     "org_rosters": {"label": ORG["title"], "hint": "", "title": ORG["title"], "scope": "", "unit": "件"},
-    "modes": {"label": "使われ方", "hint": "直近 {period[days]} 日 · 記録", "title": "使われ方", "unit": "行",
-              "scope": "直近 {period[days]} 日 · 記録の件数（開始のしかたはセッション開始の記録）· 割合は区分の中での割合"},
 }
 _USER_COST_NOTE = (
     "状態は期間の基準の判定です（7 日は日次と週次のうち悪いほう、28 日は月次）。"
@@ -186,7 +157,7 @@ TAB.update({
                "note": "1 営業日あたりは、その月のコストを、その月の期間の中の営業日の数で割った値です。"},
 })
 COL = {
-    "day": "日付", "period": "期間", "users": "利用者数", "sessions": "セッション数", "sessions_bar": "セッション数の比較",
+    "day": "日付", "period": "期間", "users": "利用者数",
     "total": "合計", "bar": "", "field": "区分", "value": "値", "count": "件数", "share": "割合", "group": "区分",
     "item": "項目", "diff": "差", "state": "状態", "stage": "処理段階",
     "error_type": "エラーの種類", "version": "最後に起きたバージョン", "status": "状態", "user": "利用者 · 部署",

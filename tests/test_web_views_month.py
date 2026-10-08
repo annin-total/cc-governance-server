@@ -15,7 +15,7 @@ LABEL = "月末のコスト見込み（10 月）"
 
 
 def _html(client) -> str:
-    return client.get(ADMIN + "/").get_data(as_text=True)
+    return client.get(ADMIN + "/cost").get_data(as_text=True)
 
 
 def _client_on(today_app, monkeypatch, day: int):
@@ -25,20 +25,18 @@ def _client_on(today_app, monkeypatch, day: int):
     return admin_client(today_app.app)
 
 
-def test_card_shows_forecast_and_per_business_day(today_client):
+def test_card_shows_forecast_and_the_previous_month(today_client):
     html = _html(today_client)
     assert card_value(html, LABEL) == "$56.83"
     body = card(html, LABEL)
-    assert "営業日あたり" in body and "$2.58" in body and "9 月 $0.05" in body
-    assert "1 人 1 営業日あたり" in body and "$0.52" in body
-    assert "+4,808.3%" in body
-    assert "実績 $15.50 · 6 / 22 営業日" in body and "10/08 まで" in body
+    assert "9 月の実績 $1.00" in body and "+5,583.3%" in body
+    assert "実績 $15.50 · 6 / 22 営業日" in body
     assert 'data-open="month"' in body
 
 
 def test_card_draws_the_small_cumulative_line_with_tips(today_client):
     body = card(_html(today_client), LABEL)
-    assert 'class="fc-cum' in body
+    assert 'class="spark cum-card"' in body
     assert "6 営業日目 · 10/08  $15.50 · 9 月 $1.00" in body
     assert "7 営業日目 · 10/09  見込み $18.08 · 9 月 $1.00" in body
 
@@ -86,7 +84,7 @@ def test_month_tab_has_business_day_and_calendar_rows(today_client):
 
 def test_month_tab_chips_switch_both_chart_and_table(today_client):
     html = _html(today_client)
-    panel = html.split('data-panel="month"')[1].split('data-panel="modes"')[0]
+    panel = html.split('data-panel="month"')[1].split('<div class="panel"')[0]
     chips = re.findall(
         r'data-chip="([^"]+)" aria-pressed="(true|false)">([^<]*)<', panel
     )

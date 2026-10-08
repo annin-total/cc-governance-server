@@ -1,5 +1,5 @@
 "use strict";
-// 画面の操作だけを受け持つ（タブの切り替え・絞り込み・部署の絞り込み・並べ替え・一覧の折りたたみ・ツールチップ・グラフと表の連動・カレンダーの送りと開閉・削除の確認）。中身はサーバが描画済みで、data-* 属性だけを見る。
+// 画面の操作だけを受け持つ（タブの切り替え・絞り込み・概況の状態の絞り込み・部署の絞り込み・並べ替え・一覧の折りたたみ・ツールチップ・グラフと表の連動・カレンダーの送りと開閉・削除の確認）。中身はサーバが描画済みで、data-* 属性だけを見る。
 // 値を HTML として組み立てない（textContent と属性の切り替えだけを使う）。
 (() => {
   document.documentElement.classList.add("js");
@@ -183,6 +183,9 @@
     }
     const [id, chip] = location.hash.slice(1).split(":");
     open(id, chip, Boolean(chip));
+    // 別の画面（概況のカード）からタブを指して来たときは、タブの見出しまで移る。
+    // ブラウザが # と同じ id の一覧（パネル）へ移すのは読み込みの後なので、その後に移し直す
+    if (states.has(id)) window.addEventListener("load", () => section.scrollIntoView({ block: "start" }));
     redraws.push(() => { for (const p of panels) filter(p, states.get(p.dataset.panel)); });
   }
 
@@ -378,6 +381,20 @@
     show();
   }
 
+  // 概況の状態の絞り込み（data-states）: 選んだ段階に当たらないカード（data-state は札の状態）を薄くする。「注意以上」は注意と要確認
+  const LEVELS = { all: null, warn: ["warn", "ng"], ng: ["ng"] };
+  function setupStates(bar) {
+    const cards = all(document, ".card[data-state]");
+    bar.hidden = false;
+    bar.addEventListener("click", (e) => {
+      const button = e.target.closest("[data-level]");
+      if (!button) return;
+      const hit = LEVELS[button.dataset.level];
+      for (const b of all(bar, "[data-level]")) b.setAttribute("aria-pressed", String(b === button));
+      for (const c of cards) c.classList.toggle("is-dim", Boolean(hit) && !hit.includes(c.dataset.state));
+    });
+  }
+
   // 開いたカレンダーは、外を押すか Esc で閉じる
   document.addEventListener("click", (e) => {
     for (const cal of all(document, "details[data-cal][open]")) if (!cal.contains(e.target)) cal.open = false;
@@ -395,6 +412,7 @@
     all(document, "[data-fold]").forEach(setupFold);
     all(document, "details[data-cal]").forEach(setupCal);
     all(document, "[data-tabs]").forEach(setup);
+    all(document, "[data-states]").forEach(setupStates);
     if (document.querySelector("[data-org]")) syncOrg();
     for (const el of all(document, "[data-tip]")) {
       el.removeAttribute("title");
