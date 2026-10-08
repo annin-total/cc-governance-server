@@ -46,12 +46,11 @@ def test_policy_note_is_absent_with_csv(today_client):
     assert _NOTE not in html
 
 
-def test_effect_fills_context_distribution(no_csv_client):
-    """コンテキスト分布は `events` と `policy_state` だけで埋まる。イベントスタディは空。"""
+def test_effect_fills_session_sizes(no_csv_client):
+    """セッションの大きさは `events` と `policy_state` だけで埋まる。日ごとの 1 人あたりは空。"""
     html = no_csv_client.get(ADMIN + "/effect").get_data(as_text=True)
-    assert rows_in_table(html, "precompact")
-    assert rows_in_table(html, "stop")
-    assert rows_in_table(html, "study") == []
+    assert rows_in_table(html, "effect_sessions")
+    assert rows_in_table(html, "effect_daily") == []
 
 
 def test_activity_fills_usage_tables(no_csv_client):

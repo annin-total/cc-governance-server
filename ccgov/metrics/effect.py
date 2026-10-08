@@ -1,8 +1,12 @@
-"""効果測定のイベントスタディ。相対日は準拠開始日が基準。"""
+"""効果測定の前後の比較（セッションの大きさとイベントスタディ）。相対日は準拠開始日が基準。"""
 
 from typing import Optional
 
-from ccgov.constants import EVENT_STUDY_SPAN
+from ccgov.constants import CONTEXT_BIN, EVENT_STUDY_SPAN
+from ccgov.metrics import rates
+from ccgov.metrics.session_size import quantile
+
+SIDES = ("before", "after")
 
 
 def event_study(
@@ -59,10 +63,49 @@ def summary(study: list) -> dict:
     for side, rows in sides.items():
         person_days = sum(n for _, n, _, _ in rows)
         cost = sum(n * c for _, n, c, _ in rows)
-        tokens = sum(n * t for _, n, _, t in rows)
         result[side] = {
             "person_days": person_days,
             "cost": cost / person_days if person_days else None,
-            "tokens": round(tokens / person_days) if person_days else None,
         }
     return result
+
+
+def sessions(rows: list) -> dict:
+    """`(準拠開始日, セッションの最初の日, 最大, 自動コンパクト)` を前後に分け、中央値・件数・自動コンパクトの割合と区間ごとの行にする。
+
+    最初の日が準拠開始日のセッションと、最大の無い（応答終了の記録が無い）セッションは数えない。
+    """
+    sized: dict = {side: [] for side in SIDES}
+    for start, first, size, auto in rows:
+        if size is not None and first != start:
+            sized["before" if first < start else "after"].append((size, auto))
+    result: dict = {"rows": _bins(sized)}
+    for side, xs in sized.items():
+        auto = sum(a for _, a in xs)
+        result[side] = {
+            "median": quantile([s for s, _ in xs], 0.5),
+            "sessions": len(xs),
+            "auto_sessions": auto,
+            "auto_share": rates.rate(auto, len(xs)),
+        }
+    return result
+
+
+def _bins(sized: dict) -> list:
+    """区間ごとの前後の件数と各期間の中の百分率。セッションが 1 件も無い側は件数も割合も None（0 件と区別する）。"""
+    counts: dict = {}
+    for side in SIDES:
+        for size, _ in sized[side]:
+            b = size // CONTEXT_BIN * CONTEXT_BIN
+            counts.setdefault(b, dict.fromkeys(SIDES, 0))[side] += 1
+    rows = []
+    for b, c in sorted(counts.items()):
+        row: dict = {"bin": b}
+        for side in SIDES:
+            n = c[side] if sized[side] else None
+            row[side] = n
+            row[f"{side}_share"] = (
+                None if n is None else rates.rate(n, len(sized[side]))
+            )
+        rows.append(row)
+    return rows

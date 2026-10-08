@@ -63,6 +63,14 @@ def test_cards_of_received_records(today_client):
     assert '<span class="change">+10</span>' in sub
 
 
+def test_received_records_bars_carry_values_as_tooltips(today_client):
+    """前と直近の棒にそれぞれ件数のツールチップ（JS が無ければ title が同じ文言を出す）。"""
+    viz = card(_html(today_client), "受信した記録").split('<span class="k-viz">')[1]
+    tips = ["前の 7 日  3 件", "直近 7 日  13 件"]
+    assert re.findall(r'class="pair" data-tip="([^"]*)"', viz) == tips
+    assert re.findall(r'class="pair"[^>]* title="([^"]*)"', viz) == tips
+
+
 def test_went_silent_counts_people_and_compares_one_week_earlier(today_client):
     """途絶えたのは u9 の 1 人。7 日前にずらすと u7（報告だけ）と u10 の 2 人。札は出さず、減ったチップは改善。"""
     html = _html(today_client)

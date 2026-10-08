@@ -14,7 +14,8 @@ GROUP = {
 
 CARD = {
     "events_received": {"label": "受信した記録", "unit": "件",
-                        "sub": "前 {events[prev]:num} 件 · 送信した利用者 {events[users]:num} 人"},
+                        "sub": "前 {events[prev]:num} 件 · 送信した利用者 {events[users]:num} 人",
+                        "bar_tip": "{label}  {value:num} 件"},
     "went_silent": {"label": "記録が途絶えた利用者", "unit": "人",
                     "sub": _PREV + "に記録か設定の報告があり、" + _RECENT + "に無い · 前 {silent[prev]:num} 人"},
     "plugin_errors": {"label": "プラグインのエラー", "unit": "件",

@@ -1,5 +1,7 @@
 """集計検証の既知データと、重複行を注入するヘルパ。"""
 
+from typing import Optional
+
 from ccgov.store import db
 from ccgov.vendor import contract
 
@@ -143,18 +145,28 @@ def insert_compliant_policy(
     insert_policy_state(conn, **{**row, **overrides})
 
 
-def insert_precompact(conn, event_id: str, day: int, context_tokens: int) -> None:
-    """u1 / h1 / s1 の PreCompact を 1 行投入する。"""
+def insert_session_event(
+    conn,
+    event_id: str,
+    day: int,
+    session_id: str,
+    hook_event: str = "Stop",
+    context_tokens: Optional[int] = None,
+    trigger: Optional[str] = None,
+    user_email: str = "u1",
+) -> None:
+    """セッションの大きさを数える記録（既定は u1 / h1 の Stop）を 1 行投入する。`trigger` は PreCompact の契機。"""
     insert_event(
         conn,
         event_id=event_id,
         ts=day * 86400,
         day=day,
-        user_email="u1",
-        host="h1",
-        hook_event="PreCompact",
-        session_id="s1",
+        user_email=user_email,
+        host="h" + user_email[1:],
+        hook_event=hook_event,
+        session_id=session_id,
         context_tokens=context_tokens,
+        compact_trigger=trigger,
         permission_mode="default",
     )
 

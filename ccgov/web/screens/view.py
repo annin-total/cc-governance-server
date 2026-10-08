@@ -3,8 +3,8 @@
 from typing import Optional
 
 from ccgov import constants
-from ccgov.metrics import context, states
-from ccgov.web import charts, charts_hist, filters, text
+from ccgov.metrics import states
+from ccgov.web import charts, filters, text
 from ccgov.web import labels as L
 from ccgov.web.screens import (
     SAME,
@@ -37,7 +37,6 @@ CONSTANTS = {
     )
 }
 _SHADES = 3
-HIST_CARD = (charts.SPARK_W, charts.SPARK_H, 0, 0)
 
 
 def is_long(data: dict) -> bool:
@@ -196,20 +195,12 @@ def _viz(card: Card, words: dict, ctx: dict) -> Optional[dict]:
     if viz.kind == "pair":
         values = {k: src[k][viz.field] if viz.field else src[k] for k in viz.terms}
         top = max((v or 0 for v in values.values()), default=0)
-        return {
-            "kind": "pair",
-            "rows": [
-                (
-                    text.fill(label, ctx),
-                    charts.pct(values[k], top),
-                    "" if i else "ghost",
-                )
-                for i, (k, label) in enumerate(viz.terms.items())
-            ],
-        }
-    if viz.kind == "hist":
-        geo = charts_hist.hist(src, context.SIDES, *HIST_CARD)
-        return {"kind": "hist", "geo": geo, "terms": viz.terms} if src else None
+        rows = []
+        for i, (k, label) in enumerate(viz.terms.items()):
+            name = text.fill(label, ctx)
+            tip = text.fill(words["bar_tip"], {"label": name, "value": values[k]})
+            rows.append((name, charts.pct(values[k], top), "" if i else "ghost", tip))
+        return {"kind": "pair", "rows": rows}
     if viz.kind == "stack":
         parts = [
             {
