@@ -58,7 +58,7 @@ def unavailable(tab: Tab, ctx: dict) -> dict:
         "hint": L.NOT_LONG,
         "title": words["title"],
         "scope": text.fill(W.LONG_SCOPE, ctx),
-        "na": L.NOT_LONG_PANEL,
+        "na": words.get("na", L.NOT_LONG_PANEL),
         "note": "",
         "cols": [],
         "rows": [],
@@ -192,6 +192,8 @@ def _chips(tab: Tab, rows: list, words: dict, ctx: dict) -> tuple:
         {"id": i, "label": lb, "tone": t, "count": sum(i in tags(r) for r in rows)}
         for i, lb, t in options
     ]
+    if tab.chips_present:
+        counted = [c for c in counted if c["count"]]
     every = {
         "id": "all",
         "label": words.get("all", L.ALL),

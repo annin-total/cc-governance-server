@@ -53,3 +53,11 @@
 .cum-card .fc-cum-prev { stroke: var(--ghost); stroke-width: 1; }
 .cum-card-legend .ln { border-top-width: 1.5px; }
 .cum-card-legend .ln.prev { border-top-width: 1px; }
+/* 基準を超えた利用者のカード: 要確認と注意を 2 列の大きな数字で並べ、チップは縦に積む */
+.over { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-m); }
+.over-col { display: grid; align-content: start; gap: var(--sp-3xs); font-size: var(--fs-xs); color: var(--muted); font-variant-numeric: tabular-nums; }
+.over-num { font-family: var(--fig); font-size: var(--fs-val); font-weight: var(--fw-val); line-height: 1.12; color: var(--ink); }
+.over-num .u { font-family: var(--sans); font-size: var(--fs-unit); margin-left: var(--sp-2xs); color: var(--ink-2); }
+.over-chips { display: grid; justify-items: start; gap: var(--sp-3xs); margin-top: var(--sp-2xs); }
+.over-chips .change { margin-right: 0; font-weight: 400; }
+.over-move { font-size: var(--fs-xs); color: var(--muted); font-variant-numeric: tabular-nums; }

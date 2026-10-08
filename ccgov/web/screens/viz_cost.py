@@ -2,12 +2,13 @@
 
 from typing import Optional
 
-from ccgov.metrics import spend
+from ccgov.metrics import spend, states
 from ccgov.web import charts, charts_cost, filters, text
 from ccgov.web import labels as L
 from ccgov.web.screens import Viz, month_view
+from ccgov.web.screens import words as W
 
-KINDS = ("cols", "dist", "cum", "bands")
+KINDS = ("cols", "dist", "cum", "bands", "over")
 # 分布の区間の数
 DIST_BINS = 12
 _DAY_HEAD = "{day:md}（{day:weekday}）"
@@ -21,6 +22,8 @@ def build(viz: Viz, words: dict, ctx: dict) -> Optional[dict]:
         return _dist(viz, src)
     if viz.kind == "cum":
         return month_view.cum_card(src, words, ctx)
+    if viz.kind == "over":
+        return _over(src)
     return _bands(src, words)
 
 
@@ -108,3 +111,24 @@ def _bands(rows: list, words: dict) -> Optional[dict]:
 
 def _people(n: int) -> str:
     return f"{filters.num(n)} {L.UNIT['person']}"
+
+
+def _over(card: dict) -> dict:
+    """要確認と注意の 2 つの数字。それぞれに前と差・コストの割合・新規（悪化の向き）と離脱（改善の向き）のチップ。"""
+    cols = []
+    for state in (states.NG, states.WARN):
+        c = card[state]
+        cols.append(
+            {
+                "state": state,
+                "name": L.STATE[state],
+                "value": filters.num(c["now"]),
+                "unit": L.UNIT["person"],
+                "lines": [text.fill(W.OVER["prev"], c), text.fill(W.OVER["share"], c)],
+                "chips": [
+                    ("worse" if c["new"] else "", text.fill(W.OVER["new"], c)),
+                    ("better" if c["left"] else "", text.fill(W.OVER["left"], c)),
+                ],
+            }
+        )
+    return {"kind": "over", "cols": cols, "move": text.fill(W.OVER["move"], card)}

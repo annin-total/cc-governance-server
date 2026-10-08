@@ -36,10 +36,11 @@ def is_long(data: dict) -> bool:
     return bool((data.get("period") or {}).get("long"))
 
 
-def pick(item, long: bool):
+def pick(item, long: bool, days: Optional[int] = None):
     """期間で出すカード・タブ。その期間で出さないものは None。"""
     if not long:
-        return None if getattr(item, "only_long", False) else item
+        shown = getattr(item, "days", ()) or (days,)
+        return None if getattr(item, "only_long", False) or days not in shown else item
     if item.long == SAME:
         return item
     return item.long
@@ -63,9 +64,10 @@ def _words(card: Card) -> dict:
 def build(screen: Screen, data: dict) -> dict:
     ctx = {**CONSTANTS, **data}
     long = is_long(data)
+    days = (data.get("period") or {}).get("days")
     groups = []
     for g in screen.groups:
-        cards = [pick(c, long) for c in screen.cards if c.group == g]
+        cards = [pick(c, long, days) for c in screen.cards if c.group == g]
         missing = _missing(screen, g) if long else []
         note = W.GROUP_NOT_LONG.get(g, L.NOT_LONG_CARDS)
         scope = W.GROUP_LONG.get(g, W.LONG_SCOPE) if long else W.GROUP[g][1]

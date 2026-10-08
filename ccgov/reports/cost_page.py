@@ -12,7 +12,7 @@ from ccgov.constants import (
     USERS_DROP_HIGH,
 )
 from ccgov.metrics import business_days as bd
-from ccgov.metrics import rates, series, spend, states
+from ccgov.metrics import over, rates, series, spend, states
 from ccgov.metrics.windows import Period
 from ccgov.reports import cost, cost_months, cost_users, month
 from ccgov.store import queries_cost, queries_holidays, queries_spend
@@ -117,6 +117,7 @@ def _days(conn, w: Period, spent: dict) -> dict:
             "rate": rates.rate(kept, len(prev_users)), "kept": kept, "prev": len(prev_users), "lost": len(prev_users) - kept,
         },
         "conc": cost_users.concentration(user_rows),
+        "over": over.build(found, w.start, w.days),
         "users": user_rows,
     }  # fmt: skip
 
