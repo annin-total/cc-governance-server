@@ -19,11 +19,12 @@ FOOTER = "端末から送られた値です。コストとトークンは全社�
 
 # endpoint -> (見出し, 説明)
 SCREENS = {
-    "admin.index": ("概況", "全体の利用量と、データの届き具合"),
+    "admin.index": ("概況", "全体の利用量"),
     "admin.cost_view": ("コストと利用者", "いくらかかり、誰に集まり、何人が使っているか"),
     "admin.activity_view": ("利用状況", "どれだけの頻度で使い、何を呼び出し、セッションはどれだけ大きいか"),
     "admin.policy_view": ("設定の適用状況", "配布した設定と更新が、利用者に行き渡っているか"),
     "admin.effect_view": ("設定の効果", "設定を守り始めた前後で、コンテキストの大きさとコストを比べる"),
+    "admin.collect_view": ("収集の状態", "記録が欠けずに届き、利用明細と合っているか"),
 }
 # 見出し帯の右端の入口: endpoint -> (見出し, 説明)
 PAGES = {"admin.settings": ("データと設定", "利用明細（CSV）の取り込み、月ごとの全ログの書き出し、営業日の数え方に使う会社の休日")}
@@ -145,7 +146,7 @@ STAGE = {
 HEALTH_ITEM = {
     "events": ("受信した記録", "再送の重複を除く"),
     "users": ("送信した利用者", ""),
-    "reconciliation": ("CSV との照合率", "利用明細の最終日までの {period[days]} 日"),
+    "reconciliation": ("利用明細との照合率", "利用明細の最終日までの {RECENT_DAYS} 日"),
     "tool_name": ("ツール名", "ツール実行の記録が分母"),
     "skill_name": ("スキル名", "Skill ツールの実行記録が分母"),
     "context_tokens": ("コンテキストのトークン数", "コンパクト直前と応答終了の記録が分母"),
@@ -181,6 +182,9 @@ SETTING = {
 # 利用者の状態（off・none・ok のどれか 1 つ）と、それに重ねる区分（old）
 USER_STATE = {"off": ("ng", "未適用あり"), "none": ("warn", "未導入"), "old": ("warn", "古いバージョン"), "ok": ("ok", "すべて適用")}
 OFF_ITEMS = "未適用 {} 項目"
+# 利用者ごとの届き方（途絶えたは異動・休暇でも起きるため、判定でない灰の印）と、利用明細にいたか
+DELIVERY = {"silent": ("neutral", "途絶えた"), "ok": ("ok", "届いている")}
+BILLED = {True: "あり", False: "なし"}
 DOT = {True: "適用", False: "未適用", None: "報告なし"}
 DOT_LEGEND = {True: "配布した値", False: "違う値か未設定", None: "報告なし（未導入）"}
 NO_REPORT = "報告なし"
@@ -196,7 +200,7 @@ BASIS_NOTE = {
     "csv": "",
     "policy": "CSV を取り込んでいないため、分母は設定の報告があった利用者だけです。プラグインを入れていない人は含みません。",
 }
-UNIT = {"person": "人", "item": "件", "terminal": "台", "pt": "pt", "times": "回", "day": "日"}
+UNIT = {"person": "人", "item": "件", "pt": "pt", "times": "回", "day": "日"}
 
 # データと設定: 会社の休日
 SETTINGS_ENTRY = PAGES["admin.settings"][0]

@@ -80,7 +80,8 @@ def test_overview_chips_are_colored_without_arrows(today_client):
     """利用者の増加は改善、記録の件数の差は向きを持たない。▲▼ は付けない。"""
     html = today_client.get(ADMIN + "/").get_data(as_text=True)
     assert '<span class="change better">+1</span>' in card(html, "送信した利用者")
-    assert '<span class="change">+10</span>' in card(html, "受信した記録")
+    collect = today_client.get(ADMIN + "/collect").get_data(as_text=True)
+    assert '<span class="change">+10</span>' in card(collect, "受信した記録")
     assert "▲" not in html and "▼" not in html
 
 

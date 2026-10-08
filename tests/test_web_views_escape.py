@@ -36,9 +36,10 @@ _CASES = [
     ("/activity", "src"),
     ("/policy", "user"),
     ("/policy", "pver"),
-    ("/", "stage"),
-    ("/", "err"),
-    ("/", "ver"),
+    ("/collect", "user"),
+    ("/collect", "stage"),
+    ("/collect", "err"),
+    ("/collect", "ver"),
 ]
 
 

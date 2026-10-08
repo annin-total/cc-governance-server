@@ -1,4 +1,4 @@
-"""管理画面の Blueprint。Basic 認証・CSRF の検証・取込の大きさの上限と、5 画面（概況・コストと利用者・利用状況・policy・effect）・データと設定を持つ。"""
+"""管理画面の Blueprint。Basic 認証・CSRF の検証・取込の大きさの上限と、6 画面（概況・コストと利用者・利用状況・policy・effect・収集の状態）・データと設定を持つ。"""
 
 import datetime
 import hmac
@@ -19,11 +19,20 @@ from flask import (
 
 from ccgov.constants import CSV_UPLOAD_MAX_BYTES
 from ccgov.metrics import asof_calendar, windows
-from ccgov.reports import activity, cost_page, effect, overview, period_end, policy
+from ccgov.reports import (
+    activity,
+    collect,
+    cost_page,
+    effect,
+    overview,
+    period_end,
+    policy,
+)
 from ccgov.store import db
 from ccgov.vendor import contract
 from ccgov.web import csrf, csv_files, export, filters, labels, settings
 from ccgov.web.screens import activity as activity_screen
+from ccgov.web.screens import collect as collect_screen
 from ccgov.web.screens import cost_page as cost_screen
 from ccgov.web.screens import effect as effect_screen
 from ccgov.web.screens import overview as overview_screen
@@ -169,6 +178,13 @@ def policy_view() -> str:
     data = _build(policy.build, today)
     screen = view.build(policy_screen.SCREEN, data)
     return render_template("policy.html", view=screen, at=today)
+
+
+@admin.route("/collect")
+def collect_view() -> str:
+    today = _basis()["today"]
+    screen = view.build(collect_screen.SCREEN, _build(collect.build, today))
+    return render_template("collect.html", view=screen, at=today)
 
 
 @admin.route("/effect")

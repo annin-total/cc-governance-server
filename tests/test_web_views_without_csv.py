@@ -15,7 +15,7 @@ def no_csv_client(known_db, today_client):
     return today_client
 
 
-@pytest.mark.parametrize("path", ["/", "/policy", "/effect", "/activity"])
+@pytest.mark.parametrize("path", ["/", "/policy", "/effect", "/activity", "/collect"])
 def test_all_screens_return_200(no_csv_client, path):
     assert no_csv_client.get(ADMIN + path).status_code == 200
 
@@ -25,7 +25,7 @@ def test_overview_fills_tables_from_events_and_policy(no_csv_client):
     html = no_csv_client.get(ADMIN + "/").get_data(as_text=True)
     modes = [r for r in table_rows(html, "modes") if r["tags"] == ["permission_mode"]]
     assert len(modes) == 3
-    assert card_value(html, "受信した記録") == "13"
+    assert card_value(html, "送信した利用者") == "4"
     assert rows_in_table(html, "cost") == []
     assert card_value(html, "コスト（利用明細）") == "—"
 

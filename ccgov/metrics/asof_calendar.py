@@ -4,6 +4,7 @@ from typing import Optional
 
 from ccgov.constants import CALENDAR_MONTHS_AROUND, CSV_STALE_DAYS
 from ccgov.metrics.calendar import add_months, month_bounds, months, to_date
+from ccgov.metrics.states import OK, WARN
 
 
 def shown_range(end: int, first: int, today: int) -> tuple:
@@ -75,3 +76,11 @@ def stale(last_csv: Optional[int], today: int) -> Optional[dict]:
     if last_csv is None or today - last_csv < CSV_STALE_DAYS:
         return None
     return {"day": last_csv, "age": today - last_csv}
+
+
+def freshness(last_csv: Optional[int], today: int) -> dict:
+    """利用明細の最終日と今日からの日数・状態。`stale` と同じ境で注意にする（明細が無ければ値も状態も None）。"""
+    if last_csv is None:
+        return {"day": None, "age": None, "state": None}
+    state = WARN if stale(last_csv, today) else OK
+    return {"day": last_csv, "age": today - last_csv, "state": state}

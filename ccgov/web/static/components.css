@@ -15,6 +15,7 @@ button { font: inherit; color: inherit; }
 }
 .card.wide { grid-column: span 2; }
 .card:hover { background: var(--card-hover); }
+.card.still:hover { background: var(--card); }
 .card.is-open { box-shadow: inset 0 0 0 1.5px var(--accent); }
 .k-label { display: flex; justify-content: space-between; align-items: baseline; gap: var(--sp-s); font-size: var(--fs-label); font-weight: 600; color: var(--ink-2); }
 .k-label .go { font-size: var(--fs-sm); font-weight: 400; color: var(--muted); }

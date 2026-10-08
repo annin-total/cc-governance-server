@@ -22,14 +22,14 @@ def _stale_cal(known_db, client, age: int, path: str) -> _Calendar:
     return _cal(client, path)
 
 
-@pytest.mark.parametrize("path", ["/", "/activity", "/effect", "/policy"])
+@pytest.mark.parametrize("path", ["/", "/activity", "/effect", "/policy", "/collect"])
 def test_stale_warning_from_the_constant(known_db, today_client, path):
     cal = _stale_cal(known_db, today_client, CSV_STALE_DAYS, path)
     [warning] = cal.stale
     assert warning["href"] == ADMIN + "/settings"
 
 
-@pytest.mark.parametrize("path", ["/", "/policy"])
+@pytest.mark.parametrize("path", ["/", "/policy", "/collect"])
 def test_no_stale_warning_one_day_before_the_constant(known_db, today_client, path):
     assert _stale_cal(known_db, today_client, CSV_STALE_DAYS - 1, path).stale == []
 

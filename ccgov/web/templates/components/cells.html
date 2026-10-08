@@ -43,6 +43,7 @@
 {%- elif k == "bar" -%}{{ hbar(v) }}
 {%- elif k == "state" -%}{% if v %}{{ mark(v, L.STATE[v]) }}{% else %}{{ sub("—") }}{% endif %}
 {%- elif k == "user_state" -%}{{ mark(L.USER_STATE[v][0], L.OFF_ITEMS.format(row.off) if row.off else L.USER_STATE[v][1]) }}{% if "old" in row.tags %} {{ mark(*L.USER_STATE.old) }}{% endif %}
+{%- elif k == "delivery" -%}{{ mark(*L.DELIVERY[v]) }}
 {%- elif k == "top" -%}{% if v %}{{ top(v) }}{% else %}{{ sub("—") }}{% endif %}
 {%- elif k == "call_name" -%}{{ call_name(row) }}
 {%- elif v is none -%}{{ sub("—") }}
@@ -75,6 +76,7 @@
 {%- elif k == "usd_strong" -%}<b>{{ exact(v|usd(col.scale), v|usd_full) }}</b>
 {%- elif k == "tok" -%}{{ exact(v|tok(col.scale), v|num) }}
 {%- elif k == "pct" -%}{{ v|pct }}
+{%- elif k == "dec1" -%}{{ v|dec1 }}
 {%- elif k == "pct_strong" -%}<b>{{ v|pct }}</b>
 {%- elif k == "diff" -%}{% if row.unit == "rate" %}{{ v|signed1 }} {{ L.UNIT.pt }}{% else %}{{ v|signed }}{% endif %}
 {%- elif k == "code" -%}<span class="code">{{ v }}</span>

@@ -1,4 +1,4 @@
-"""概況画面の健全性に出す `errors` の集計。"""
+"""収集の状態に出す `errors` の集計。利用者は `user_email` で数え、NULL はまとめて 1 人とする。"""
 
 from ccgov.constants import RECENT_DAYS
 from ccgov.metrics.windows import recent_window
@@ -8,7 +8,7 @@ _WINDOW = " FROM errors WHERE day BETWEEN ? AND ?"
 
 
 def error_summary(conn, today: int, days: int = RECENT_DAYS) -> list:
-    """直近 `days` 日の (stage, error_type, 件数, 端末数, 最新の plugin_version) を件数の降順で返す。
+    """直近 `days` 日の (stage, error_type, 件数, 利用者数, 最新の plugin_version) を件数の降順で返す。
 
     最新の版は ts が最新の行の値（`MAX(plugin_version)` は文字列比較で誤る）。
     """
@@ -27,26 +27,36 @@ def error_summary(conn, today: int, days: int = RECENT_DAYS) -> list:
     if not groups:
         return []
     # SQL の JOIN にしない。stage・error_type が NULL の群が結合から落ちる
-    terminals = _terminal_counts(cur, window)
+    users = _user_counts(cur, window)
     versions = _versions_at(cur, window, sorted({max_ts for *_, max_ts in groups}))
     return [
         (
             stage,
             error_type,
             n,
-            terminals[(stage, error_type)],
+            users[(stage, error_type)],
             versions.get((stage, error_type, max_ts)),
         )
         for stage, error_type, n, max_ts in groups
     ]
 
 
-def _terminal_counts(cur, window: tuple) -> dict:
-    """(stage, error_type) ごとの端末（(user_email, host) の組）の数。DISTINCT は NULL 同士を同じ値とみなす。"""
+def error_users(conn, today: int, days: int = RECENT_DAYS) -> int:
+    """直近 `days` 日にエラーのあった利用者の数。"""
+    cur = conn.cursor()
+    cur.execute(
+        db.q("SELECT COUNT(*) FROM (SELECT DISTINCT user_email" + _WINDOW + ") t"),
+        recent_window(today, days),
+    )
+    return cur.fetchone()[0]
+
+
+def _user_counts(cur, window: tuple) -> dict:
+    """(stage, error_type) ごとの利用者の数。DISTINCT は NULL 同士を同じ値とみなす。"""
     cur.execute(
         db.q(
             "SELECT stage, error_type, COUNT(*) FROM ("
-            "  SELECT DISTINCT stage, error_type, user_email, host" + _WINDOW + ") t"
+            "  SELECT DISTINCT stage, error_type, user_email" + _WINDOW + ") t"
             " GROUP BY stage, error_type"
         ),
         window,

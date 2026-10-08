@@ -102,7 +102,9 @@ def table_rows(html: str, testid: str) -> list:
 
 def card(html: str, label: str) -> str:
     """見出しが `label` の指標カードの断片を返す。"""
-    for block in re.findall(r'<a class="card[^"]*".*?</a>', html, re.DOTALL):
+    for block, _ in re.findall(
+        r'(<(a|div) class="card(?: [^"]*)?".*?</\2>)', html, re.DOTALL
+    ):
         if f"<span>{label}</span>" in block:
             return block
     raise AssertionError(f"card label={label} が見つからない")

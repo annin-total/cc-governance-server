@@ -28,6 +28,7 @@ def create_app(config: Config) -> Flask:
         "usd_signed",
         "tok",
         "pct",
+        "dec1",
         "rel",
         "size",
     ):

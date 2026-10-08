@@ -49,7 +49,7 @@ def test_tab_charts_and_rows_share_keys(today_client):
         assert rows and sorted(set(_keys(chart, "g"))) == sorted(rows), tab
         assert "<title>" not in chart and "data-tip" not in chart
         assert "data-key" not in panel
-    assert _keys(table_body(html, "health"), "tr") == []
+    assert _keys(table_body(html, "modes"), "tr") == []
 
 
 def test_effect_hist_links_bins(db_conn):

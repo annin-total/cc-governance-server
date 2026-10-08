@@ -61,6 +61,7 @@ def _referenced_names(env, template_name, seen=None):
         "/cost?period=28",
         "/cost?period=12m",
         "/policy",
+        "/collect",
         "/effect",
         "/activity",
         "/activity?period=12m",
