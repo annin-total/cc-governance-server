@@ -1,5 +1,6 @@
 {# 小さなグラフ。座標は charts.py が計算済み。色はクラスで指定し、直値を書かない。 #}
 {% from "components/values.html" import parts %}
+{% from "components/marks.html" import mark %}
 {% macro caps(parts) -%}
 <span class="cap">{% for p in parts %}<span>{{ p }}</span>{% endfor %}</span>
 {%- endmacro %}
@@ -50,10 +51,63 @@
 </svg>
 {%- endmacro %}
 
+{# 当たり判定の面。値のツールチップ（data-tip）と、JS が無いときの title を持つ #}
+{% macro hits(cols, h) -%}
+{%- for c in cols %}<rect class="hit" x="{{ c.hit_x }}" y="0" width="{{ c.hit_w }}" height="{{ h }}" data-tip="{{ c.tip }}" data-gx="{{ c.gx if c.gx is defined else c.cx }}"><title>{{ c.tip }}</title></rect>{% endfor -%}
+{%- endmacro %}
+
+{# 縦棒（前は薄く、直近は濃く。基準線があれば点線で重ね、下回る直近の棒は淡くする） #}
+{% macro cols(v) -%}
+{%- set g = v.geo -%}
+<svg class="spark" viewBox="0 0 {{ g.w }} {{ g.h }}" preserveAspectRatio="none" aria-hidden="true">
+  {%- for b in g.bars %}<rect class="{{ b.cls }}" x="{{ b.x }}" y="{{ b.y }}" width="{{ b.w }}" height="{{ b.h }}"/>{% endfor %}
+  {%- if g.avg_y is not none %}<line class="avg" x1="0" x2="{{ g.w }}" y1="{{ g.avg_y }}" y2="{{ g.avg_y }}" vector-effect="non-scaling-stroke"/>{% endif %}
+  <line class="spark-guide" x1="0" x2="0" y1="0" y2="{{ g.h }}" vector-effect="non-scaling-stroke"/>
+  {{ hits(g.bars, g.h) }}
+</svg>
+{%- endmacro %}
+
+{# 分布（区間ごとの人数の棒）と、平均の実線・中央値の点線 #}
+{% macro dist(v) -%}
+{%- set g = v.geo -%}
+<svg class="spark" viewBox="0 0 {{ g.w }} {{ g.h }}" preserveAspectRatio="none" aria-hidden="true">
+  {%- for b in g.bars %}<rect class="{{ b.cls }}" x="{{ b.x }}" y="{{ b.y }}" width="{{ b.w }}" height="{{ b.h }}"/>{% endfor %}
+  {%- if g.mean_x is not none %}<line class="mean" x1="{{ g.mean_x }}" x2="{{ g.mean_x }}" y1="0" y2="{{ g.h }}" vector-effect="non-scaling-stroke"/>{% endif %}
+  {%- if g.median_x is not none %}<line class="median" x1="{{ g.median_x }}" x2="{{ g.median_x }}" y1="0" y2="{{ g.h }}" vector-effect="non-scaling-stroke"/>{% endif %}
+  <line class="spark-guide" x1="0" x2="0" y1="0" y2="{{ g.h }}" vector-effect="non-scaling-stroke"/>
+  {{ hits(g.bars, g.h) }}
+</svg>
+{%- endmacro %}
+
+{# 月末の見込みのカード: 今月の累積・見込みの破線・前月の累積（薄い線） #}
+{% macro cum_card(v) -%}
+{%- set g = v.geo -%}
+<svg class="spark cum-card" viewBox="0 0 {{ g.w }} {{ g.h }}" preserveAspectRatio="none" aria-hidden="true">
+  {%- if g.prev %}<polyline class="fc-cum-prev" points="{{ g.prev }}" vector-effect="non-scaling-stroke"/>{% endif %}
+  {%- if g.fc %}<polyline class="fc-cum-fc" points="{{ g.fc }}" vector-effect="non-scaling-stroke"/>{% endif %}
+  {%- if g.now %}<polyline class="fc-cum-now" points="{{ g.now }}" vector-effect="non-scaling-stroke"/>{% endif %}
+  {%- if g.last %}<circle class="spark-dot" cx="{{ g.last[0] }}" cy="{{ g.last[1] }}" r="2.5"/>{% endif %}
+  <line class="spark-guide" x1="0" x2="0" y1="0" y2="{{ g.h }}" vector-effect="non-scaling-stroke"/>
+  {{ hits(g.cols, g.h) }}
+</svg>
+<span class="legend cum-card-legend"><span><i class="ln now"></i>{{ v.legend[0] }}</span><span><i class="ln fc"></i>{{ v.legend[1] }}</span><span><i class="ln prev"></i>{{ v.legend[2] }}</span></span>
+{%- endmacro %}
+
+{# 状態ごとの帯: コストと人数の 100% の帯を上下にそろえる #}
+{% macro bands(v) -%}
+<span class="bands">{% for line in v.lines %}<span class="band"><span class="band-name">{{ line.name }}</span><span class="band-bar">
+{%- for s in line.segs %}<i class="st-{{ s.cls }}" style="flex: {{ s.pct|round(1) }}" data-tip="{{ s.tip }}" title="{{ s.tip }}"></i>{% endfor %}</span></span>{% endfor %}</span>
+<span class="legend">{% for state, text in v.legend %}<span><i class="st-{{ state }}"></i>{{ text }}</span>{% endfor %}</span>
+{%- endmacro %}
+
 {% macro viz(v) -%}
 {%- if v.kind == "spark" -%}{{ spark(v.geo) }}
 {%- elif v.kind == "forecast" -%}{{ forecast(v) }}
-{%- elif v.kind == "meter" -%}<span class="meter {{ v.tone }}"><i style="width: {{ v.pct|round(1) }}%"></i></span>
+{%- elif v.kind == "meter" -%}<span class="meter {{ v.tone }}"{% if v.tip %} data-tip="{{ v.tip }}" title="{{ v.tip }}"{% endif %}><i style="width: {{ v.pct|round(1) }}%"></i></span>
+{%- elif v.kind == "cols" -%}{{ cols(v) }}
+{%- elif v.kind == "dist" -%}{{ dist(v) }}
+{%- elif v.kind == "cum" -%}{{ cum_card(v) }}
+{%- elif v.kind == "bands" -%}{{ bands(v) }}
 {%- elif v.kind == "pair" -%}
 {%- for label, pct, tone in v.rows %}<span class="pair"><span>{{ label }}</span>{{ hbar(pct, tone) }}</span>{% endfor -%}
 {%- elif v.kind == "stack" -%}
@@ -63,8 +117,8 @@
 <svg class="spark" viewBox="0 0 {{ v.geo.w }} {{ v.geo.h }}" preserveAspectRatio="none" aria-hidden="true">{% for b in v.geo.bars %}{{ hist_segs(v.geo, b) }}{% endfor %}</svg>
 <span class="legend">{% for name in v.terms.values() %}<span><i class="{{ 'bar-hi' if loop.last else 'bar-old' }}"></i>{{ name }}</span>{% endfor %}</span>
 {%- elif v.kind == "rates" -%}
-<span class="rates{{ ' wide' if v.wide }}">{% for r in v.rows %}<span class="rate"><span>{{ r.label }}</span>{{ hbar(r.pct) }}
-{%- for right in r.right %}<span class="num{{ ' strong' if loop.last }}">{{ right }}</span>{% endfor %}</span>{% endfor %}</span>
+<span class="rates{{ ' wide' if v.wide }}">{% for r in v.rows %}<span class="rate{{ ' marked' if r.state }}"><span>{{ r.label }}</span>{{ hbar(r.pct) }}
+{%- for right in r.right %}<span class="num{{ ' strong' if loop.last }}">{{ right }}</span>{% endfor %}{% if r.state %}{{ mark(*r.state) }}{% endif %}</span>{% endfor %}</span>
 {%- endif -%}
 {%- endmacro %}
 

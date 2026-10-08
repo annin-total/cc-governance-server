@@ -256,6 +256,20 @@ def today_client(today_app):
 
 
 @pytest.fixture
+def cost_client(db_conn, monkeypatch):
+    """`cost_data.py` の既知データを入れ、基準日を固定した `app` のテストクライアント（認証ヘッダ付き）。"""
+    from cost_data import TODAY, seed
+
+    import app as app_module
+    from ccgov.web import admin
+
+    seed(db_conn)
+    importlib.reload(app_module)
+    monkeypatch.setattr(admin.time, "time", lambda: TODAY * 86400)
+    return admin_client(app_module.app)
+
+
+@pytest.fixture
 def csv_dir(tmp_path):
     """取り込み先（`CSV_DIR`）にする空のディレクトリ。外に置かれたファイルを見分けるため `tmp_path` の 1 段下にする。"""
     path = tmp_path / "csv"

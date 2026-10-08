@@ -20,10 +20,20 @@ def create_app(config: Config) -> Flask:
         CSV_DIR=config.csv_dir,
         CSRF_TOKEN=csrf.new_token(),
     )
-    for filter_name in ("day", "num", "usd", "usd_full", "tok", "pct", "rel", "size"):
+    for filter_name in (
+        "day",
+        "num",
+        "usd",
+        "usd_full",
+        "usd_signed",
+        "tok",
+        "pct",
+        "rel",
+        "size",
+    ):
         app.add_template_filter(getattr(filters, filter_name), filter_name)
     app.add_template_filter(filters.bin_range, "bin")
-    for name in ("usd0", "md", "ym", "weekday", "signed", "signed1"):
+    for name in ("usd0", "md", "ym", "weekday", "signed", "signed1", "signed_pct"):
         app.add_template_filter(text.FORMATS[name], name)
     app.add_template_filter(text.short, "short")
     app.add_template_global(labels, "L")

@@ -13,6 +13,19 @@ _WEEK = Col("day", "week", label="week")
 _PROVIDERS = Col("providers", "usd", each="cost[providers]", terms=L.PROVIDER)
 _COST_SPARK = Viz("spark", "cost[spark]", "total", fmt="usd")
 
+# コストと利用者のページも同じタブを使う
+COST_TAB = Tab("cost", "cost[days]", (
+    Col("day", "date"), _PROVIDERS, Col("total", "usd_strong"), Col("total", "bar", label="bar", sort=None),
+), sort=("day", "desc"), chips_by="period", chips=(Chip("recent", L.RECENT), Chip("prev", L.PREV)),
+    search="{day:day}", chart="cost",
+    long=Tab("weeks_cost", "cost[weeks]", (
+        _WEEK, _PROVIDERS, Col("total", "usd_strong"), Col("total", "bar", label="bar", sort=None),
+    ), sort=("day", "desc"), chart="weeks_cost"))
+MONTH_TAB = Tab("month", "month[rows]", (
+    Col("day", "mday", label="month_day", sort=None), Col("n", "num", sort=None), Col("cost", "usd", sort=None),
+    Col("cost", "bar", label="bar", sort=None, den="top"), Col("cum", "cum", sort=None), Col("prev", "usd_sub", label="prev_cum", sort=None),
+), chips_by="mode", chips=tuple(Chip(k, v) for k, v in W.MONTH_CHIPS.items()), chips_all=False, chart="month", long=SAME)
+
 CARDS = (
     Card("users", "use", "daily", "{users[recent]:num}", "{users[delta]:signed}", better=UP, viz=Viz("spark", "trend[rows]", "users"),
          long=Card("cost_users", "use", "weeks_users", "{cost_users[total]:num}", viz=Viz("spark", "cost_users[spark]", "users"))),
@@ -38,17 +51,8 @@ TABS = (
         long=Tab("weeks_users", "cost_users[weeks]", (
             _WEEK, Col("users", "num", unit="person"), Col("users", "bar", label="bar", sort=None),
         ), sort=("day", "desc"), chart="weeks_users")),
-    Tab("cost", "cost[days]", (
-        Col("day", "date"), _PROVIDERS, Col("total", "usd_strong"), Col("total", "bar", label="bar", sort=None),
-    ), sort=("day", "desc"), chips_by="period", chips=(Chip("recent", L.RECENT), Chip("prev", L.PREV)),
-        search="{day:day}", chart="cost",
-        long=Tab("weeks_cost", "cost[weeks]", (
-            _WEEK, _PROVIDERS, Col("total", "usd_strong"), Col("total", "bar", label="bar", sort=None),
-        ), sort=("day", "desc"), chart="weeks_cost")),
-    Tab("month", "month[rows]", (
-        Col("day", "mday", label="month_day", sort=None), Col("n", "num", sort=None), Col("cost", "usd", sort=None),
-        Col("cost", "bar", label="bar", sort=None, den="top"), Col("cum", "cum", sort=None), Col("prev", "usd_sub", label="prev_cum", sort=None),
-    ), chips_by="mode", chips=tuple(Chip(k, v) for k, v in W.MONTH_CHIPS.items()), chips_all=False, chart="month", long=SAME),
+    COST_TAB,
+    MONTH_TAB,
     Tab("modes", "usage", (
         Col("field", "tag", terms=L.USAGE_FIELD), Col("value", "term", terms=L.USAGE_VALUE, by="field"),
         Col("count", "num"), Col("share", "pct"), Col("share", "bar", label="bar", sort=None, den="100"),

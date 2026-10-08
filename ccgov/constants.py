@@ -41,6 +41,8 @@ TABLE_FOLD_ROWS = 10
 
 # スキル・コマンドの利用のカードに並べる名前の数
 ASSET_CARD_ROWS = 3
+# コストの多い利用者のカードに並べる人数
+TOP_SPENDERS = 5
 
 # コンテキストトークン数の分布のビン幅
 CONTEXT_BIN = 20000
@@ -51,6 +53,14 @@ NULL_RATE_ELEVATED = 20
 ERROR_COUNT_ELEVATED = 1
 NON_COMPLIANT_USERS_HIGH = 1
 NOT_INTRODUCED_ELEVATED = 1
+# コストの前との増減率（%。1 営業日あたり・1 人 1 営業日あたり・月末の見込み）と、利用者数の減少率（%）
+COST_RISE_ELEVATED = 10
+COST_RISE_HIGH = 15
+USERS_DROP_ELEVATED = 10
+USERS_DROP_HIGH = 15
+# 利用者ごとのコストの基準（USD）。日次は期間のいずれかの 1 日、週次・月次は期間の合計で比べる
+USER_COST_ELEVATED = {"day": 50, "week": 70, "month": 280}
+USER_COST_HIGH = {"day": 100, "week": 150, "month": 600}
 
 # 概況で割合を出す権限モードの値（Claude Code の `permission_mode`）
 BYPASS_MODE = "bypassPermissions"

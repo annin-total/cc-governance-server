@@ -127,14 +127,16 @@ def test_edges_of_the_range_are_accepted(today_client):
     assert all("asof=2024-10-08" in href for href in _links(last))
 
 
-@pytest.mark.parametrize("path", ["/", "/assets", "/effect", "/policy", "/settings"])
+@pytest.mark.parametrize(
+    "path", ["/", "/cost", "/assets", "/effect", "/policy", "/settings"]
+)
 def test_asof_is_kept_across_pages_and_period_tabs(today_client, path):
     """状態のページとデータと設定でも、URL の基準日を消さずに引き継ぐ。"""
     links = _links(_html(today_client, path, asof=ASOF, period="28"))
     assert links and all(f"asof={ASOF}" in href for href in links), links
-    if path in ("/", "/assets"):
-        # アプリ名・ナビの 2 画面・28 日のタブ
-        assert sum("period=28" in h for h in links) == 4
+    if path in ("/", "/cost", "/assets"):
+        # アプリ名・ナビの 3 画面・28 日のタブ
+        assert sum("period=28" in h for h in links) == 5
 
 
 def test_without_asof_links_have_no_asof(today_client):

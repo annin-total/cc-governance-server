@@ -67,6 +67,17 @@ def usd(value: Any, whole: Optional[bool] = None) -> str:
     return "$" + _scaled(float_value, 2, whole)
 
 
+def usd_signed(value: Any, whole: Optional[bool] = None) -> str:
+    """金額の増減。符号は `signed` と同じ（0 は ±、マイナスは U+2212）。"""
+    float_value = _to_float(value)
+    if float_value is None:
+        return EM_DASH
+    body = "$" + _scaled(abs(float_value), 2, whole)
+    if round(float_value, 2) == 0:
+        return "±" + body
+    return ("+" if float_value > 0 else "−") + body
+
+
 def usd_full(value: Any) -> str:
     return usd(value, False)
 

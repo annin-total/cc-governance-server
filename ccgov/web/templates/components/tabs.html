@@ -20,7 +20,7 @@
   {%- if t.chart %}
   <div class="p-chart">{{ tab_chart(t.chart) }}</div>
   {%- endif %}
-  {{ table(t, not switches) }}
+  {{ table(t, not switches, t.fold) }}
   {%- endif %}
   {%- if t.note %}
   <p class="note">{{ t.note }}</p>

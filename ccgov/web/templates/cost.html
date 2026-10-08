@@ -1,0 +1,4 @@
+{% set here = "admin.cost_view" %}
+{% extends "screen.html" %}
+{% from "components/period.html" import switcher, span as period_span, stale %}
+{% block head_actions %}<div class="head-act">{{ switcher(period, "admin.cost_view", keep_asof) }}{{ period_span(span, cal, "admin.cost_view", {} if period == PERIOD_DEFAULT else {"period": period}) }}{{ stale(csv_stale, keep_asof) }}</div>{% endblock %}
