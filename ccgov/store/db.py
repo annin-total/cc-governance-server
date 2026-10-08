@@ -34,10 +34,11 @@ _SERVER_DDL = (
         " source_file VARCHAR(255) NOT NULL, row_count INTEGER NOT NULL,"
         " imported_day INTEGER NOT NULL)"
     ),
-    # 編集と削除で 1 行を指すため、例外として乱数の識別子を主キーに持つ（自動採番は方言で分かれる）
+    # 編集と削除で 1 行を指すため、例外として乱数の識別子を主キーに持つ（自動採番は方言で分かれる）。
+    # seq は作った順（同じ秒に作った行を並べる）
     (
         "CREATE TABLE IF NOT EXISTS summaries (id VARCHAR(32) PRIMARY KEY,"
-        " created INTEGER NOT NULL, updated INTEGER NOT NULL, asof INTEGER NOT NULL,"
+        " seq INTEGER NOT NULL, created INTEGER NOT NULL, updated INTEGER NOT NULL, asof INTEGER NOT NULL,"
         f" title VARCHAR({SUMMARY_TITLE_MAX}) NOT NULL, body TEXT NOT NULL)"
     ),
 )

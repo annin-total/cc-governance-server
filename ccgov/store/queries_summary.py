@@ -6,8 +6,8 @@ from ccgov.store import db
 
 COLUMNS = ("id", "created", "updated", "asof", "title", "body")
 _SELECT = f"SELECT {', '.join(COLUMNS)} FROM summaries"
-# 同じ秒に作った行の並びも決める
-_NEWEST = " ORDER BY created DESC, id DESC"
+# 作成時刻の新しい順。同じ秒に作った行は作った順（seq は作るたびに 1 つ増える）
+_NEWEST = " ORDER BY created DESC, seq DESC"
 
 
 def _write(conn, sql: str, params: tuple) -> None:
@@ -21,9 +21,14 @@ def _write(conn, sql: str, params: tuple) -> None:
 
 
 def insert(conn, row: tuple) -> None:
-    """`COLUMNS` の順の値を 1 行入れる。"""
+    """`COLUMNS` の順の値を 1 行入れ、作った順（`seq`）を今の最大の次にする。"""
     marks = ", ".join("?" for _ in COLUMNS)
-    _write(conn, f"INSERT INTO summaries ({', '.join(COLUMNS)}) VALUES ({marks})", row)
+    _write(
+        conn,
+        f"INSERT INTO summaries ({', '.join(COLUMNS)}, seq)"
+        f" SELECT {marks}, COALESCE(MAX(seq), 0) + 1 FROM summaries",
+        row,
+    )
 
 
 def update(conn, sid: str, asof: int, title: str, body: str, updated: int) -> None:

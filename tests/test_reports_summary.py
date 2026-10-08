@@ -17,7 +17,15 @@ def _columns(conn) -> list:
 
 
 def test_init_creates_the_summary_table_with_an_identifier(db_conn):
-    assert _columns(db_conn) == ["id", "created", "updated", "asof", "title", "body"]
+    assert _columns(db_conn) == [
+        "id",
+        "seq",
+        "created",
+        "updated",
+        "asof",
+        "title",
+        "body",
+    ]
 
 
 def test_init_twice_keeps_the_rows(db_dsn):
@@ -96,3 +104,19 @@ def test_longest_title_and_body_are_stored_whole(db_conn):
     sid = summary.create(db_conn, values, 20005 * _DAY)
     row = summary.get(db_conn, sid)
     assert (row["title"], row["body"]) == (values["title"], values["body"])
+
+
+def test_rows_made_in_the_same_second_are_newest_first(db_conn):
+    """作成時刻が同じでも、後から作った行を先に並べる。"""
+    titles = [f"t{i}" for i in range(5)]
+    for title in titles:
+        summary.create(db_conn, {**_V, "title": title}, 20005 * _DAY)
+    assert [r["title"] for r in summary.rows(db_conn)] == titles[::-1]
+    assert summary.latest(db_conn)["title"] == titles[-1]
+
+
+def test_update_keeps_the_order_of_creation(db_conn):
+    first = summary.create(db_conn, _V, 20005 * _DAY)
+    second = summary.create(db_conn, _V, 20005 * _DAY)
+    summary.update(db_conn, first, _V, 20006 * _DAY)
+    assert [r["id"] for r in summary.rows(db_conn)] == [second, first]

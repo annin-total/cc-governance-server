@@ -152,3 +152,29 @@ def test_edit_form_shows_the_row_and_saving_updates_it(today_client, known_db):
     assert row["id"] == sid
     assert (row["asof"], row["title"], row["body"]) == (LAST, "直した", "新")
     assert (row["created"], row["updated"]) == (TODAY - 3, TODAY)
+
+
+def test_browser_does_not_block_sending_an_asof_out_of_the_range(today_client):
+    """入力の制約（min・max）でブラウザが送信を止めないよう、フォームは検証をサーバに任せる。"""
+    form = re.search(
+        r'<form\b[^>]*method="post"[^>]*>', html_of(today_client, "/summary/new")
+    )
+    assert " novalidate" in form.group(0)
+
+
+def test_editing_a_row_whose_asof_left_the_range_falls_back_to_the_default(
+    today_client, known_db
+):
+    sid = make(known_db, asof=19000)
+    html = html_of(today_client, f"/summary/{sid}/edit")
+    assert field(html, "asof")["value"] == "2022-01-08"
+    response = save(
+        today_client,
+        f"/summary/{sid}/edit",
+        asof="2022-01-08",
+        title="直した",
+        body="本文",
+    )
+    assert response.status_code == 303
+    [row] = stored(known_db)
+    assert (row["asof"], row["title"]) == (LAST, "直した")

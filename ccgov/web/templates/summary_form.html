@@ -1,5 +1,6 @@
 {# サマリーの作成と編集。下書きを作る・保存はどちらも POST（JS が無くても動く）。本文はプレーンテキストで、改行は CSS で保つ。
-   textarea の開きタグ直後の改行は、本文の先頭の改行をブラウザに捨てさせないため。 #}
+   textarea の開きタグ直後の改行は、本文の先頭の改行をブラウザに捨てさせないため。
+   novalidate は、保存した基準日が選べる範囲の外になった行でも送れるようにするため（範囲の外はサーバが既定に戻す）。 #}
 {% extends "base.html" %}
 {% block content %}
 <section class="panel section" aria-labelledby="sm-form-title">
@@ -10,7 +11,7 @@
   {%- if notice %}
   <p class="notice ok">{{ notice }}</p>
   {%- endif %}
-  <form class="sm-form" method="post" action="{{ url_for('admin.summary_edit', sid=sid) if sid else url_for('admin.summary_new') }}">
+  <form class="sm-form" method="post" novalidate action="{{ url_for('admin.summary_edit', sid=sid) if sid else url_for('admin.summary_new') }}">
     <input type="hidden" name="csrf" value="{{ csrf_token() }}">
     <div class="sm-fields">
       <label>{{ L.SUMMARY.asof }}<input type="date" name="asof" value="{{ values.asof|day }}" min="{{ lo|day }}" max="{{ hi|day }}" required></label>
