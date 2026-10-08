@@ -1,4 +1,4 @@
-"""状態の判定。状態は `ok`・`warn`・`ng`・`neutral` の 4 つに限る。"""
+"""状態の判定。状態は `ok`・`warn`・`ng` の 3 つに限る。"""
 
 from typing import Optional
 

@@ -52,7 +52,6 @@ OPEN_LIST = "一覧"
 EXACT = "正確な値"
 # カードの小さなグラフのツールチップ。2 つの空白の前が見出し、後ろが値（app.js が組む）
 SPARK_TIP = "{day:md}（{day:weekday}）  {value}"
-SPARK_TIP_MONTH = "{day:ym}  {value}"
 # 分布の区間と、状態ごとの帯のツールチップ
 BIN_TIP = "{lo}〜{hi}  {n} 人"
 BAND_TIP = "{state}  {value} · {pct:pct}"
@@ -62,7 +61,7 @@ EMPTY = "条件に合う行はありません。"
 FILTER_GROUP = "区分"
 FOLD_MORE = "さらに表示（残り {} 件）"
 FOLD_CLOSE = "閉じる"
-STATE = {"ok": "正常", "warn": "注意", "ng": "要確認", "neutral": "—"}
+STATE = {"ok": "正常", "warn": "注意", "ng": "要確認"}
 # 概況の状態の絞り込み: 段階 -> 語（「注意以上」は注意と要確認）。当たらないカードを薄くする
 STATE_FILTER = {"all": ALL, "warn": "注意以上", "ng": STATE["ng"]}
 STATE_FILTER_GROUP = "状態で絞り込む"

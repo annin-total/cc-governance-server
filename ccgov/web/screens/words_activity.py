@@ -76,7 +76,7 @@ COL = {
     "skill_n": "スキル", "skill_top": "よく使うスキル", "command_n": "コマンド", "command_top": "よく使うコマンド",
     "external_n": "外部ツール", "external_top": "よく使う外部ツール", "agent_n": "サブエージェントの起動",
     "call_kind": "種類", "call_name": "名前", "prev_n": "前の件数", "prev_share": "前の割合", "recent_n": "直近の件数",
-    "recent_share": "直近の割合", "prompts_n": "指示",
+    "recent_share": "直近の割合",
 }
 # 呼び出し先の種類
 CALL_KIND = {"skill": "スキル", "command": "コマンド", "external": "外部ツール"}
