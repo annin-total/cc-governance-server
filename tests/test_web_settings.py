@@ -1,5 +1,7 @@
 """「データと設定」のページ（会社の休日の節）の検証。"""
 
+import re
+
 import pytest
 from conftest import ADMIN, csrf_form, table_rows
 
@@ -12,11 +14,38 @@ def _add(client, start, end, name):
     return client.post(ADMIN + "/settings/holidays", data=data)
 
 
-def test_every_page_has_the_entry_at_the_right_of_the_header(today_client):
-    for path in ("/", "/policy", "/effect", "/activity", "/settings"):
-        html = today_client.get(ADMIN + path).get_data(as_text=True)
-        head = html.split("</header>")[0]
-        assert f'href="{ADMIN}/settings"' in head.split('class="bar-end"')[1]
+@pytest.mark.parametrize(
+    "path, current",
+    [
+        ("/", None),
+        ("/cost", None),
+        ("/policy", None),
+        ("/effect", None),
+        ("/activity", None),
+        ("/collect", None),
+        ("/settings", "/settings"),
+        ("/summary", "/summary"),
+        ("/summary/new", "/summary"),
+    ],
+)
+def test_every_page_has_summary_and_settings_at_the_right_of_the_header(
+    today_client, path, current
+):
+    """ナビの右端に、ページと区切って「サマリー」「データと設定」を並べる。アプリ名は「Claude Code 管理」。"""
+    html = today_client.get(ADMIN + path).get_data(as_text=True)
+    head = html.split("</header>")[0]
+    end = re.findall(
+        r'<a href="([^"]*)"( aria-current="page")?>([^<]*)</a>',
+        head.split('class="bar-end"')[1],
+    )
+    assert [(h, t) for h, _, t in end] == [
+        (f"{ADMIN}/summary", "サマリー"),
+        (f"{ADMIN}/settings", "データと設定"),
+    ]
+    assert [h for h, c, _ in end if c] == ([ADMIN + current] if current else [])
+    assert re.search(r'<a class="brand" href="[^"]*">Claude Code 管理</a>', head)
+    assert re.search(r"<title>[^<]* — Claude Code 管理</title>", head)
+    assert "サマリー" not in head.split('class="bar-end"')[0].split("<nav")[1]
 
 
 def test_empty_page_shows_the_holiday_section(today_client):

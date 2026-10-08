@@ -1,4 +1,4 @@
-"""管理画面の Blueprint。Basic 認証・CSRF の検証・取込の大きさの上限と、6 画面（概況・コストと利用者・利用状況・policy・effect・収集の状態）・データと設定を持つ。"""
+"""管理画面の Blueprint。Basic 認証・CSRF の検証・取込の大きさの上限と、6 画面（概況・コストと利用者・利用状況・policy・effect・収集の状態）・サマリー・データと設定を持つ。"""
 
 import datetime
 import hmac
@@ -28,9 +28,19 @@ from ccgov.reports import (
     period_end,
     policy,
 )
+from ccgov.reports import summary as summary_report
 from ccgov.store import db
 from ccgov.vendor import contract
-from ccgov.web import csrf, csv_files, export, filters, labels, org_csv, settings
+from ccgov.web import (
+    csrf,
+    csv_files,
+    export,
+    filters,
+    labels,
+    org_csv,
+    settings,
+    summary,
+)
 from ccgov.web.screens import activity as activity_screen
 from ccgov.web.screens import collect as collect_screen
 from ccgov.web.screens import cost_page as cost_screen
@@ -158,6 +168,7 @@ def index() -> str:
         period=period.key,
         span=period,
         cal=_calendar(period),
+        summary=_build(summary_report.latest),
     )
 
 
@@ -221,6 +232,20 @@ def assets_moved() -> Response:
     return redirect(url_for("admin.activity_view", **kept), code=301)
 
 
+@admin.route("/summary/new", methods=["GET", "POST"])
+def summary_new():
+    return summary.form(None, _basis())
+
+
+@admin.route("/summary/<sid>/edit", methods=["GET", "POST"])
+def summary_edit(sid: str):
+    return summary.form(sid, _basis())
+
+
+admin.add_url_rule("/summary", "summary_list", summary.page)
+admin.add_url_rule(
+    "/summary/<sid>/delete", "summary_delete", summary.delete, methods=["GET", "POST"]
+)
 admin.add_url_rule("/settings", "settings", settings.page)
 admin.add_url_rule(
     "/settings/holidays", "add_holiday", settings.add_holiday, methods=["POST"]

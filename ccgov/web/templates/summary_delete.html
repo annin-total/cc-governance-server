@@ -1,0 +1,13 @@
+{# サマリーの削除の確認。削除は POST で送る（JS の確認ダイアログに頼らない）。 #}
+{% extends "base.html" %}
+{% block content %}
+<section class="panel section" aria-labelledby="sm-delete-title">
+  <header class="p-head"><h2 id="sm-delete-title">{{ L.SUMMARY.title }}</h2></header>
+  <p class="notice ng">{{ fill(L.SUMMARY.confirm, row) }}</p>
+  <form class="sm-buttons" method="post" action="{{ url_for('admin.summary_delete', sid=row.id) }}">
+    <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+    <button type="submit" class="btn">{{ L.SUMMARY.confirm_button }}</button>
+    <a href="{{ url_for('admin.summary_list', **keep_asof) }}">{{ L.SUMMARY.back }}</a>
+  </form>
+</section>
+{% endblock %}

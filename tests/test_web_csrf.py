@@ -20,6 +20,9 @@ _POSTS = (
     ("/settings/csv/delete", {"file": "cost.csv"}),
     ("/settings/org", {"month": "2026-08"}),
     ("/settings/org/20699/delete", {}),
+    ("/summary/new", {"action": "save", "body": "x"}),
+    ("/summary/" + "0" * 32 + "/edit", {"action": "save", "body": "x"}),
+    ("/summary/" + "0" * 32 + "/delete", {}),
 )
 
 

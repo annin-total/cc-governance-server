@@ -26,10 +26,10 @@ def _capture_context(module, monkeypatch, path):
         captured["keys"] = set(context)
         return ""
 
-    from ccgov.web import admin, settings
+    from ccgov.web import admin, settings, summary
 
-    monkeypatch.setattr(admin, "render_template", _fake_render)
-    monkeypatch.setattr(settings, "render_template", _fake_render)
+    for view_module in (admin, settings, summary):
+        monkeypatch.setattr(view_module, "render_template", _fake_render)
     response = admin_client(module.app).get(ADMIN + path)
     assert response.status_code == 200, f"{path} が 200 で返らない"
     assert captured, f"{path} が render_template を呼んでいない"
@@ -66,6 +66,8 @@ def _referenced_names(env, template_name, seen=None):
         "/activity",
         "/activity?period=12m",
         "/settings",
+        "/summary",
+        "/summary/new",
     ],
 )
 def test_every_context_variable_is_referenced(today_app, monkeypatch, path):

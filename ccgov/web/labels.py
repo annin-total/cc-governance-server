@@ -11,10 +11,12 @@ from ccgov.constants import (
     LONG_MONTHS,
     POLICY_DAYS,
     ROSTER_UNLISTED_DAYS,
+    SUMMARY_BODY_MAX,
+    SUMMARY_TITLE_MAX,
 )
 from ccgov.metrics.windows import KEYS, LONG_KEY
 
-APP = "Claude Code 利用状況"
+APP = "Claude Code 管理"
 ASOF = "{} 時点"
 # 今日の時点で数える画面のカードを概況に写すとき、値の下の 1 行の頭に添える
 AT_SUB = ASOF.format("{at:md}") + " · "
@@ -29,8 +31,19 @@ SCREENS = {
     "admin.effect_view": ("設定の効果", "設定を守り始めた前後で、セッションの大きさとコストはどう並ぶか"),
     "admin.collect_view": ("収集の状態", "記録が欠けずに届き、利用明細と合っているか"),
 }
-# 見出し帯の右端の入口: endpoint -> (見出し, 説明)
-PAGES = {"admin.settings": ("データと設定", "利用明細（CSV）の取り込み、月ごとの全ログの書き出し、営業日の数え方に使う会社の休日")}
+# 見出し帯の右端の入口（ENTRIES。ページと区切る）と、入口の下のページ: endpoint -> (見出し, 説明)
+_SUMMARY_FORM = ("サマリーの作成と編集", "基準日の概況のうち、注意・要確認のカードを下書きにできます")
+PAGES = {
+    "admin.summary_list": ("サマリー", "週ごとのまとめ · 作成日の新しい順 · 行を押すと本文が開きます"),
+    "admin.summary_new": _SUMMARY_FORM,
+    "admin.summary_edit": _SUMMARY_FORM,
+    "admin.summary_delete": ("サマリーの削除", "削除したサマリーは元に戻せません"),
+    "admin.settings": ("データと設定", "利用明細（CSV）の取り込み、月ごとの全ログの書き出し、営業日の数え方に使う会社の休日"),
+}
+ENTRIES = ("admin.summary_list", "admin.settings")
+# 入口の下のページ -> 見出し帯で現在地にする入口
+ENTRY_OF = {"admin.summary_new": "admin.summary_list", "admin.summary_edit": "admin.summary_list",
+            "admin.summary_delete": "admin.summary_list"}
 
 NAV = "画面"
 DETAIL = "詳しい一覧"
@@ -232,8 +245,33 @@ BASIS_NOTE = {
 }
 UNIT = {"person": "人", "item": "件", "pt": "pt", "times": "回", "day": "日"}
 
+# サマリー
+SUMMARY = {
+    "title": "サマリー", "lead": "本文はプレーンテキストです。作成日と更新日は保存したときに付きます。",
+    "new": "作成", "edit": "編集", "delete": "削除", "empty": "サマリーはありません。",
+    "created": "作成日", "name": "タイトル", "asof": "基準日", "updated": "更新日", "body": "本文",
+    "form_lead": "基準日は利用明細の最終日まで · 下書きは概況のカードだけから作ります",
+    "draft": "下書きを作る", "save": "保存", "back": "一覧に戻る",
+    "draft_note": "下書きを作ると、本文を基準日の概況の注意・要確認のカードで置き換えます。"
+                  "指示やセッションの数などの規模の数字は入りません。要るときは手で書いてください。",
+    "draft_none": "基準日の概況に、注意・要確認のカードはありません。本文は変えていません。",
+    "confirm": "「{title}」（作成 {created:day}）を削除します。よろしいですか。", "confirm_button": "削除する",
+    # 概況の先頭: 見出しの横と、右端の入口
+    "at": "基準日 {asof:md} の値 · 作成 {created:day}", "to_list": "一覧へ",
+}
+# 既定のタイトル（日付は基準日までの既定の期間）
+SUMMARY_TITLE = "週次サマリー（{start:md}〜{end:md}）"
+SUMMARY_ERROR = {
+    "title": f"タイトルは {SUMMARY_TITLE_MAX} 文字までにしてください。",
+    "body": f"本文を 1〜{SUMMARY_BODY_MAX} 文字で入力してください。",
+}
+# 下書きの 1 行。判定に使った数字は、前との率か、要確認と注意の人数
+SUMMARY_LINE = "・{state} · {label}{value}{detail}"
+SUMMARY_DETAIL = "（{}）"
+SUMMARY_DELTA = "前との率 {}"
+SUMMARY_SEP = "・"
+
 # データと設定: 会社の休日
-SETTINGS_ENTRY = PAGES["admin.settings"][0]
 HOLIDAY = {
     "title": "会社の休日",
     "lead": "営業日は、平日から国民の祝日と会社の休日を除いた日です。月末のコストの見込みと今月のコストで使います。",

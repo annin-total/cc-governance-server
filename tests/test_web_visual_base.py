@@ -10,7 +10,14 @@ from ccgov.web import text
 
 STATIC = Path(__file__).resolve().parent.parent / "ccgov" / "web" / "static"
 TEMPLATES = STATIC.parent / "templates"
-SHEETS = ("tokens.css", "layout.css", "components.css", "charts.css", "calendar.css")
+SHEETS = (
+    "tokens.css",
+    "layout.css",
+    "components.css",
+    "charts.css",
+    "calendar.css",
+    "summary.css",
+)
 FONT_STEPS = {12, 14, 16, 22, 40}
 
 
@@ -115,6 +122,7 @@ def test_opened_row_is_not_bold_and_only_the_row_is_shaded():
     assert "font-weight" not in opened
     assert "background" in _decls("components.css", ".m-item[open] summary")
     assert "background" not in _decls("components.css", ".m-tables")
+    assert "background" not in _decls("summary.css", ".sm-list .sm-text")
 
 
 @pytest.mark.parametrize("path", ["/", "/policy", "/effect", "/activity"])

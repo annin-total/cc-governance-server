@@ -4,7 +4,7 @@ import sqlite3
 from urllib.parse import urlparse
 
 from ccgov.config import db_dsn
-from ccgov.constants import ROSTER_TEXT_MAX
+from ccgov.constants import ROSTER_TEXT_MAX, SUMMARY_TITLE_MAX
 from ccgov.vendor.contract import (
     CSV_COLUMNS,
     ERROR_COLUMNS,
@@ -33,6 +33,13 @@ _SERVER_DDL = (
         "CREATE TABLE IF NOT EXISTS org_roster_files (month INTEGER NOT NULL,"
         " source_file VARCHAR(255) NOT NULL, row_count INTEGER NOT NULL,"
         " imported_day INTEGER NOT NULL)"
+    ),
+    # 編集と削除で 1 行を指すため、例外として乱数の識別子を主キーに持つ（自動採番は方言で分かれる）。
+    # seq は作った順（同じ秒に作った行を並べる）
+    (
+        "CREATE TABLE IF NOT EXISTS summaries (id VARCHAR(32) PRIMARY KEY,"
+        " seq INTEGER NOT NULL, created INTEGER NOT NULL, updated INTEGER NOT NULL, asof INTEGER NOT NULL,"
+        f" title VARCHAR({SUMMARY_TITLE_MAX}) NOT NULL, body TEXT NOT NULL)"
     ),
 )
 

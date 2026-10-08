@@ -1,10 +1,16 @@
 {% set here = "admin.index" %}
 {% extends "base.html" %}
-{#- 概況: 専用ページのカードを 1 つの格子に流す。カードを押すと専用ページのタブへ、期間（期間のページだけ）と基準日を引き継いで移る -#}
+{#- 概況: 先頭に最新のサマリー（無ければ出さない）。専用ページのカードを 1 つの格子に流す。カードを押すと専用ページのタブへ、期間（期間のページだけ）と基準日を引き継いで移る -#}
 {% from "components/period.html" import switcher, span as period_span, stale %}
 {% from "components/card.html" import card, state_filter %}
 {% block head_actions %}<div class="head-act">{{ state_filter() }}{{ switcher(period, "admin.index", keep_asof) }}{{ period_span(span, cal, "admin.index", {} if period == PERIOD_DEFAULT else {"period": period}) }}{{ stale(csv_stale, keep_asof) }}</div>{% endblock %}
 {% block content %}
+{%- if summary %}
+<section class="sm-top" aria-labelledby="sm-top-title">
+  <div class="sm-head"><h2 class="glabel" id="sm-top-title">{{ summary.title }}<span>{{ fill(L.SUMMARY.at, summary) }}</span></h2><a class="sm-go" href="{{ url_for('admin.summary_list', **keep_asof) }}">{{ L.SUMMARY.to_list }}</a></div>
+  <div class="sm-box"><div class="sm-text">{{ summary.body }}</div></div>
+</section>
+{%- endif %}
 <div class="kpis">
 {%- for g in view.groups %}
   <section class="group" aria-label="{{ g.label }}">
