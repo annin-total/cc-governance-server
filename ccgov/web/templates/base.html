@@ -1,8 +1,8 @@
 {#- 別の endpoint から同じ画面を描くとき（取り込みの応答の「データと設定」など）は、子のテンプレートが here を決める -#}
 {%- set here = here | default(request.endpoint) -%}
 {%- set screen_title, screen_lead = L.SCREENS[here] if here in L.SCREENS else L.PAGES[here] -%}
-{#- 期間を持つ画面では、期間を切り替えた状態をナビのリンクに引き継ぐ（既定の期間は URL に付けない） -#}
-{%- set keep = {"period": period} if period and period != PERIOD_DEFAULT else {} -%}
+{#- 選んだ基準日（keep_asof）は全画面のリンクに、期間は期間を持つ画面のリンクに引き継ぐ（既定の期間は URL に付けない） -#}
+{%- set keep = dict(keep_asof, period=period) if period and period != PERIOD_DEFAULT else keep_asof -%}
 <!doctype html>
 <html lang="ja">
 <head>
@@ -19,12 +19,11 @@
   <a class="brand" href="{{ url_for('admin.index', **keep) }}">{{ L.APP }}</a>
   <nav aria-label="{{ L.NAV }}">
     {%- for endpoint, (title, _) in L.SCREENS.items() %}
-    <a href="{{ url_for(endpoint, **(keep if endpoint in PERIOD_SCREENS else {})) }}"{% if endpoint == here %} aria-current="page"{% endif %}>{{ title }}</a>
+    <a href="{{ url_for(endpoint, **(keep if endpoint in PERIOD_SCREENS else keep_asof)) }}"{% if endpoint == here %} aria-current="page"{% endif %}>{{ title }}</a>
     {%- endfor %}
   </nav>
   <span class="bar-end">
-    <span class="asof">{{ L.ASOF.format(asof|day) }}</span>
-    <a href="{{ url_for('admin.settings') }}"{% if here == "admin.settings" %} aria-current="page"{% endif %}>{{ L.SETTINGS_ENTRY }}</a>
+    <a href="{{ url_for('admin.settings', **keep_asof) }}"{% if here == "admin.settings" %} aria-current="page"{% endif %}>{{ L.SETTINGS_ENTRY }}</a>
   </span>
 </div></header>
 <main class="wrap">

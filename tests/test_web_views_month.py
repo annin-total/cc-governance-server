@@ -58,13 +58,17 @@ def test_forecast_is_dash_before_the_minimum_business_days(today_app, monkeypatc
     assert "実績 $0.00 · 2 / 22 営業日" in card(html, LABEL)
 
 
-def test_month_without_csv(today_app, monkeypatch):
-    """今月（11 月）の CSV がまだ無ければ、見込みは「—」で、その旨を書く。前月の線は出す。"""
-    html = _html(_client_on(today_app, monkeypatch, 20035))  # 2024-11-08
+def test_month_follows_the_period_end(today_app, monkeypatch, known_db):
+    """今日が 11 月でも、利用明細の最終日（10/08）の月を出す。明細が 1 件も無ければ今日の月で「—」とその旨。"""
+    client = _client_on(today_app, monkeypatch, 20035)  # 2024-11-08
+    html = _html(client)
+    assert card_value(html, "月末のコスト見込み（10 月）") == "$56.83"  # 10/09 と同じ
+    known_db.cursor().execute("DELETE FROM cost_daily")
+    known_db.commit()
+    html = _html(client)
     label = "月末のコスト見込み（11 月）"
     assert card_value(html, label) == "—"
     assert "今月（11 月）の利用明細はまだありません" in card(html, label)
-    assert "fc-cum-prev" in card(html, label)
 
 
 def test_month_tab_has_business_day_and_calendar_rows(today_client):

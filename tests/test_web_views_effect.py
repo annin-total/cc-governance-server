@@ -3,7 +3,13 @@
 import importlib
 
 from conftest import ADMIN, admin_client, card, card_value, rows_in_table, table_rows
-from known_data import K, insert_compliant_policy, insert_precompact, seed_effect_data
+from known_data import (
+    EFFECT_END,
+    K,
+    insert_compliant_policy,
+    insert_precompact,
+    seed_effect_data,
+)
 
 from ccgov.constants import REFERENCE_KEY, REFERENCE_VALUE
 from ccgov.reports import effect
@@ -24,7 +30,7 @@ def test_study_table_row_count_matches_query(db_conn):
     """日ごとの表の行数が、クエリの戻り行数と一致する（相対日 0 と分母 0 を除いた数）。前後の区分も数える。"""
     seed_effect_data(db_conn)
     html = _html()
-    expected = effect.event_study(db_conn, K, "60", "aws-bedrock")
+    expected = effect.event_study(db_conn, K, "60", "aws-bedrock", EFFECT_END)
     rows = table_rows(html, "study")
     assert len(rows) == len(expected) > 0
     assert sum(r["tags"] == ["before"] for r in rows) == 13
@@ -61,7 +67,7 @@ def test_effect_page_is_fixed_to_reference_experiment(db_conn, monkeypatch):
     monkeypatch.delitem(policy.SET, REFERENCE_KEY)
     html = _html()
     assert f"{labels.SETTING[REFERENCE_KEY][0]}を {REFERENCE_VALUE} にした前後" in html
-    expected = effect.event_study(db_conn, K, "60", "aws-bedrock")
+    expected = effect.event_study(db_conn, K, "60", "aws-bedrock", EFFECT_END)
     assert len(rows_in_table(html, "study")) == len(expected) > 0
 
 

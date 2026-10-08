@@ -1,6 +1,15 @@
-{# 期間の切り替え（画面の見出しの右）。サーバで描き直すリンクで、JS は開いているタブ（#）を持ち越すだけ。 #}
-{% macro switcher(current, endpoint) -%}
+{# 期間の切り替え（画面の見出しの右）。サーバで描き直すリンクで、JS は開いているタブ（#）を持ち越すだけ。選んだ基準日（keep）を引き継ぐ。 #}
+{% macro switcher(current, endpoint, keep) -%}
 <nav class="chipbar period" aria-label="{{ L.PERIOD_NAV }}">
-  {%- for key, name in L.PERIOD_NAMES.items() %}<a href="{{ url_for(endpoint, period=key) }}"{% if key == current %} aria-current="true"{% endif %} data-period="{{ key }}">{{ name }}</a>{% endfor -%}
+  {%- for key, name in L.PERIOD_NAMES.items() %}<a href="{{ url_for(endpoint, period=key, **keep) }}"{% if key == current %} aria-current="true"{% endif %} data-period="{{ key }}">{{ name }}</a>{% endfor -%}
 </nav>
+{%- endmacro %}
+
+{# 期間の表示。期間のページは「MM/DD〜MM/DD」（12 か月は始まりに年を付ける）、期間を持たないページは「MM/DD 時点」 #}
+{% macro span(p) -%}
+<span class="asof" data-range>{{ p.start|day if p.long else p.start|md }}〜{{ p.end|md }}</span>
+{%- endmacro %}
+
+{% macro at(day) -%}
+<span class="asof" data-range>{{ L.ASOF.format(day|md) }}</span>
 {%- endmacro %}

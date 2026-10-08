@@ -67,7 +67,7 @@ def test_daily_rows_are_split_into_recent_and_previous_weeks(today_client):
     assert len(rows) == 14
     recent = [r["cells"][0][:10] for r in rows if r["tags"] == ["recent"]]
     assert len(recent) == 7
-    assert recent[-1] == "2024-10-03"
+    assert recent[-1] == "2024-10-02"
 
 
 def test_permission_mode_rows(today_client):
@@ -108,9 +108,9 @@ def test_error_table_lists_stage_and_error_type(known_db, today_client):
         "INSERT INTO errors (event_id, ts, day, host, plugin_version, stage,"
         " error_type) VALUES (?, ?, ?, ?, ?, ?, ?)"
     )
-    cur.execute(sql, ("x1", 2, TODAY, "h1", "0.2.0", "sender", "HTTP 403"))
-    cur.execute(sql, ("x2", 1, TODAY, "h2", "0.1.0", "sender", "HTTP 403"))
-    cur.execute(sql, ("x3", 1, TODAY, "h1", "0.1.0", "send", "KeyError"))
+    cur.execute(sql, ("x1", 2, TODAY - 1, "h1", "0.2.0", "sender", "HTTP 403"))
+    cur.execute(sql, ("x2", 1, TODAY - 1, "h2", "0.1.0", "sender", "HTTP 403"))
+    cur.execute(sql, ("x3", 1, TODAY - 1, "h1", "0.1.0", "send", "KeyError"))
     known_db.commit()
 
     html = _html(today_client)

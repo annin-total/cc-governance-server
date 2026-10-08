@@ -9,7 +9,8 @@ from known_data import TODAY
 from ccgov.constants import REFERENCE_KEY
 from ccgov.ingestion.ndjson import ingest
 
-_TS = TODAY * 86400
+# 利用明細の最終日（TODAY の前日）。期間のページは記録もこの日で切る
+_TS = (TODAY - 1) * 86400
 
 
 def _mark(tag: str) -> str:

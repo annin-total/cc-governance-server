@@ -2,7 +2,7 @@
 
 from ccgov.constants import STALE_DAYS
 from ccgov.metrics.windows import around, policy_window_start
-from ccgov.store import db, queries_cost
+from ccgov.store import db
 
 _LATEST_VALUES_SQL = (
     "SELECT user_email, host, prev_value, day, ts FROM ("
@@ -11,12 +11,6 @@ _LATEST_VALUES_SQL = (
     "    FROM policy_state WHERE key_name = ? AND day >= ?"
     ") t WHERE rn = 1"
 )
-
-
-def _cost_window_start(conn, today: int) -> int:
-    """`cost_daily` を数える集計期間の開始日。終了日は `queries_cost.cost_window_end`（空なら `today`）。"""
-    end = queries_cost.cost_window_end(conn, today)
-    return policy_window_start(today if end is None else end)
 
 
 def latest_values(conn, today: int, key_name: str) -> list:
@@ -34,20 +28,18 @@ def csv_imported(conn) -> bool:
 
 
 def denominator_users(conn, today: int) -> set:
-    """準拠率の分母の `user_email` の集合。CSV があれば `cost_daily`、無ければ `policy_state` の集計期間に現れる利用者。"""
+    """準拠率の分母の `user_email` の集合。CSV があれば `cost_daily`、無ければ `policy_state` の、今日で終わる集計期間に現れる利用者。"""
     cur = conn.cursor()
-    if csv_imported(conn):
-        table, start = "cost_daily", _cost_window_start(conn, today)
-    else:
-        table, start = "policy_state", policy_window_start(today)
+    table = "cost_daily" if csv_imported(conn) else "policy_state"
     cur.execute(
-        db.q(f"SELECT DISTINCT user_email FROM {table} WHERE day >= ?"), (start,)
+        db.q(f"SELECT DISTINCT user_email FROM {table} WHERE day >= ?"),
+        (policy_window_start(today),),
     )
     return {row[0] for row in cur.fetchall()}
 
 
 def not_introduced(conn, today: int) -> list:
-    """`cost_daily` の集計期間（`cost_window_end` で終わる）に現れ、`policy_state` の集計期間（今日で終わる）に行が無い利用者。"""
+    """今日で終わる集計期間に `cost_daily` に現れ、`policy_state` に行が無い利用者。"""
     cur = conn.cursor()
     cur.execute(
         db.q(
@@ -58,7 +50,7 @@ def not_introduced(conn, today: int) -> list:
             ") p ON c.user_email = p.user_email"
             " WHERE p.user_email IS NULL ORDER BY c.user_email"
         ),
-        (_cost_window_start(conn, today), policy_window_start(today)),
+        (policy_window_start(today),) * 2,
     )
     return cur.fetchall()
 
@@ -117,15 +109,15 @@ def claude_code_version_distribution(conn, today: int) -> list:
     )
 
 
-def compliance_start_dates(conn, key_name: str, expected_value: str) -> dict:
-    """利用者ごとの準拠開始日（`prev_value` が一致する行の `MIN(day)`）。全期間を見る。"""
+def compliance_start_dates(conn, key_name: str, expected_value: str, end: int) -> dict:
+    """利用者ごとの準拠開始日（`prev_value` が一致する行の `MIN(day)`）。`end` までの全期間を見る。"""
     cur = conn.cursor()
     cur.execute(
         db.q(
             "SELECT user_email, MIN(day) FROM policy_state"
-            " WHERE key_name = ? AND prev_value = ? GROUP BY user_email"
+            " WHERE key_name = ? AND prev_value = ? AND day <= ? GROUP BY user_email"
         ),
-        (key_name, expected_value),
+        (key_name, expected_value, end),
     )
     return dict(cur.fetchall())
 
@@ -145,15 +137,8 @@ def cost_by_user_day(conn, provider: str) -> dict:
     return {(u, d): (c, t) for u, d, c, t in cur.fetchall()}
 
 
-def cost_day_range(conn) -> tuple:
-    """`cost_daily` の最初と最後の `day`（空なら `(None, None)`）。"""
-    cur = conn.cursor()
-    cur.execute(db.q("SELECT MIN(day), MAX(day) FROM cost_daily"))
-    return cur.fetchone()
-
-
-def context_samples(conn, hook_event: str, start_dates: dict) -> list:
-    """利用者ごとに準拠開始日の前後の `(準拠開始日, day, context_tokens, event_id)` を返す。"""
+def context_samples(conn, hook_event: str, start_dates: dict, end: int) -> list:
+    """利用者ごとに準拠開始日の前後（`end` まで）の `(準拠開始日, day, context_tokens, event_id)` を返す。"""
     samples = []
     cur = conn.cursor()
     for user_email, start_day in start_dates.items():
@@ -164,7 +149,7 @@ def context_samples(conn, hook_event: str, start_dates: dict) -> list:
                 " WHERE hook_event = ? AND user_email = ? AND context_tokens IS NOT NULL"
                 "   AND day BETWEEN ? AND ?"
             ),
-            (hook_event, user_email, lo, hi),
+            (hook_event, user_email, lo, min(hi, end)),
         )
         samples.extend((start_day, *row) for row in cur.fetchall())
     return samples

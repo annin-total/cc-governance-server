@@ -27,10 +27,10 @@ def test_without_csv_user_without_the_key_row_is_non_compliant(known_db):
 
 
 def test_one_cost_row_outside_window_keeps_cost_denominator(known_db):
-    """`cost_daily` に 1 行でもあれば、集計期間の外の行だけでも分母は `cost_daily` 側のまま。"""
+    """`cost_daily` に 1 行でもあれば、集計期間の外の行だけでも分母は `cost_daily` 側のまま（今日までの窓に誰もいない）。"""
     _clear_cost(known_db)
     insert_cost_daily(known_db, day=19900, user_email="u20", provider="aws-bedrock")
-    assert policy.compliance_rate(known_db, TODAY, K, "60") == [(0, 1, 0.0)]
+    assert policy.compliance_rate(known_db, TODAY, K, "60") == [(0, 0, None)]
 
 
 def test_csv_imported_reflects_any_cost_row(known_db):

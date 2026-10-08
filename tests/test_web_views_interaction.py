@@ -26,7 +26,7 @@ def test_spark_points_carry_day_and_value(today_client):
         assert hits and all(tip == title for tip, title in hits), label
         assert all(re.fullmatch(r"\d\d/\d\d（.）  \S+" + suffix, t) for t, _ in hits)
     users = re.findall(r'data-tip="([^"]*)"', card(html, "送信した利用者"))
-    assert users[-2:] == ["10/08（火）  2 人", "10/09（水）  0 人"]
+    assert users[-2:] == ["10/07（月）  1 人", "10/08（火）  2 人"]
     cost_tips = re.findall(r'data-tip="([^"]*)"', card(html, "コスト（利用明細）"))
     assert cost_tips[-1] == "10/08（火）  $5.50"
 

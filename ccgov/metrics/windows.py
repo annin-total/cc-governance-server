@@ -34,6 +34,18 @@ def policy_window_start(today: int) -> int:
     return today - POLICY_DAYS + 1
 
 
+def default_end(last_cost: Optional[int], today: int) -> int:
+    """期間のページの終わりの既定。利用明細の最終日（今日より後なら今日）、明細が無ければ今日。"""
+    return today if last_cost is None else min(last_cost, today)
+
+
+def pick(asof: Optional[int], first: Optional[int], last: int) -> Optional[int]:
+    """選んだ基準日が `first`〜`last` に入ればその日、入らなければ None（既定に戻す）。"""
+    if asof is None or first is None or not first <= asof <= last:
+        return None
+    return asof
+
+
 def around(day: int) -> tuple:
     """`day` の前後 `EVENT_STUDY_SPAN` 日の開始日・終了日を返す。"""
     return day - EVENT_STUDY_SPAN, day + EVENT_STUDY_SPAN

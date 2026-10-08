@@ -243,12 +243,11 @@ def test_compliance_rate_is_none_without_cost_users(db_conn):
     assert policy.compliance_rate(db_conn, TODAY, K, "60") == [(0, 0, None)]
 
 
-def test_cost_window_ends_at_last_csv_day(known_db):
-    """CSV の取込が 30 日以上空いても、`cost_daily` 側の集計期間は最終日で終わる（`policy_state` 側は今日）。"""
+def test_cost_window_ends_today(known_db):
+    """`cost_daily` 側の集計期間も今日で終わる。CSV の取込が 30 日以上空けば、分母も未導入も空になる。"""
     later = TODAY + 40
-    assert policy.compliance_rate(known_db, later, K, "60") == [(0, 5, 0.0)]
-    rows = queries_policy.not_introduced(known_db, later)
-    assert [r[0] for r in rows] == ["u1", "u2", "u3", "u4", "u5"]
+    assert policy.compliance_rate(known_db, later, K, "60") == [(0, 0, None)]
+    assert list(queries_policy.not_introduced(known_db, later)) == []
 
 
 def test_claude_code_version_distribution(known_db):

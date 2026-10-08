@@ -1,1 +1,3 @@
 {% extends "screen.html" %}
+{% from "components/period.html" import at as period_at %}
+{% block head_actions %}<div class="head-act">{{ period_at(at) }}</div>{% endblock %}

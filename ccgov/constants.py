@@ -10,6 +10,8 @@ EVENT_STUDY_SPAN = 14
 # 月数の期間は比べずに週ごとに並べる。最初の日数が既定
 PERIOD_DAYS = (RECENT_DAYS, 28)
 LONG_MONTHS = 12
+# 基準日に選べる最初の日は、利用明細の最初の日からこの日数の窓が満ちる日
+ASOF_FILLED_DAYS = max(PERIOD_DAYS)
 
 # 月末のコストの見込みを出すのに要る経過営業日の数（仮の基準）
 FORECAST_MIN_BUSINESS_DAYS = 3
