@@ -26,7 +26,7 @@ def _html(client, query: str = "") -> str:
 
 
 def _delivery(html: str) -> dict:
-    return {r["cells"][1]: r for r in table_rows(html, "user_delivery")}
+    return {r["cells"][1].split()[0]: r for r in table_rows(html, "user_delivery")}
 
 
 def _insert_error(conn, event_id: str, user: str, host: str, stage: str) -> None:

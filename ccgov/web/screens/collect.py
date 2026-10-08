@@ -5,7 +5,7 @@
 
 from ccgov.constants import TABLE_FOLD_ROWS
 from ccgov.web import labels as L
-from ccgov.web.screens import Card, Chip, Col, Screen, Tab, Viz
+from ccgov.web.screens import USER_SEARCH, Card, Chip, Col, Screen, Tab, Viz
 from ccgov.web.screens import words_collect as W
 from ccgov.web.text import LOWER_IS_BETTER as DOWN
 
@@ -32,10 +32,10 @@ CARDS = (
 
 TABS = (
     Tab("user_delivery", "delivery", (
-        Col("status", "delivery", sort=None), Col("email", "user"), Col("recent", "num", label="records", unit="item"),
+        Col("status", "delivery", sort=None), Col("name", "user", label="user"), Col("recent", "num", label="records", unit="item"),
         Col("prev", "num", label="records_prev"), Col("diff", "diff", label="records_diff"), Col("per_day", "dec1", label="records_per_day"),
         Col("last", "last_day", label="last_seen"), Col("billed", "term", label="billed", terms=L.BILLED),
-    ), sort=("recent", "desc"), chips_by="tags", chips=_DELIVERY_CHIPS, search="{email}", fold=_FOLD),
+    ), sort=("recent", "desc"), chips_by="tags", chips=_DELIVERY_CHIPS, search=USER_SEARCH, fold=_FOLD, org=True),
     Tab("health", "health", (
         Col("group", "tag", terms=L.HEALTH_GROUP, sort=None), Col("item", "term", terms=L.HEALTH_ITEM, sort=None),
         Col("now", "measure", label="recv_now", sort=None), Col("prev", "measure_sub", label="recv_prev", sort=None),

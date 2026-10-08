@@ -49,6 +49,13 @@ FILTER_GROUP = "区分"
 FOLD_MORE = "さらに表示（残り {} 件）"
 FOLD_CLOSE = "閉じる"
 STATE = {"ok": "正常", "warn": "注意", "ng": "要確認", "neutral": "—"}
+# 名簿に無い利用者の部署
+UNLISTED = "不明"
+# 部署の絞り込み（ボタンの文言の {} は選んだ最初の部・課と、残りの数）
+ORG_FILTER = {
+    "all": "部署: すべて", "one": "部署: {}", "some": "部署: {} ほか {}", "clear": "すべて解除",
+    "dept": "部", "sec": "課", "no_dept": "（部なし）", "no_sec": "（課なし）", "group": "部署で絞り込む",
+}  # fmt: skip
 WEEKDAYS = "月火水木金土日"
 RECENT = "直近 {period[days]} 日"
 PREV = "前の {period[days]} 日"

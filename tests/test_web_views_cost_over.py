@@ -137,7 +137,8 @@ def _recount(rows: list, basis: str) -> dict:
 def test_every_card_number_recounts_from_the_tab(over_client, query, bases):
     html = html_of(over_client, query)
     rows = table_rows(html, "over_users")
-    assert {t for r in rows for t in r["tags"]} == set(bases)
+    # 状態・区分の軸の id は「軸-区分」の形。基準の軸の id だけを見る
+    assert {t for r in rows for t in r["tags"] if "-" not in t} == set(bases)
     for basis in bases:
         body = card(html, LABEL[basis])
         got = _recount(rows, basis)
@@ -157,25 +158,27 @@ def test_tab_rows_and_columns(over_client):
     html = html_of(over_client)
     head = table_body(html, "over_users").split("</thead>")[0]
     names = [_text(th) for th in re.findall(r"<th\b[^>]*>(.*?)</th>", head, re.DOTALL)]
-    assert names[:5] == ["基準", "前の状態", "今の状態", "区分", "利用者"]
+    assert names[:5] == ["基準", "前の状態", "今の状態", "区分", "利用者 · 部署"]
     rows = table_rows(html, "over_users")
     assert len(rows) == 14
     first = rows[0]["cells"]
-    assert first[:5] == ["日次", "要確認", "要確認", "継続", "u7@example.com"]
+    assert first[:5] == ["日次", "要確認", "要確認", "継続", "u7@example.com 不明"]
     assert "$200.00" in first and "2024-10-07" in first
-    gone = next(r["cells"] for r in rows if r["cells"][4] == "u6@example.com")
+    gone = next(r["cells"] for r in rows if r["cells"][4] == "u6@example.com 不明")
     assert gone[1:4] == ["注意", "正常", "離脱"]
+
+
+def _basis_chips(html: str) -> list:
+    panel = html.split('data-panel="over_users"')[1].split("data-panel=")[0]
+    bar = re.search(r'data-axis="0">(.*?)</div>', panel, re.DOTALL).group(1)
+    return re.findall(r'data-chip="([^"]+)"', bar)
 
 
 def test_tab_chips_are_the_bases_of_the_period(over_client):
     html = html_of(over_client, "?period=28")
     assert len(table_rows(html, "over_users")) == 4
-    panel = html.split('data-panel="over_users"')[1].split("data-panel=")[0]
-    assert re.findall(r'data-chip="([^"]+)"', panel) == ["all", "month"]
-    panel = (
-        html_of(over_client).split('data-panel="over_users"')[1].split("data-panel=")[0]
-    )
-    assert re.findall(r'data-chip="([^"]+)"', panel) == ["all", "day", "week"]
+    assert _basis_chips(html) == ["all", "month"]
+    assert _basis_chips(html_of(over_client)) == ["all", "day", "week"]
 
 
 def test_tab_is_not_shown_for_12_months(over_client):

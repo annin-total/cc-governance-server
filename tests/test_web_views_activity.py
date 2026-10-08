@@ -166,7 +166,7 @@ def test_tabs_in_order(act_client):
 
 def test_user_use_rows(act_client):
     rows = {
-        r["cells"][0]: r["cells"][1:]
+        r["cells"][0].split()[0]: r["cells"][1:]
         for r in table_rows(html_of(act_client), "user_use")
     }
     assert rows["a@example.com"] == [
@@ -207,7 +207,7 @@ def test_user_use_rows(act_client):
 
 def test_user_calls_rows(act_client):
     rows = {
-        r["cells"][0]: r["cells"][1:]
+        r["cells"][0].split()[0]: r["cells"][1:]
         for r in table_rows(html_of(act_client), "user_calls")
     }
     assert rows["a@example.com"] == [

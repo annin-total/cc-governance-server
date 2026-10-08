@@ -1,5 +1,13 @@
-{# 絞り込み（文字入力・区分）と並べ替えつきの表。JS が無くても全行が見える（絞り込みの操作は JS が表示する）。 #}
+{# 絞り込み（文字入力・区分・部署）と並べ替えつきの表。JS が無くても全行が見える（絞り込みの操作は JS が表示する）。 #}
 {% from "components/cells.html" import cell %}
+{% from "components/org.html" import org_filter %}
+
+{#- 区分のチップの 1 つの軸。軸ごとに 1 つを選ぶ（最初が既定） #}
+{% macro chipbar(chips, axis, label) -%}
+<div class="chipbar" role="group" aria-label="{{ label }}" data-axis="{{ axis }}">
+    {%- for c in chips %}<button type="button" data-chip="{{ c.id }}" aria-pressed="{{ 'true' if loop.first else 'false' }}">{% if c.tone %}<i class="dot {{ c.tone }}"></i>{% endif %}{{ c.label }}<b>{{ c.count|num }}</b></button>{% endfor -%}
+  </div>
+{%- endmacro %}
 
 {% macro filters(t) -%}
 <div class="filters" data-filter hidden>
@@ -7,9 +15,13 @@
   <label class="search"><span class="sr">{{ L.SEARCH }}</span><input type="search" placeholder="{{ t.search }}" data-search></label>
   {%- endif %}
   {%- if t.chips %}
-  <div class="chipbar" role="group" aria-label="{{ L.FILTER_GROUP }}">
-    {%- for c in t.chips %}<button type="button" data-chip="{{ c.id }}" aria-pressed="{{ 'true' if loop.first else 'false' }}">{% if c.tone %}<i class="dot {{ c.tone }}"></i>{% endif %}{{ c.label }}<b>{{ c.count|num }}</b></button>{% endfor -%}
-  </div>
+  {{ chipbar(t.chips, 0, L.FILTER_GROUP) }}
+  {%- endif %}
+  {%- for a in t.axes %}
+  {{ chipbar(a.chips, a.axis, a.label) }}
+  {%- endfor %}
+  {%- if t.org %}
+  {{ org_filter(t.org) }}
   {%- endif %}
   {#- 「すべて」の無い区分では、分母も選んだ区分の行の数にする（JS が書き換える） #}
   <span class="count"><b data-shown>{{ t.total|num }}</b> / <span{% if not t.chips_all %} data-total{% endif %}>{{ t.total|num }}</span> {{ t.unit }}</span>
@@ -32,7 +44,8 @@
 </tr></thead>
 <tbody>
 {%- for r in t.rows %}
-<tr data-tags="{{ r.tags }}" data-q="{{ r.q }}"{% if r.key is not none %} data-link="{{ r.key }}"{% endif %}>{% for c in r.cells %}<td class="c-{{ c.col.kind }}{{ ' num' if c.col.num }}" data-v="{{ c.sort }}">{{ cell(c) }}</td>{% endfor %}</tr>
+<tr data-tags="{{ r.tags }}" data-q="{{ r.q }}"{% if r.key is not none %} data-link="{{ r.key }}"{% endif %}
+{%- if r.org %} data-dept="{{ r.org[0] }}"{% if r.org[1] is not none %} data-sec="{{ r.org[1] }}"{% endif %}{% endif %}{% if r.cls %} class="{{ r.cls }}"{% endif %}>{% for c in r.cells %}<td class="c-{{ c.col.kind }}{{ ' num' if c.col.num }}" data-v="{{ c.sort }}">{{ cell(c) }}</td>{% endfor %}</tr>
 {%- endfor %}
 </tbody>
 </table>

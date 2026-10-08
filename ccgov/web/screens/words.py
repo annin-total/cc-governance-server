@@ -103,6 +103,12 @@ CARD = {
     **{f"over_{b}": {"label": f"基準を超えた利用者（{n}）",
                      "cap": (f"{n}の基準 注意 {{USER_COST_ELEVATED[{b}]:usd0}} · 要確認 {{USER_COST_HIGH[{b}]:usd0}}",)}
        for b, n in OVER_BASIS.items()},
+    "conc_depts": {"label": "コストの多い課", "sub": "課ごとの人数の割合とコストの割合", "heads": ("人数", "コスト"),
+                   "tips": ("{name} · 人数  {users:num} 人 · {people_pct:pct}", "{name} · コスト  {cost:usd} · {share:pct}"),
+                   "cap": (("コストの多い順に {TOP_SECTIONS} 課 · ほか {depts[more]:num} 課 · 名簿に無い利用者 {depts[unlisted]:num} 人は並べない"
+                            " · 割合は利用明細にコストがあった利用者のうち"),),
+                   "empty": "depts[listed]",
+                   "cap_empty": ("名簿にいる利用者がいません · 名簿に無い利用者 {depts[unlisted]:num} 人は並べない",)},
     "conc": {"label": "コストの集中", "sub": "利用者ごとのコストの偏り", "bands": ("コスト", "人数"),
              "band_legend": "{name} {people:num} 人 · コストの {cost_pct:pct}",
              "cap": ("期間の基準の状態ごとに、コストと人数の割合を上下にそろえる",)},
@@ -148,25 +154,33 @@ _USER_COST_NOTE = (
     "注意は日次 {USER_COST_ELEVATED[day]:usd0}・週次 {USER_COST_ELEVATED[week]:usd0}・月次 {USER_COST_ELEVATED[month]:usd0} 以上、"
     "要確認は日次 {USER_COST_HIGH[day]:usd0}・週次 {USER_COST_HIGH[week]:usd0}・月次 {USER_COST_HIGH[month]:usd0} 以上です（仮の基準）。"
 )
+_DEPTS_SCOPE = "利用明細 {span} · 部の行は部全体の合算、その下に課（コストの多い順）· 名簿に無い人は「不明」"
+_DEPTS_NOTE = "課で絞っても、部の行は部全体の合算のままです。"
 TAB.update({
     "over_users": {"label": "基準を超えた利用者", "hint": "{over[rows]:count} 行 · 利用明細", "title": "基準を超えた利用者", "unit": "行",
                    "scope": "利用明細 {cost[start]:md}〜{cost[end]:md} と前の {period[days]} 日 · 今か前の期間に注意以上だった利用者 × 基準",
-                   "search": "利用者で絞り込み",
+                   "search": "氏名・メールで絞り込み",
                    "note": "新規・離脱は注意以上への出入りで、新規は今の状態、離脱は前の状態で数えます。注意と要確認の間を移った人は継続です。"
                            "金額は、日次は期間で最も多い 1 日（日付はその日）、週次・月次は期間の合計です。",
                    "na": "12 か月では出しません。基準は 7 日・28 日の期間で判定します。"},
     "user_cost": {"label": "利用者ごとのコスト", "hint": "{billed[recent]:num} 人 · 利用明細", "title": "利用者ごとのコストと順位", "unit": "人",
                   "scope": "利用明細 {cost[start]:md}〜{cost[end]:md} と前の {period[days]} 日 · コストの多い順 · 割合と累積は期間のコストのうち",
-                  "search": "利用者・モデルで絞り込み", "note": _USER_COST_NOTE},
+                  "search": "氏名・メール・モデルで絞り込み", "note": _USER_COST_NOTE},
     "user_cost_year": {"label": "利用者ごとのコスト", "hint": "{billed[recent]:num} 人 · 利用明細", "title": "利用者ごとのコストと順位",
                        "unit": "人", "scope": "利用明細 {cost[start]:day}〜{cost[end]:day} · コストの多い順 · 割合と累積は期間のコストのうち",
-                       "search": "利用者・モデルで絞り込み"},
+                       "search": "氏名・メール・モデルで絞り込み"},
     "models": {"label": "モデル", "hint": "{models[rows]:count} 種類 · 利用明細", "title": "モデルごとのコスト", "unit": "行",
                "scope": "利用明細 {cost[start]:md}〜{cost[end]:md} と前の {period[days]} 日 · 割合は期間のコストのうち · "
                         "キャッシュ読み込みの割合はそのモデルのトークンのうち"},
     "models_year": {"label": "モデル", "hint": "{models[rows]:count} 種類 · 利用明細", "title": "モデルごとのコスト", "unit": "行",
                     "scope": "利用明細 {cost[start]:day}〜{cost[end]:day} · 割合は期間のコストのうち · "
                              "キャッシュ読み込みの割合はそのモデルのトークンのうち"},
+    "depts": {"label": "部署ごと", "hint": "{depts[depts_n]:num} 部 · {depts[secs_n]:num} 課 · 利用明細", "title": "部署ごとの利用者とコスト",
+              "unit": "行", "scope": _DEPTS_SCOPE.format(span="{cost[start]:md}〜{cost[end]:md} と前の {period[days]} 日"),
+              "note": "基準を超えた利用者は注意以上の人数です（7 日は週次、28 日は月次）。" + _DEPTS_NOTE},
+    "depts_year": {"label": "部署ごと", "hint": "{depts[depts_n]:num} 部 · {depts[secs_n]:num} 課 · 利用明細",
+                   "title": "部署ごとの利用者とコスト", "unit": "行",
+                   "scope": _DEPTS_SCOPE.format(span="{cost[start]:day}〜{cost[end]:day}"), "note": _DEPTS_NOTE},
     "months": {"label": "月ごとの推移", "hint": "{months:count} か月 · 利用明細", "title": "月ごとのコストと利用者", "unit": "月",
                "scope": "利用明細 {cost[start]:day}〜{cost[end]:day} · 暦月 · 端の月は期間の中の日だけ",
                "note": "1 営業日あたりは、その月のコストを、その月の期間の中の営業日の数で割った値です。"},
@@ -175,7 +189,7 @@ COL = {
     "day": "日付", "period": "期間", "users": "利用者数", "sessions": "セッション数", "sessions_bar": "セッション数の比較",
     "total": "合計", "bar": "", "field": "区分", "value": "値", "count": "件数", "share": "割合", "group": "区分",
     "item": "項目", "diff": "差", "state": "状態", "stage": "処理段階",
-    "error_type": "エラーの種類", "version": "最後に起きたバージョン", "status": "状態", "email": "利用者",
+    "error_type": "エラーの種類", "version": "最後に起きたバージョン", "status": "状態", "user": "利用者 · 部署",
     "last_day": "最終報告日", "setting": "設定", "ratio": "適用済み / 対象", "rate": "適用率",
     "kind": "種類", "versions": "バージョン",
     "week": "週の始まり", "month_day": "日付", "n": "営業日", "cost": "その日のコスト", "cum": "今月の累積",
@@ -190,7 +204,7 @@ COL = {
     "source": "定義元", "recent_calls": "呼び出し回数", "prev_calls": PREV, "calls_diff": "差", "recent_users": "利用者数",
     "users_diff": "利用者の差",
     "basis": "基準", "over_prev": "前の状態", "over_now": "今の状態", "over_kind": "区分", "over_amount": "金額", "over_at": "日付",
-    "over_prev_amount": "前の金額",
+    "over_prev_amount": "前の金額", "dept_unit": "部署", "per_user_bd": "1 人 1 営業日あたり", "dept_over": "基準を超えた利用者",
 }
 for _words in (_activity, _policy, _collect, _effect):
     GROUP.update(_words.GROUP)

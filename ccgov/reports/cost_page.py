@@ -12,9 +12,10 @@ from ccgov.constants import (
     USERS_DROP_HIGH,
 )
 from ccgov.metrics import business_days as bd
-from ccgov.metrics import over, rates, series, spend, states
+from ccgov.metrics import depts, over, rates, series, spend, states
+from ccgov.metrics import roster as names
 from ccgov.metrics.windows import Period
-from ccgov.reports import cost, cost_months, cost_users, month
+from ccgov.reports import cost, cost_months, cost_users, month, roster
 from ccgov.store import queries_cost, queries_holidays, queries_spend
 
 
@@ -57,7 +58,8 @@ def _days(conn, w: Period, spent: dict) -> dict:
     found = queries_spend.user_days(conn, w.prev_start, w.end)
     users = cost_users.per_user(found, w.start, w.end)
     models = cost_users.by_user(queries_spend.user_models(conn, w.start, w.end))
-    user_rows = cost_users.rows(users, models, w.days)
+    people = roster.people(conn, w.end)
+    user_rows = names.named(people, cost_users.rows(users, models, w.days))
     company = queries_holidays.between(conn, w.prev_start, w.end)
     totals = {r["day"]: r["total"] for r in spent["spark"]}
     recent = series.total_between(totals, w.start, w.end)
@@ -117,9 +119,14 @@ def _days(conn, w: Period, spent: dict) -> dict:
             "rate": rates.rate(kept, len(prev_users)), "kept": kept, "prev": len(prev_users), "lost": len(prev_users) - kept,
         },
         "conc": cost_users.concentration(user_rows),
-        "over": over.build(found, w.start, w.days),
+        "depts": depts.build(users, people, w.days, days),
+        "over": _named_over(over.build(found, w.start, w.days), people),
         "users": user_rows,
     }  # fmt: skip
+
+
+def _named_over(found: dict, people: dict) -> dict:
+    return {**found, "rows": names.named(people, found["rows"])}
 
 
 def _dist(user_rows: list, days: int) -> dict:
@@ -135,7 +142,8 @@ def _months(conn, w: Period, spent: dict) -> dict:
     found = queries_spend.user_days(conn, w.start, w.end)
     users = cost_users.per_user(found, w.start, w.end)
     models = cost_users.by_user(queries_spend.user_models(conn, w.start, w.end))
-    user_rows = cost_users.rows(users, models, None)
+    people = roster.people(conn, w.end)
+    user_rows = names.named(people, cost_users.rows(users, models, None))
     company = queries_holidays.between(conn, w.start, w.end)
     firsts = queries_spend.first_days(conn, w.start, w.end)
     months = cost_months.rows(spent["months"], found, firsts, company)
@@ -150,6 +158,7 @@ def _months(conn, w: Period, spent: dict) -> dict:
         "billed": {"recent": len(user_rows), "cols": _month_cols(months, "users")},
         "new_users": {"count": len(firsts), "cols": _month_cols(months, "new")},
         "retention": cost_months.retention(months),
+        "depts": depts.build(users, people, None, days),
         "users": user_rows,
         "months": months,
     }  # fmt: skip

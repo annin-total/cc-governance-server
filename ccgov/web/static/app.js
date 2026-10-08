@@ -1,5 +1,5 @@
 "use strict";
-// 画面の操作だけを受け持つ（タブの切り替え・絞り込み・並べ替え・一覧の折りたたみ・ツールチップ・グラフと表の連動・カレンダーの送りと開閉・削除の確認）。中身はサーバが描画済みで、data-* 属性だけを見る。
+// 画面の操作だけを受け持つ（タブの切り替え・絞り込み・部署の絞り込み・並べ替え・一覧の折りたたみ・ツールチップ・グラフと表の連動・カレンダーの送りと開閉・削除の確認）。中身はサーバが描画済みで、data-* 属性だけを見る。
 // 値を HTML として組み立てない（textContent と属性の切り替えだけを使う）。
 (() => {
   document.documentElement.classList.add("js");
@@ -40,13 +40,64 @@
     refold(box);
   }
 
+  // 部署の絞り込み（[data-org]）: 値は [部]・[部, 課] の JSON（名簿に無い利用者は空文字）で、行の data-dept・data-sec と比べる。
+  // 選んだ部・課は URL の dept=・sec= に持ち、ページの中のリンクにも付けて、タブとページをまたいで保つ。
+  // 課を選ぶとその部も選んだ扱いにし、部の中で課を 1 つも選ばなければ部の全課を出す。部の合算の行（data-sec が無い）は部で絞る
+  const parseKey = (key, length) => {
+    // URL から来る値なので、形の合わないものは null にして捨てる
+    try {
+      const v = JSON.parse(key);
+      return Array.isArray(v) && v.length === length ? v : null;
+    } catch (err) {
+      return null;
+    }
+  };
+  const deptOf = (sec) => { const v = parseKey(sec, 2); return v && JSON.stringify([v[0]]); };
+  const query = new URLSearchParams(location.search);
+  const org = {
+    depts: new Set(query.getAll("dept").filter((d) => d === "" || parseKey(d, 1))),
+    secs: new Set(query.getAll("sec").filter(deptOf)),
+  };
+
+  function withOrg(href) {
+    const url = new URL(href);
+    url.searchParams.delete("dept");
+    url.searchParams.delete("sec");
+    for (const d of org.depts) url.searchParams.append("dept", d);
+    for (const s of org.secs) url.searchParams.append("sec", s);
+    return url;
+  }
+  const redraws = [];
+
+  function orgSel() {
+    const depts = new Set(org.depts);
+    const secs = new Map();
+    for (const s of org.secs) {
+      const d = deptOf(s);
+      depts.add(d);
+      secs.set(d, (secs.get(d) || new Set()).add(s));
+    }
+    return { depts, secs };
+  }
+
+  function orgHit(tr, sel) {
+    if (!sel.depts.size || tr.dataset.dept === undefined) return true;
+    if (!sel.depts.has(tr.dataset.dept)) return false;
+    const mine = sel.secs.get(tr.dataset.dept);
+    return tr.dataset.sec === undefined || !mine || mine.has(tr.dataset.sec);
+  }
+
+  const axisOf = (chip) => Number(chip.closest("[data-axis]").dataset.axis);
+
   function filter(panel, state) {
     const q = state.q.toLowerCase();
+    const sel = orgSel();
     const rows = all(panel, "tbody tr");
     let shown = 0;
     for (const tr of rows) {
       const tags = (tr.dataset.tags || "").split(" ");
-      const hit = (state.chip === "all" || tags.includes(state.chip)) && (!q || (tr.dataset.q || "").toLowerCase().includes(q));
+      const chips = state.chips.every((c) => c === "all" || tags.includes(c));
+      const hit = chips && orgHit(tr, sel) && (!q || (tr.dataset.q || "").toLowerCase().includes(q));
       tr.hidden = !hit;
       if (hit) shown += 1;
     }
@@ -54,11 +105,11 @@
     if (counter) counter.textContent = fmt(shown);
     // 「すべて」の無い区分: 分母は選んだ区分の行の数、グラフ（data-when）も区分に合わせて切り替える
     const total = panel.querySelector("[data-total]");
-    if (total) total.textContent = fmt(rows.filter((tr) => (tr.dataset.tags || "").split(" ").includes(state.chip)).length);
-    for (const el of all(panel, "[data-when]")) el.hidden = el.dataset.when !== state.chip;
+    if (total) total.textContent = fmt(rows.filter((tr) => (tr.dataset.tags || "").split(" ").includes(state.chips[0])).length);
+    for (const el of all(panel, "[data-when]")) el.hidden = el.dataset.when !== state.chips[0];
     const empty = panel.querySelector("[data-empty]");
     if (empty) empty.hidden = shown > 0;
-    for (const b of all(panel, "[data-chip]")) b.setAttribute("aria-pressed", String(b.dataset.chip === state.chip));
+    for (const b of all(panel, "[data-chip]")) b.setAttribute("aria-pressed", String(b.dataset.chip === state.chips[axisOf(b)]));
     refoldIn(panel);
   }
 
@@ -84,8 +135,8 @@
   function setup(section) {
     const tabs = all(section, "[data-tab]");
     const panels = all(section, "[data-panel]");
-    const firstChip = (p) => { const c = p.querySelector("[data-chip]"); return c ? c.dataset.chip : "all"; };
-    const states = new Map(panels.map((p) => [p.dataset.panel, { chip: firstChip(p), q: "" }]));
+    const firstChips = (p) => all(p, "[data-axis]").map((g) => g.querySelector("[data-chip]").dataset.chip);
+    const states = new Map(panels.map((p) => [p.dataset.panel, { chips: firstChips(p), q: "" }]));
     const cards = all(document, "[data-open]");
 
     function open(id, chip, fromCard) {
@@ -95,7 +146,7 @@
       for (const c of cards) c.classList.toggle("is-open", Boolean(fromCard) && c.dataset.open === `${target}${chip ? ":" + chip : ""}`);
       const panel = panels.find((p) => p.dataset.panel === target);
       const state = states.get(target);
-      if (chip && panel.querySelector(`[data-chip="${CSS.escape(chip)}"]`)) state.chip = chip;
+      if (chip && panel.querySelector(`[data-axis="0"] [data-chip="${CSS.escape(chip)}"]`)) state.chips[0] = chip;
       filter(panel, state);
     }
 
@@ -115,7 +166,7 @@
         const chip = e.target.closest("[data-chip]");
         const sorter = e.target.closest("[data-sort]");
         if (chip) {
-          state.chip = chip.dataset.chip;
+          state.chips[axisOf(chip)] = chip.dataset.chip;
           for (const c of cards) c.classList.remove("is-open");
           filter(p, state);
         }
@@ -132,7 +183,85 @@
     }
     const [id, chip] = location.hash.slice(1).split(":");
     open(id, chip, Boolean(chip));
+    redraws.push(() => { for (const p of panels) filter(p, states.get(p.dataset.panel)); });
   }
+
+  // 部署の絞り込みの見た目（押したチップ・押せない課・ボタンの文言）と URL を今の選択にそろえ、表を絞り直す。
+  // 選んだ部があれば、その部に入らない課は押せない。ボタンの文言は data-org-* の雛形に、選んだ最初の名前と残りの数を入れる
+  const fillIn = (template, ...values) => { let i = 0; return template.replace(/\{\}/g, () => values[i++]); };
+
+  function orgName(widget, key) {
+    const chip = all(widget, "[data-dept], [data-sec]").find((b) => (b.dataset.dept ?? b.dataset.sec) === key);
+    if (chip) return chip.textContent;
+    if (key === "") return widget.dataset.orgUnk;
+    const v = parseKey(key, 1) || parseKey(key, 2);
+    return v[v.length - 1] ?? "—";
+  }
+
+  function syncOrg() {
+    const sel = orgSel();
+    const keys = [...sel.depts, ...org.secs];
+    for (const w of all(document, "[data-org]")) {
+      for (const b of all(w, "[data-dept]")) b.setAttribute("aria-pressed", String(sel.depts.has(b.dataset.dept)));
+      for (const b of all(w, "[data-sec]")) {
+        b.setAttribute("aria-pressed", String(org.secs.has(b.dataset.sec)));
+        b.disabled = sel.depts.size > 0 && !sel.depts.has(b.dataset.in);
+      }
+      const pressed = all(w, "[data-dept], [data-sec]").filter((b) => b.getAttribute("aria-pressed") === "true");
+      const first = pressed.length ? pressed[0].textContent : keys.length ? orgName(w, keys[0]) : "";
+      w.querySelector("[data-org-toggle]").textContent = !keys.length ? w.dataset.orgAll
+        : keys.length === 1 ? fillIn(w.dataset.orgOne, first) : fillIn(w.dataset.orgSome, first, fmt(keys.length - 1));
+    }
+    history.replaceState(null, "", withOrg(location.href));
+    for (const redraw of redraws) redraw();
+  }
+
+  function closeOrg(except) {
+    for (const w of all(document, "[data-org]")) {
+      if (w === except) continue;
+      w.querySelector("[data-org-panel]").hidden = true;
+      w.querySelector("[data-org-toggle]").setAttribute("aria-expanded", "false");
+    }
+  }
+
+  document.addEventListener("click", (e) => {
+    const w = e.target.closest("[data-org]");
+    closeOrg(w);
+    if (!w) return;
+    const toggle = e.target.closest("[data-org-toggle]");
+    const dept = e.target.closest("[data-dept]");
+    const sec = e.target.closest("[data-sec]");
+    if (toggle) {
+      const box = w.querySelector("[data-org-panel]");
+      box.hidden = !box.hidden;
+      toggle.setAttribute("aria-expanded", String(!box.hidden));
+      return;
+    }
+    if (dept) {
+      const key = dept.dataset.dept;
+      if (orgSel().depts.has(key)) {
+        org.depts.delete(key);
+        for (const s of [...org.secs]) if (deptOf(s) === key) org.secs.delete(s);
+      } else {
+        org.depts.add(key);
+      }
+    } else if (sec) {
+      if (!org.secs.delete(sec.dataset.sec)) org.secs.add(sec.dataset.sec);
+    } else if (e.target.closest("[data-org-clear]")) {
+      org.depts.clear();
+      org.secs.clear();
+    } else {
+      return;
+    }
+    syncOrg();
+  });
+
+  // ページの中のリンク（ナビ・期間・カレンダー）に、選んだ部署を付けて渡す
+  document.addEventListener("click", (e) => {
+    const a = e.target.closest("a[href]");
+    if (!a || a.origin !== location.origin || a.getAttribute("href").startsWith("#")) return;
+    a.href = withOrg(a.href).href;
+  });
 
   // ツールチップ: カードの小さなグラフの点と丸めた値（data-tip）。文言は「見出し  値」で、2 つの空白の前を薄く、後ろを濃く出す。
   // JS が無ければ同じ文言の title が出る。ツールチップを出すときは title を外し、二重に出さない
@@ -255,6 +384,7 @@
   });
   document.addEventListener("keydown", (e) => {
     if (e.key !== "Escape") return;
+    closeOrg(null);
     for (const cal of all(document, "details[data-cal][open]")) {
       cal.open = false;
       cal.querySelector("summary").focus();
@@ -265,6 +395,7 @@
     all(document, "[data-fold]").forEach(setupFold);
     all(document, "details[data-cal]").forEach(setupCal);
     all(document, "[data-tabs]").forEach(setup);
+    if (document.querySelector("[data-org]")) syncOrg();
     for (const el of all(document, "[data-tip]")) {
       el.removeAttribute("title");
       for (const t of all(el, "title")) t.remove();

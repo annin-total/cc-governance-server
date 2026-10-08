@@ -5,7 +5,7 @@ import dataclasses
 from ccgov.constants import TABLE_FOLD_ROWS
 from ccgov.metrics.spend import BASES
 from ccgov.web import labels as L
-from ccgov.web.screens import SAME, Card, Chip, Col, Screen, Tab, Viz
+from ccgov.web.screens import SAME, USER_SEARCH, Axis, Card, Chip, Col, Screen, Tab, Viz
 from ccgov.web.screens import words as W
 from ccgov.web.screens.overview import COST_TAB, MONTH_TAB
 from ccgov.web.text import HIGHER_IS_BETTER as UP
@@ -51,10 +51,11 @@ CARDS = (
          long=Card("retention", "billed", "months", "{retention[rate]:dec1}", viz=_cols("retention[cols]", "dec1"),
                    words="retention_year")),
     Card("conc", "billed", "user_cost", wide=True, viz=Viz("bands", "conc[bands]")),
+    Card("conc_depts", "billed", "depts", wide=True, viz=Viz("secs", "depts[top]"), long=SAME),
 )
 
 _USER_COLS = (
-    Col("rank", "num"), Col("email", "user"), Col("cost", "usd_strong", label="spend"),
+    Col("rank", "num"), Col("name", "user", label="user"), Col("cost", "usd_strong", label="spend"),
 )
 _USER_TAIL = (
     Col("share", "pct", label="spend_share"), Col("cum", "pct", label="cum_share", sort=None),
@@ -63,21 +64,29 @@ _USER_TAIL = (
 )
 _MODEL_HEAD = (Col("model", "text"), Col("cost", "usd_strong", label="spend"), Col("cost", "bar", label="bar", sort=None))
 _MODEL_TAIL = (Col("users", "num", label="model_users", unit="person"), Col("cache", "pct"))
-_SEARCH = "{email} {model}"
+_DEPT_HEAD = (
+    Col("dept", "unit", label="dept_unit", sort=None), Col("users", "num", unit="person", sort=None),
+    Col("cost", "usd_strong", label="spend", sort=None),
+)
+_DEPT_TAIL = (Col("share", "pct", label="spend_share", sort=None), Col("per_user_bd", "usd", sort=None))
+_SEARCH = USER_SEARCH + " {model}"
+_STATES = ("ng", "warn", "ok")
 
 TABS = (
     Tab("user_cost", "users", (
         Col("state", "state"), *_USER_COLS, Col("prev", "usd_sub", label="prev_spend"), Col("diff", "usd_delta", label="spend_diff"),
         Col("rate", "pct_delta", label="spend_rate"), *_USER_TAIL,
-    ), sort=("cost", "desc"), chips_by="state", search=_SEARCH, fold=_FOLD,
-        chips=tuple(Chip(k, L.STATE[k], k) for k in ("ng", "warn", "ok")),
+    ), sort=("cost", "desc"), chips_by="state", search=_SEARCH, fold=_FOLD, org=True,
+        chips=tuple(Chip(k, L.STATE[k], k) for k in _STATES),
         long=Tab("user_cost", "users", (*_USER_COLS, *_USER_TAIL), sort=("cost", "desc"), chips_by="model", search=_SEARCH,
-                 fold=_FOLD, words="user_cost_year")),
+                 fold=_FOLD, org=True, words="user_cost_year")),
     Tab("over_users", "over[rows]", (
         Col("basis", "term", terms=W.OVER_BASIS), Col("prev_state", "state", label="over_prev"), Col("state", "state", label="over_now"),
-        Col("kind", "term", label="over_kind", terms=W.OVER_KIND), Col("email", "user"), Col("amount", "usd_strong", label="over_amount"),
+        Col("kind", "term", label="over_kind", terms=W.OVER_KIND), Col("name", "user", label="user"), Col("amount", "usd_strong", label="over_amount"),
         Col("at", "day", label="over_at"), Col("prev_amount", "usd_sub", label="over_prev_amount"),
-    ), chips_by="basis", chips=tuple(Chip(b, n) for b, n in W.OVER_BASIS.items()), chips_present=True, search="{email}", fold=_FOLD),
+    ), chips_by="basis", chips=tuple(Chip(b, n) for b, n in W.OVER_BASIS.items()), chips_present=True, search=USER_SEARCH, fold=_FOLD,
+        axes=(Axis("state", tuple(Chip(k, L.STATE[k], k) for k in _STATES), "over_now"),
+              Axis("kind", tuple(Chip(k, n) for k, n in W.OVER_KIND.items()), "over_kind")), org=True),
     dataclasses.replace(COST_TAB, fold=_FOLD, long=dataclasses.replace(COST_TAB.long, fold=_FOLD)),
     Tab("models", "models[rows]", (
         *_MODEL_HEAD, Col("share", "pct"), Col("prev", "usd_sub", label="prev_spend"), Col("diff", "usd_delta", label="spend_diff"),
@@ -89,6 +98,10 @@ TABS = (
         Col("day", "month", label="month"), Col("cost", "usd_strong", label="spend"), Col("cost", "bar", label="bar", sort=None),
         Col("users", "num", unit="person"), Col("new", "num", label="new_users", unit="person"), Col("bd", "num"), Col("per_bd", "usd"),
     ), sort=("day", "asc"), fold=_FOLD, only_long=True, long=SAME),
+    Tab("depts", "depts[rows]", (
+        *_DEPT_HEAD, Col("diff", "usd_delta", label="spend_diff", sort=None), Col("rate", "pct_delta", label="spend_rate", sort=None),
+        *_DEPT_TAIL, Col("over", "num", label="dept_over", unit="person", sort=None),
+    ), org=True, long=Tab("depts", "depts[rows]", (*_DEPT_HEAD, *_DEPT_TAIL), org=True, words="depts_year")),
 )
 # fmt: on
 

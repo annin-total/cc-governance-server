@@ -19,9 +19,10 @@
 {%- endif -%}
 {%- endmacro %}
 
-{% macro user(v) -%}
-{%- if v is none -%}{{ sub("—") }}
-{%- else -%}{%- set local, at, domain = v.partition("@") -%}<b class="u-id">{{ local }}</b>{% if at %}<span class="sub">@{{ domain }}</span>{% endif %}
+{#- 利用者: 氏名と、その下に小さく「部 · 課」。触れるとメールアドレス。名簿に無い人はメールアドレスと「不明」 #}
+{% macro user(row) -%}
+{%- if row.listed -%}<span class="who" title="{{ row.email }}"><b>{{ row.name }}</b> <span class="sub">{{ row.dept or "—" }} · {{ row.sec or "—" }}</span></span>
+{%- else -%}<span class="who">{% if row.email is none %}{{ sub("—") }}{% else %}{{ row.email }}{% endif %} <span class="sub">{{ L.UNLISTED }}</span></span>
 {%- endif -%}
 {%- endmacro %}
 
@@ -38,7 +39,8 @@
 {%- if k == "measure" -%}{{ measure(v, row) }}{% if row.ratio %} {{ sub(row.ratio.numerator|num ~ " / " ~ row.ratio.denominator|num ~ " " ~ L.UNIT.person) }}{% endif %}
 {%- elif k == "measure_sub" -%}<span class="sub">{{ measure(v, row) }}</span>
 {%- elif k == "last_day" -%}{{ last_day(v, row) }}
-{%- elif k == "user" -%}{{ user(v) }}
+{%- elif k == "user" -%}{{ user(row) }}
+{%- elif k == "unit" -%}{% if row.level == "sec" %}<span class="unit-sec">{{ row.sec or "—" }}</span>{% elif row.level == "dept" %}{{ row.dept or "—" }}{% else %}{{ L.UNLISTED }}{% endif %}
 {%- elif k == "dot" -%}{{ dot(v) }}
 {%- elif k == "bar" -%}{{ hbar(v) }}
 {%- elif k == "state" -%}{% if v %}{{ mark(v, L.STATE[v]) }}{% else %}{{ sub("—") }}{% endif %}

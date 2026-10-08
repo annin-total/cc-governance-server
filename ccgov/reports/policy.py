@@ -8,6 +8,7 @@ from ccgov.constants import (
     REFERENCE_KEY,
 )
 from ccgov.metrics import compliance, rates, rollup, states, versions
+from ccgov.reports import roster
 from ccgov.store import queries_policy
 from ccgov.vendor import policy
 
@@ -82,7 +83,7 @@ def build(conn, today: int) -> dict:
         "basis": "csv" if queries_policy.csv_imported(conn) else "policy",
         "items": items,
         "lowest": min(rated, key=lambda it: it["rate"])["key"] if rated else None,
-        "users": users,
+        "users": roster.named(conn, users, today),
         "counts": counts,
         "states": {
             "off": states.at_least(counts["off"], NON_COMPLIANT_USERS_HIGH, states.NG),

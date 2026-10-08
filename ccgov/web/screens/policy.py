@@ -5,7 +5,7 @@
 
 from ccgov.constants import TABLE_FOLD_ROWS
 from ccgov.web import labels as L
-from ccgov.web.screens import Card, Chip, Col, Screen, Tab, Viz
+from ccgov.web.screens import USER_SEARCH, Card, Chip, Col, Screen, Tab, Viz
 
 GROUPS = ("set", "ver")
 _USER_CHIPS = tuple(Chip(k, label, tone) for k, (tone, label) in L.USER_STATE.items())
@@ -32,10 +32,10 @@ CARDS = (
 
 TABS = (
     Tab("policy_users", "users", (
-        Col("status", "user_state", sort="rank"), Col("email", "user"), Col("on", "dot", each="items", terms=L.SETTING),
+        Col("status", "user_state", sort="rank"), Col("name", "user", label="user"), Col("on", "dot", each="items", terms=L.SETTING),
         Col("core", "code", label="core_version", sort=None), Col("plugin", "code", label="plugin_version", sort=None),
         Col("day", "last_day", label="last_day"),
-    ), sort=("rank", "asc"), chips_by="tags", chips=_USER_CHIPS, search="{email}", fold=_FOLD),
+    ), sort=("rank", "asc"), chips_by="tags", chips=_USER_CHIPS, search=USER_SEARCH, fold=_FOLD, org=True),
     Tab("policy_settings", "items", (
         Col("key", "setting", label="setting", terms=L.SETTING), Col("numerator", "ratio", label="ratio"), Col("rate", "pct_strong"),
         Col("rate", "bar", label="bar", sort=None, den="100"), Col("off_users", "num", unit="person"),

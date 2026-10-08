@@ -71,3 +71,16 @@ def test_holiday_name_is_escaped(known_db, today_client, page):
     html = today_client.get(ADMIN + page).get_data(as_text=True)
     assert _mark("holiday") not in html
     assert "&lt;script&gt;holiday&lt;/script&gt;" in html
+
+
+@pytest.mark.parametrize("page", ["/cost", "/policy", "/collect", "/activity"])
+def test_roster_names_are_escaped(known_db, today_client, page):
+    """組織 CSV の氏名・部・課も、利用者の列と部署の絞り込みでエスケープされる（属性の値も含む）。"""
+    from names_data import OCT, put
+
+    insert_cost_daily(known_db, day=TODAY - 1, user_email="u1", provider="p", cost=1.0)
+    put(known_db, OCT, (("u1", _mark("name"), _mark("dept"), _mark("sec")),))
+    html = today_client.get(ADMIN + page).get_data(as_text=True)
+    for tag in ("name", "dept", "sec"):
+        assert _mark(tag) not in html
+        assert f"&lt;script&gt;{tag}&lt;/script&gt;" in html

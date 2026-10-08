@@ -4,8 +4,9 @@
 """
 
 from ccgov.metrics import activity, calls, session_size
+from ccgov.metrics import roster as names
 from ccgov.metrics.windows import Period
-from ccgov.reports import overview
+from ccgov.reports import overview, roster
 from ccgov.store import queries_activity
 
 _NO_CALLS = {k: 0 for k in calls.KINDS}
@@ -26,6 +27,7 @@ def build(conn, period: Period) -> dict:
     freq = activity.frequency(days, sessions, period)
     called = calls.build(*queries_activity.calls(conn, period), freq["users"])
     size = session_size.summary(queries_activity.sessions(conn, period))
+    people = roster.people(conn, period.end)
     users = activity.user_rows(days, sessions, size["per_user"], period)
     return {
         "period": period.as_dict(),
@@ -33,7 +35,7 @@ def build(conn, period: Period) -> dict:
         "calls": called,
         "size": size,
         "bypass": activity.bypass(days, period),
-        "user_use": users,
-        "user_calls": _user_calls(users, called["per_user"]),
+        "user_use": names.named(people, users),
+        "user_calls": names.named(people, _user_calls(users, called["per_user"])),
         "usage": overview.usage(conn, period.end, period.days),
     }

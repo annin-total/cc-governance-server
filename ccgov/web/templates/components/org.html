@@ -1,0 +1,18 @@
+{# 部署の絞り込み。ボタンで開くパネルに部と課のチップを並べ、押すと塗られる。開閉と絞り込みは JS が受け持ち、
+   JS が無ければ絞り込みの行ごと出ない（全行が見える）。値は screens/org.py の形で、行の data-dept・data-sec と比べる #}
+{% macro org_filter(o) -%}
+<div class="org" data-org data-org-all="{{ L.ORG_FILTER.all }}" data-org-one="{{ L.ORG_FILTER.one }}" data-org-some="{{ L.ORG_FILTER.some }}" data-org-unk="{{ L.UNLISTED }}">
+<button type="button" class="org-btn" aria-expanded="false" data-org-toggle>{{ L.ORG_FILTER.all }}</button>
+<div class="org-panel" role="group" aria-label="{{ L.ORG_FILTER.group }}" data-org-panel hidden>
+  <div class="org-line"><span class="org-head">{{ L.ORG_FILTER.dept }}</span><div class="org-chips">
+    {%- for d in o.depts %}<button type="button" class="org-chip {{ d.tone }}" data-dept="{{ d.key }}" aria-pressed="false">{{ d.label }}</button>{% endfor -%}
+  </div></div>
+  {%- if o.depts|selectattr("secs")|list %}
+  <div class="org-line"><span class="org-head">{{ L.ORG_FILTER.sec }}</span><div class="org-chips org-secs">
+    {%- for d in o.depts %}{% for s in d.secs %}<button type="button" class="org-chip {{ d.tone }}" data-sec="{{ s.key }}" data-in="{{ d.key }}" aria-pressed="false">{{ s.label }}</button>{% endfor %}{% endfor -%}
+  </div></div>
+  {%- endif %}
+  <button type="button" class="org-clear" data-org-clear>{{ L.ORG_FILTER["clear"] }}</button>
+</div>
+</div>
+{%- endmacro %}
