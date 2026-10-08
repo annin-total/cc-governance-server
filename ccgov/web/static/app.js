@@ -1,11 +1,44 @@
 "use strict";
-// 画面の操作だけを受け持つ（タブの切り替え・絞り込み・並べ替え・ツールチップ・グラフと表の連動・削除の確認）。中身はサーバが描画済みで、data-* 属性だけを見る。
+// 画面の操作だけを受け持つ（タブの切り替え・絞り込み・並べ替え・一覧の折りたたみ・ツールチップ・グラフと表の連動・削除の確認）。中身はサーバが描画済みで、data-* 属性だけを見る。
 // 値を HTML として組み立てない（textContent と属性の切り替えだけを使う）。
 (() => {
   document.documentElement.classList.add("js");
 
   const all = (root, sel) => Array.from(root.querySelectorAll(sel));
   const fmt = (n) => n.toLocaleString("ja-JP");
+
+  // 長い一覧の折りたたみ（data-fold="N"）: 絞り込みで残った行のうち、今の並びの先頭 N 行だけを出し、残りは「さらに表示」で開く。
+  // 絞り込み・並べ替えのたびに数え直し、開閉の状態は保つ。残りが無ければボタンを隠す。文言は data-fold-more・data-fold-close
+  const FOLDABLE = ":scope > table > tbody > tr, :scope > .m-item";
+  const foldButtons = new Map();
+
+  function refold(box) {
+    const btn = foldButtons.get(box);
+    const n = Number(box.dataset.fold);
+    const items = all(box, FOLDABLE);
+    const shown = items.filter((e) => !e.hidden);
+    const open = btn.getAttribute("aria-expanded") === "true";
+    for (const e of items) e.removeAttribute("data-folded");
+    if (!open) for (const e of shown.slice(n)) e.setAttribute("data-folded", "");
+    btn.hidden = shown.length <= n;
+    btn.textContent = open ? box.dataset.foldClose : box.dataset.foldMore.replace("{}", fmt(shown.length - n));
+  }
+
+  function refoldIn(root) {
+    for (const box of all(root, "[data-fold]")) refold(box);
+  }
+
+  function setupFold(box) {
+    const btn = Object.assign(document.createElement("button"), { type: "button", className: "fold-more" });
+    btn.setAttribute("aria-expanded", "false");
+    btn.addEventListener("click", () => {
+      btn.setAttribute("aria-expanded", String(btn.getAttribute("aria-expanded") !== "true"));
+      refold(box);
+    });
+    box.after(btn);
+    foldButtons.set(box, btn);
+    refold(box);
+  }
 
   function filter(panel, state) {
     const q = state.q.toLowerCase();
@@ -26,6 +59,7 @@
     const empty = panel.querySelector("[data-empty]");
     if (empty) empty.hidden = shown > 0;
     for (const b of all(panel, "[data-chip]")) b.setAttribute("aria-pressed", String(b.dataset.chip === state.chip));
+    refoldIn(panel);
   }
 
   function compare(a, b) {
@@ -44,6 +78,7 @@
     const tbody = panel.querySelector("tbody");
     const value = (tr) => tr.children[index].dataset.v || "";
     all(tbody, "tr").sort((a, b) => compare(value(a), value(b)) * dir).forEach((tr) => tbody.appendChild(tr));
+    refoldIn(panel);
   }
 
   function setup(section) {
@@ -193,6 +228,7 @@
   });
 
   document.addEventListener("DOMContentLoaded", () => {
+    all(document, "[data-fold]").forEach(setupFold);
     all(document, "[data-tabs]").forEach(setup);
     for (const el of all(document, "[data-tip]")) {
       el.removeAttribute("title");

@@ -16,9 +16,14 @@
 </div>
 {%- endmacro %}
 
-{% macro table(t, with_filters=true) -%}
+{#- 長い一覧の折りたたみ。`rows` 行を超えるときだけ付け、畳むのは JS（JS が無ければ全行が見える） #}
+{% macro fold_attrs(count, rows) -%}
+{%- if rows and count > rows %} data-fold="{{ rows }}" data-fold-more="{{ L.FOLD_MORE }}" data-fold-close="{{ L.FOLD_CLOSE }}"{% endif %}
+{%- endmacro %}
+
+{% macro table(t, with_filters=true, fold=0) -%}
 {%- if with_filters %}{{ filters(t) }}{% endif %}
-<div class="tscroll">
+<div class="tscroll"{{ fold_attrs(t.rows|length, fold) }}>
 <table data-testid="{{ t.id }}">
 <thead><tr>
 {%- for c in t.cols %}<th scope="col" class="c-{{ c.kind }}{{ ' num' if c.num }}"{% if c.aria %} aria-sort="{{ c.aria }}"{% endif %}>

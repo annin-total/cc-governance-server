@@ -3,6 +3,7 @@
 from flask import Flask
 
 from ccgov.config import Config
+from ccgov.constants import TABLE_FOLD_ROWS
 from ccgov.metrics import windows
 from ccgov.store import db
 from ccgov.web import admin, csrf, filters, ingest_api, labels, text
@@ -32,6 +33,7 @@ def create_app(config: Config) -> Flask:
     app.add_template_global(csrf.token, "csrf_token")
     app.add_template_global(windows.DEFAULT, "PERIOD_DEFAULT")
     app.add_template_global(admin.PERIOD_SCREENS, "PERIOD_SCREENS")
+    app.add_template_global(TABLE_FOLD_ROWS, "TABLE_FOLD_ROWS")
     app.add_url_rule("/ingest", view_func=ingest_api.ingest_endpoint, methods=["POST"])
     app.register_blueprint(admin.admin, url_prefix="/" + config.admin_path)
     app.wsgi_app = strip_base_path(app.wsgi_app, config.base_path)

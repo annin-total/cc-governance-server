@@ -175,6 +175,10 @@ th[aria-sort="descending"] .arrow::after { content: "↓"; opacity: 1; }
 .num-ng { color: var(--ng); }
 .empty { color: var(--muted); font-size: var(--fs-label); padding: var(--sp-l) 0; margin: 0; }
 .empty[hidden] { display: none; }
+[data-folded] { display: none; }
+.fold-more { display: block; margin: var(--sp-s) auto 0; background: none; border: 1px solid var(--rule); border-radius: var(--r-s); font-size: var(--fs-sm); color: var(--ink-2); padding: var(--sp-3xs) var(--sp-l); cursor: pointer; }
+.fold-more:hover { color: var(--ink); border-color: var(--ink-2); }
+.fold-more[hidden] { display: none; }
 
 /* ツールチップ（カードの小さなグラフの点と、丸めた値） */
 .tip { position: fixed; z-index: 10; max-width: var(--tip-max-w); pointer-events: none; padding: var(--sp-2xs) var(--sp-s); background: var(--card); border: 1px solid var(--rule); border-radius: var(--r-s); box-shadow: var(--shadow-tip); font-size: var(--fs-sm); line-height: 1.5; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
