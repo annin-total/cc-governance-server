@@ -48,7 +48,6 @@ svg text { font: var(--fs-xs) var(--sans); fill: var(--muted); font-variant-nume
 .meter.ok i { background: var(--ok); }
 .meter.warn i { background: var(--warn); }
 .meter.ng i { background: var(--ng); }
-.meter.neutral i { background: var(--neutral); }
 .hbar.ghost i { background: var(--ghost); }
 .stack { display: flex; gap: var(--sp-3xs); height: var(--meter-h); border-radius: var(--r-xs); overflow: hidden; }
 .stack i { display: block; }
@@ -164,15 +163,13 @@ th[aria-sort="descending"] .arrow::after { content: "↓"; opacity: 1; }
 .tscroll .num { text-align: right; white-space: nowrap; }
 .tscroll .c-date, .tscroll .c-code { white-space: nowrap; }
 .tscroll .c-bar { width: var(--col-bar); }
-.tscroll .c-user_state, .tscroll .c-terminal_state { width: var(--col-state); }
+.tscroll .c-user_state { width: var(--col-state); }
 .tscroll .c-dot { width: var(--col-on); text-align: center; padding-left: var(--sp-xs); padding-right: var(--sp-xs); }
 .th-sub { display: block; font-weight: 400; font-size: var(--fs-xs); }
 .sub { color: var(--muted); }
 .sub.key { display: block; font-size: var(--fs-xs); }
-.late { color: var(--warn); font-weight: 700; }
 .code { font-family: var(--mono); font-size: var(--fs-sm); }
 .u-id { font-weight: 600; }
-.num-ng { color: var(--ng); }
 .empty { color: var(--muted); font-size: var(--fs-label); padding: var(--sp-l) 0; margin: 0; }
 .empty[hidden] { display: none; }
 [data-folded] { display: none; }

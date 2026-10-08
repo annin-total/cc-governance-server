@@ -15,7 +15,7 @@
 
 {% macro last_day(v, row) -%}
 {%- if v is none -%}{{ sub(L.NO_REPORT) }}
-{%- else -%}{{ v|day }}<span class="sub{{ ' late' if row.late }}"> {{ L.TODAY if row.ago == 0 else L.DAYS_AGO.format(row.ago) }}</span>
+{%- else -%}{{ v|day }}<span class="sub"> {{ L.TODAY if row.ago == 0 else L.DAYS_AGO.format(row.ago) }}</span>
 {%- endif -%}
 {%- endmacro %}
 
@@ -42,13 +42,10 @@
 {%- elif k == "dot" -%}{{ dot(v) }}
 {%- elif k == "bar" -%}{{ hbar(v) }}
 {%- elif k == "state" -%}{% if v %}{{ mark(v, L.STATE[v]) }}{% else %}{{ sub("—") }}{% endif %}
-{%- elif k == "user_state" -%}{{ mark(L.USER_STATE[v][0], L.OFF_ITEMS.format(row.off) if row.off else L.USER_STATE[v][1]) }}
-{%- elif k == "terminal_state" -%}{{ mark(*L.TERMINAL_STATE[v]) }}{% if row.stale and v != "stale" %} {{ mark(*L.TERMINAL_STATE.stale) }}{% endif %}
-{%- elif k == "off_keys" -%}{% if v %}<b class="num-ng">{{ v|length }}</b> {{ sub(v|map("short", col.terms or L.SETTING)|join("、")) }}{% else %}{{ sub("—") }}{% endif %}
+{%- elif k == "user_state" -%}{{ mark(L.USER_STATE[v][0], L.OFF_ITEMS.format(row.off) if row.off else L.USER_STATE[v][1]) }}{% if "old" in row.tags %} {{ mark(*L.USER_STATE.old) }}{% endif %}
 {%- elif k == "top" -%}{% if v %}{{ top(v) }}{% else %}{{ sub("—") }}{% endif %}
 {%- elif k == "call_name" -%}{{ call_name(row) }}
-{%- elif k == "dash_num" -%}{% if v %}{{ v|num }}{% else %}{{ sub("—") }}{% endif %}
-{%- elif v is none -%}{{ sub(L.UNSET if k == "value" else "—") }}
+{%- elif v is none -%}{{ sub("—") }}
 {%- elif k == "num" -%}{{ v|num }}{% if col.unit %} {{ col.unit }}{% endif %}
 {%- elif k == "day" -%}{{ v|day }}
 {%- elif k == "weekday" -%}{{ v|weekday }}
@@ -84,7 +81,7 @@
 {%- elif k == "setting" -%}{{ term(col.terms, v) }} <span class="sub code key">{{ v }}</span>
 {%- elif k == "ratio" -%}{{ v|num }} {{ sub("/ " ~ row.denominator|num ~ " " ~ L.UNIT.person) }}
 {%- elif k == "version" -%}<span class="code">{{ v }}</span>{% if row.latest %} {{ mark("ok", L.LATEST) }}{% endif %}
-{%- elif k == "count_of" -%}{{ v|num }} {{ sub("/ " ~ row.total|num ~ " " ~ L.UNIT.terminal) }}
+{%- elif k == "count_of" -%}{{ v|num }} {{ sub("/ " ~ row.total|num ~ " " ~ L.UNIT.person) }}
 {%- else -%}{{ v }}
 {%- endif -%}
 {%- endmacro %}

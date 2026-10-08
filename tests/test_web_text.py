@@ -44,7 +44,6 @@ def test_term_desc_falls_back_to_value():
     assert text.term_desc(terms, "z") == ("文字", "")
     assert text.term_desc(terms, "w") == ("w", "")
     assert text.term(terms, None) == "—"
-    assert text.short("x", terms) == "説明"
 
 
 def test_signed_md_and_weekday():

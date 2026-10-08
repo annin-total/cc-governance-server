@@ -35,7 +35,6 @@ def create_app(config: Config) -> Flask:
     app.add_template_filter(filters.bin_range, "bin")
     for name in ("usd0", "md", "ym", "weekday", "signed", "signed1", "signed_pct"):
         app.add_template_filter(text.FORMATS[name], name)
-    app.add_template_filter(text.short, "short")
     app.add_template_global(labels, "L")
     app.add_template_global(text.fill, "fill")
     app.add_template_global(text.term, "term")

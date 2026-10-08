@@ -10,7 +10,6 @@ from ccgov.constants import (
     HOLIDAY_RANGE_MAX_DAYS,
     LONG_MONTHS,
     POLICY_DAYS,
-    STALE_DAYS,
 )
 from ccgov.metrics.windows import KEYS, LONG_KEY
 
@@ -23,7 +22,7 @@ SCREENS = {
     "admin.index": ("概況", "全体の利用量と、データの届き具合"),
     "admin.cost_view": ("コストと利用者", "いくらかかり、誰に集まり、何人が使っているか"),
     "admin.activity_view": ("利用状況", "どれだけの頻度で使い、何を呼び出し、セッションはどれだけ大きいか"),
-    "admin.policy_view": ("設定の適用状況", "配布した設定が各端末で有効になっているか"),
+    "admin.policy_view": ("設定の適用状況", "配布した設定と更新が、利用者に行き渡っているか"),
     "admin.effect_view": ("設定の効果", "設定を守り始めた前後で、コンテキストの大きさとコストを比べる"),
 }
 # 見出し帯の右端の入口: endpoint -> (見出し, 説明)
@@ -179,17 +178,16 @@ SETTING = {
     "env.DISABLE_UPDATES": ("更新の無効化を打ち消す", "更新"),
     "env.CLAUDE_CODE_PACKAGE_MANAGER_AUTO_UPDATE": ("パッケージマネージャ経由の自動更新", "パッケージ"),
 }
-USER_STATE = {"off": ("ng", "未適用あり"), "none": ("warn", "未導入"), "stale": ("neutral", "報告停止"), "ok": ("ok", "すべて適用")}
-TERMINAL_STATE = {"off": ("ng", "未適用"), "stale": ("neutral", "報告停止"), "ok": ("ok", "適用")}
+# 利用者の状態（off・none・ok のどれか 1 つ）と、それに重ねる区分（old）
+USER_STATE = {"off": ("ng", "未適用あり"), "none": ("warn", "未導入"), "old": ("warn", "古いバージョン"), "ok": ("ok", "すべて適用")}
 OFF_ITEMS = "未適用 {} 項目"
 DOT = {True: "適用", False: "未適用", None: "報告なし"}
 DOT_LEGEND = {True: "配布した値", False: "違う値か未設定", None: "報告なし（未導入）"}
-UNSET = "未設定"
 NO_REPORT = "報告なし"
 TODAY = "今日"
 DAYS_AGO = "{} 日前"
 LATEST = "最新"
-VERSION_KIND = {"plugin": "プラグイン", "core": "Claude Code 本体"}
+VERSION_KIND = {"core": "Claude Code 本体", "plugin": "プラグイン"}
 BASIS = {
     "csv": f"今日までの {POLICY_DAYS} 日に利用明細（CSV）でコストがある",
     "policy": f"直近 {POLICY_DAYS} 日に設定の報告があった",
@@ -198,7 +196,6 @@ BASIS_NOTE = {
     "csv": "",
     "policy": "CSV を取り込んでいないため、分母は設定の報告があった利用者だけです。プラグインを入れていない人は含みません。",
 }
-STALE_NOTE = f"報告停止 = 最後の報告から {STALE_DAYS} 日以上経った端末。{POLICY_DAYS} 日を過ぎると一覧から外れます。"
 UNIT = {"person": "人", "item": "件", "terminal": "台", "pt": "pt", "times": "回", "day": "日"}
 
 # データと設定: 会社の休日

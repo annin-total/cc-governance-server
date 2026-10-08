@@ -24,12 +24,6 @@ def term_desc(terms: Optional[dict], key: Any) -> tuple:
     return found[0], found[1] if len(found) > 1 else ""
 
 
-def short(key: Any, terms: dict) -> str:
-    """表の列に出す短い名前（表示名の組の最後）。"""
-    found = terms.get(key)
-    return str(key) if found is None else found[-1]
-
-
 def _weekday(value: Any) -> str:
     text = filters.day(value)
     if text == filters.EM_DASH:

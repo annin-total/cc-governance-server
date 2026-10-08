@@ -1,4 +1,6 @@
-"""版の分布の要約。版は数値の並びとして比べる（文字列の比較では 0.10 が 0.9 より古くなる）。"""
+"""バージョンの要約。バージョンは数値の並びとして比べる（文字列の比較では 0.10 が 0.9 より古くなる）。"""
+
+from collections import Counter
 
 
 def version_key(version) -> tuple:
@@ -11,13 +13,34 @@ def version_key(version) -> tuple:
     )
 
 
-def summary(distribution: list) -> dict:
-    """`(版, 台数)` の分布から、最新の版・その台数・全台数・新しい順の分布を返す。"""
-    parts = sorted(distribution, key=lambda vc: version_key(vc[0]), reverse=True)
-    latest, latest_count = parts[0] if parts else (None, 0)
+def _oldest_by_user(rows: list) -> dict:
+    """端末ごとの `(利用者, 端末, バージョン)` から、利用者ごとに最も古いバージョン。バージョンの無い端末は見ない。"""
+    oldest: dict = {}
+    for user_email, _host, version in rows:
+        if version is None:
+            continue
+        if user_email not in oldest or version_key(version) < version_key(
+            oldest[user_email]
+        ):
+            oldest[user_email] = version
+    return oldest
+
+
+def summary(rows: list, users: set) -> dict:
+    """`users` の利用者ごとに最も古いバージョンの分布（新しい順）と、最新でない人数。
+
+    最新は、報告された全端末の中で最も新しいバージョンとする。
+    """
+    latest = max(
+        (v for _, _, v in rows if v is not None), key=version_key, default=None
+    )
+    by_user = {u: v for u, v in _oldest_by_user(rows).items() if u in users}
+    counts = Counter(by_user.values())
+    parts = sorted(counts.items(), key=lambda vc: version_key(vc[0]), reverse=True)
     return {
         "latest": latest,
-        "latest_count": latest_count,
-        "total": sum(count for _, count in parts),
+        "outdated": len(by_user) - counts.get(latest, 0),
+        "total": len(by_user),
         "parts": parts,
+        "by_user": by_user,
     }

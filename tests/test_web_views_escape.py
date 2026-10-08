@@ -4,7 +4,7 @@ import json
 
 import pytest
 from conftest import ADMIN
-from known_data import TODAY
+from known_data import TODAY, insert_cost_daily
 
 from ccgov.constants import REFERENCE_KEY
 from ccgov.ingestion.ndjson import ingest
@@ -25,7 +25,7 @@ _ROWS = (
      "command_source": _mark("src")},
     {"kind": "policy", "event_id": "xss-p1", "ts": _TS, "user_email": _mark("user"),
      "host": _mark("host"), "key_name": REFERENCE_KEY, "value": "60",
-     "prev_value": _mark("prev"), "apply_result": "applied"},
+     "prev_value": _mark("prev"), "apply_result": "applied", "plugin_version": _mark("pver")},
     {"kind": "error", "event_id": "xss-x1", "ts": _TS, "user_email": "x@example.com",
      "stage": _mark("stage"), "error_type": _mark("err"), "plugin_version": _mark("ver")},
 )  # fmt: skip
@@ -35,8 +35,7 @@ _CASES = [
     ("/activity", "cmd"),
     ("/activity", "src"),
     ("/policy", "user"),
-    ("/policy", "host"),
-    ("/policy", "prev"),
+    ("/policy", "pver"),
     ("/", "stage"),
     ("/", "err"),
     ("/", "ver"),
@@ -47,6 +46,14 @@ _CASES = [
 def test_terminal_strings_are_escaped(known_db, today_client, page, tag):
     raw = b"\n".join(json.dumps(row).encode() for row in _ROWS)
     assert ingest(raw, known_db) == {"stored": len(_ROWS), "dropped": 0}
+    # 設定の適用状況に出るのは対象（利用明細のある利用者）だけ
+    insert_cost_daily(
+        known_db,
+        day=TODAY - 1,
+        user_email=_mark("user"),
+        provider="aws-bedrock",
+        cost=1.0,
+    )
 
     html = today_client.get(ADMIN + page).get_data(as_text=True)
 
