@@ -6,7 +6,9 @@ import pytest
 from conftest import ADMIN, csrf_form
 from known_data import insert_cost_daily
 
-from ccgov.store import queries_holidays
+from ccgov.store import queries_holidays, queries_roster
+
+_ROSTER_ROW = {"email": "a@example.com", "name": "A", "department": "D", "section": "S"}
 
 _POSTS = (
     (
@@ -16,6 +18,8 @@ _POSTS = (
     ("/settings/holidays/20700/delete", {}),
     ("/settings/csv", {}),
     ("/settings/csv/delete", {"file": "cost.csv"}),
+    ("/settings/org", {"month": "2026-08"}),
+    ("/settings/org/20699/delete", {}),
 )
 
 
@@ -45,8 +49,9 @@ def test_post_with_token_is_accepted(today_client, known_db):
 
 
 def test_every_form_on_the_pages_carries_the_token(today_client, known_db):
-    """画面の POST のフォームは、すべて同じトークンを隠し項目で送る（取込・ファイルの削除・休日の追加と削除の 4 種）。"""
+    """画面の POST のフォームは、すべて同じトークンを隠し項目で送る（2 つの取込とその削除・休日の追加と削除の 6 種）。"""
     queries_holidays.add(known_db, [20700], "休業")
+    queries_roster.replace(known_db, 20699, "org.csv", [_ROSTER_ROW], 20700)
     insert_cost_daily(known_db, day=20700, user_email="u1", source_file="cost.csv")
     token = today_client.application.config["CSRF_TOKEN"]
     html = today_client.get(ADMIN + "/settings").get_data(as_text=True)
@@ -61,6 +66,8 @@ def test_every_form_on_the_pages_carries_the_token(today_client, known_db):
             "/settings/csv/delete",
             "/settings/holidays",
             "/settings/holidays/20700/delete",
+            "/settings/org",
+            "/settings/org/20699/delete",
         )
     )
     for _, body in forms:

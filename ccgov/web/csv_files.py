@@ -33,9 +33,7 @@ def upload():
 
 
 def too_large(e):
-    """取込の大きさの上限を超えた本文。取込の経路でなければ Flask の既定の 413 のまま返す。"""
-    if request.endpoint != ENDPOINT:
-        return e
+    """取込の大きさの上限を超えた本文。"""
     return settings.render(413, imported=[_rejected(csv_upload.Rejected("large"))])
 
 

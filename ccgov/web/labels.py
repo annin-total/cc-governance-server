@@ -10,6 +10,7 @@ from ccgov.constants import (
     HOLIDAY_RANGE_MAX_DAYS,
     LONG_MONTHS,
     POLICY_DAYS,
+    ROSTER_UNLISTED_DAYS,
 )
 from ccgov.metrics.windows import KEYS, LONG_KEY
 
@@ -119,6 +120,24 @@ CSV_ERROR = {
     "columns": "{detail}",
     "empty": "取り込める行がありません",
     "unknown": "一覧に無いファイルです",
+}
+
+# データと設定: 組織 CSV
+ORG = {
+    "title": "組織 CSV", "lead": "利用者のメールアドレスを業務メールアドレスに突き合わせ、部と課を引きます。名簿は月ごとに取り込みます",
+    "file": "組織 CSV", "month": "対象の年月", "button": "組織 CSV を取り込む",
+    "note": "同じ年月を取り込むと上書きし、前の分は消します。名簿の無い月は前の最新の名簿を使い、前が無ければ後の最初の名簿を使います。"
+            f"名簿に無い利用者は部署を不明として扱います。名簿に無い利用者の数は、利用明細の最終日までの {ROSTER_UNLISTED_DAYS} 日に"
+            "コストがあった人のうち、その月の名簿に無い人です。",
+    "confirm": "{month:ym} の名簿（{source_file}）を削除します。よろしいですか。",
+    "delete": "削除", "empty": "取り込んだ組織 CSV はありません。",
+}
+ORG_DONE = "{file}（{month:ym}）: {rows:num} 行を取り込み（取り込まなかった行 {dropped:num}）"
+ORG_ERROR = {
+    **CSV_ERROR,
+    "month": "対象の年月を YYYY-MM の形で選んでください",
+    "columns": "必須の列がありません: {detail}",
+    "empty": "取り込める行がありません（業務メールアドレスが空・重複の行は取り込みません）",
 }
 
 # データと設定: 書き出す

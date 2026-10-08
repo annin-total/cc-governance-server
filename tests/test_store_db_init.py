@@ -74,13 +74,15 @@ def _assert_expected_indexes(conn) -> None:
 
 @pytest.mark.sqlite_only
 def test_init_creates_contract_and_server_tables(db_conn):
-    """1 回の init() で契約の 4 表（events / policy_state / cost_daily / errors）と、サーバ専用の company_holidays ができる。"""
+    """1 回の init() で契約の 4 表（events / policy_state / cost_daily / errors）と、サーバ専用の 3 表ができる。"""
     assert _table_names(db_conn) == {
         "events",
         "policy_state",
         "cost_daily",
         "errors",
         "company_holidays",
+        "org_roster",
+        "org_roster_files",
     }
 
 

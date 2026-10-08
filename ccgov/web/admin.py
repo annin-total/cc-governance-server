@@ -30,7 +30,7 @@ from ccgov.reports import (
 )
 from ccgov.store import db
 from ccgov.vendor import contract
-from ccgov.web import csrf, csv_files, export, filters, labels, settings
+from ccgov.web import csrf, csv_files, export, filters, labels, org_csv, settings
 from ccgov.web.screens import activity as activity_screen
 from ccgov.web.screens import collect as collect_screen
 from ccgov.web.screens import cost_page as cost_screen
@@ -48,6 +48,11 @@ _KEPT_ARGS = ("period", "asof")
 # `date.fromisoformat` は 3.11 から `20241001` なども受けるため、受け取る形はここで決める
 _ASOF_FORMAT = re.compile(r"[0-9]{4}-[0-9]{2}-[0-9]{2}")
 _EPOCH = datetime.date(1970, 1, 1)
+# 画面からファイルを受け取る経路と、大きさの上限を超えたときの応答
+_UPLOADS = {
+    csv_files.ENDPOINT: csv_files.too_large,
+    org_csv.ENDPOINT: org_csv.too_large,
+}
 
 
 def _build(build: Callable, *args) -> dict:
@@ -62,7 +67,7 @@ def _build(build: Callable, *args) -> dict:
 @admin.before_request
 def _limit_upload() -> None:
     """取込の経路にだけ本文の大きさの上限を掛ける。CSRF の照合が本文を読む前に決めるため、認証より先に登録する。"""
-    if request.endpoint == csv_files.ENDPOINT:
+    if request.endpoint in _UPLOADS:
         request.max_content_length = CSV_UPLOAD_MAX_BYTES
 
 
@@ -230,4 +235,17 @@ admin.add_url_rule(
     "/settings/csv/delete", "delete_csv", csv_files.delete, methods=["POST"]
 )
 admin.add_url_rule("/settings/export/<month>", "export_month", export.download)
-admin.register_error_handler(413, csv_files.too_large)
+admin.add_url_rule("/settings/org", "upload_org", org_csv.upload, methods=["POST"])
+admin.add_url_rule(
+    "/settings/org/<int:month>/delete",
+    "delete_org",
+    org_csv.delete,
+    methods=["POST"],
+)
+
+
+@admin.errorhandler(413)
+def _too_large(e):
+    """取込の経路なら大きさの上限の知らせを描く。ほかは Flask の既定の 413 のまま返す。"""
+    handler = _UPLOADS.get(request.endpoint)
+    return handler(e) if handler else e

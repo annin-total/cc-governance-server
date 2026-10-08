@@ -9,7 +9,7 @@ from flask import Response, current_app, redirect, render_template, request, url
 from ccgov.constants import HOLIDAY_NAME_MAX, HOLIDAY_RANGE_MAX_DAYS
 from ccgov.ingestion import csv_upload
 from ccgov.metrics import calendar
-from ccgov.reports import csv_files, export, holidays
+from ccgov.reports import csv_files, export, holidays, roster
 from ccgov.store import db
 from ccgov.web import charts, labels
 from ccgov.web.screens import Col, Tab, table
@@ -37,6 +37,21 @@ FILES = Tab(
         Col("source_file", "delete_file", label="delete", sort=None),
     ),
     sort=("last", "desc"),
+)
+ROSTERS = Tab(
+    "org_rosters",
+    "rosters",
+    (
+        Col("month", "month", label="org_month", sort=None),
+        Col("source_file", "code", label="org_file", sort=None),
+        Col("rows", "num", label="org_rows", sort=None, unit="item"),
+        Col("depts", "num", sort=None),
+        Col("sections", "num", sort=None),
+        Col("unlisted", "num", sort=None, unit="person"),
+        Col("imported", "day", sort=None),
+        Col("month", "delete_org", label="delete", sort=None),
+    ),
+    sort=("month", "desc"),
 )
 
 
@@ -81,6 +96,7 @@ def _build(conn) -> dict:
         "holidays": holidays.build(conn),
         "files": csv_files.build(conn, csv_dir, csv_upload.stored(csv_dir)),
         "export": export.build(conn),
+        "rosters": roster.build(conn),
     }
 
 
@@ -96,8 +112,9 @@ def render(
     imported=(),
     export_error: str = "",
     form=None,
+    org=(),
 ):
-    """ページ全体を描く。`error`・`form` は休日の知らせと入力、`imported` は取込の結果、`export_error` は書き出しの知らせ。
+    """ページ全体を描く。`error`・`form` は休日の知らせと入力、`imported`・`org` は取込の結果、`export_error` は書き出しの知らせ。
 
     `form` を `request.form` から読まないのは、大きさの上限を超えた取込の応答でも描くため（本文を読むと 413 を繰り返す）。
     """
@@ -109,6 +126,8 @@ def render(
             "empty": labels.HOLIDAY["empty"],
         },
         files={**table.tab(FILES, data["files"]), "empty": labels.IMPORT["empty"]},
+        rosters={**table.tab(ROSTERS, data["rosters"]), "empty": labels.ORG["empty"]},
+        org=org,
         months=_months(data["export"]),
         columns=data["export"]["columns"],
         imported=imported,

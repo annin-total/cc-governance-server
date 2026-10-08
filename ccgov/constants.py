@@ -27,6 +27,10 @@ HOLIDAY_NAME_MAX = 64
 CSV_UPLOAD_MAX_BYTES = 32_000_000
 # 取り込む CSV のファイル名の上限（UTF-8 のバイト数）。`cost_daily.source_file` の桁とファイル名の上限に収める
 CSV_NAME_MAX_BYTES = 255
+# 組織の名簿の業務メールアドレス・氏名・部・課の桁（`org_roster` の VARCHAR の長さ）。長い氏名・部・課はこの桁で切る
+ROSTER_TEXT_MAX = 255
+# 取り込んだ名簿の「名簿に無い利用者」は、利用明細の最終日までのこの日数にコストがあった人で数える
+ROSTER_UNLISTED_DAYS = 30
 # 書き出す ZIP の大きさの目安に使う、表ごとの 1 行あたりの圧縮後のバイト数（合成データで測った値）
 EXPORT_BYTES_PER_ROW = {
     "events": 70,
