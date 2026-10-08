@@ -9,7 +9,7 @@ from typing import Callable, Optional
 from flask import Blueprint, Response, current_app, g, render_template, request
 
 from ccgov.constants import CSV_UPLOAD_MAX_BYTES
-from ccgov.metrics import windows
+from ccgov.metrics import asof_calendar, windows
 from ccgov.reports import assets, effect, overview, period_end, policy
 from ccgov.store import db
 from ccgov.vendor import contract
@@ -73,20 +73,41 @@ def _asof_arg() -> Optional[int]:
 
 
 def _basis() -> dict:
-    """今日・選んだ基準日（範囲の外なら None）・期間のページの終わり。1 リクエストで 1 回だけ数える。"""
+    """今日・選べる範囲（`first`・`last`）・選んだ基準日（範囲の外なら None）・期間のページの終わり。1 リクエストで 1 回だけ数える。"""
     if "basis" not in g:
         today = _today()
         first, last = _build(period_end.bounds, today)
         asof = windows.pick(_asof_arg(), first, last)
-        g.basis = {"today": today, "asof": asof, "end": last if asof is None else asof}
+        end = last if asof is None else asof
+        g.basis = {
+            "today": today,
+            "first": first,
+            "last": last,
+            "asof": asof,
+            "end": end,
+        }
     return g.basis
 
 
 @admin.context_processor
 def _keep_asof() -> dict:
-    """リンクに引き継ぐ基準日。検証済みの日を書き直して付ける（受け取った文字列を URL に戻さない）。"""
-    asof = _basis()["asof"]
-    return {"keep_asof": {} if asof is None else {"asof": filters.day(asof)}}
+    """リンクに引き継ぐ基準日（検証済みの日を書き直して付け、受け取った文字列を URL に戻さない）と、利用明細の古さ。"""
+    b = _basis()
+    asof, last_csv = b["asof"], None if b["first"] is None else b["last"]
+    return {
+        "keep_asof": {} if asof is None else {"asof": filters.day(asof)},
+        "csv_stale": asof_calendar.stale(last_csv, b["today"]),
+    }
+
+
+def _calendar(period: Optional[windows.Period] = None) -> Optional[dict]:
+    """期間のページのカレンダー。利用明細が無ければ None（基準日を選べない）。"""
+    basis = _basis()
+    if basis["first"] is None:
+        return None
+    start = None if period is None else period.start
+    prev = None if period is None else period.start - 1
+    return _build(period_end.calendar, basis, start, prev)
 
 
 def _period_key() -> str:
@@ -104,7 +125,13 @@ def _period() -> windows.Period:
 def index() -> str:
     period = _period()
     screen = view.build(overview_screen.SCREEN, _build(overview.build, period))
-    return render_template("overview.html", view=screen, period=period.key, span=period)
+    return render_template(
+        "overview.html",
+        view=screen,
+        period=period.key,
+        span=period,
+        cal=_calendar(period),
+    )
 
 
 def _today() -> int:
@@ -124,14 +151,20 @@ def effect_view() -> str:
     end = _basis()["end"]
     data = _build(effect.build, end)
     screen = view.build(effect_screen.SCREEN, data)
-    return render_template("effect.html", view=screen, at=end)
+    return render_template("effect.html", view=screen, at=end, cal=_calendar())
 
 
 @admin.route("/assets")
 def assets_view() -> str:
     period = _period()
     screen = view.build(assets_screen.SCREEN, _build(assets.build, period))
-    return render_template("assets.html", view=screen, period=period.key, span=period)
+    return render_template(
+        "assets.html",
+        view=screen,
+        period=period.key,
+        span=period,
+        cal=_calendar(period),
+    )
 
 
 admin.add_url_rule("/settings", "settings", settings.page)

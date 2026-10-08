@@ -27,8 +27,8 @@ def _span(html: str) -> str:
 
 
 def _links(html: str) -> list:
-    """ヘッダーのリンクと期間のタブのリンク。"""
-    act = re.search(r'<div class="head-act">(.*?)</div>', html, re.DOTALL)
+    """ヘッダーのリンクと期間のタブのリンク（カレンダーの日のリンクは test_web_calendar.py で見る）。"""
+    act = re.search(r'<div class="head-act">(.*?)(?:<details|</div>)', html, re.DOTALL)
     head = html.split("<main")[0] + (act.group(1) if act else "")
     return re.findall(r'<a [^>]*href="([^"#]*)"', head)
 

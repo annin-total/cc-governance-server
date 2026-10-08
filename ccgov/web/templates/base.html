@@ -9,7 +9,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{{ screen_title }} — {{ L.APP }}</title>
-{%- for sheet in ("tokens.css", "layout.css", "components.css", "charts.css") %}
+{%- for sheet in ("tokens.css", "layout.css", "components.css", "charts.css", "calendar.css") %}
 <link rel="stylesheet" href="{{ url_for('admin.static', filename=sheet) }}">
 {%- endfor %}
 <script src="{{ url_for('admin.static', filename='app.js') }}" defer></script>

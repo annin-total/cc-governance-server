@@ -10,7 +10,7 @@ from ccgov.web import text
 
 STATIC = Path(__file__).resolve().parent.parent / "ccgov" / "web" / "static"
 TEMPLATES = STATIC.parent / "templates"
-SHEETS = ("tokens.css", "layout.css", "components.css", "charts.css")
+SHEETS = ("tokens.css", "layout.css", "components.css", "charts.css", "calendar.css")
 FONT_STEPS = {12, 14, 16, 22, 40}
 
 

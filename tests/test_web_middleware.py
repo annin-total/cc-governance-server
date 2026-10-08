@@ -66,6 +66,7 @@ def test_stylesheet_is_served_under_base_path(app_with_base_path, base_path):
     names = sorted(href.rsplit("/", 1)[-1] for href in hrefs)
     assert names == [
         "app.js",
+        "calendar.css",
         "charts.css",
         "components.css",
         "layout.css",

@@ -1,5 +1,5 @@
 "use strict";
-// 画面の操作だけを受け持つ（タブの切り替え・絞り込み・並べ替え・一覧の折りたたみ・ツールチップ・グラフと表の連動・削除の確認）。中身はサーバが描画済みで、data-* 属性だけを見る。
+// 画面の操作だけを受け持つ（タブの切り替え・絞り込み・並べ替え・一覧の折りたたみ・ツールチップ・グラフと表の連動・カレンダーの送りと開閉・削除の確認）。中身はサーバが描画済みで、data-* 属性だけを見る。
 // 値を HTML として組み立てない（textContent と属性の切り替えだけを使う）。
 (() => {
   document.documentElement.classList.add("js");
@@ -221,14 +221,49 @@
     if (form && !window.confirm(form.dataset.confirm)) e.preventDefault();
   });
 
-  // 期間の切り替えは、開いているタブ（#タブ:区分）を持ち越す
+  // 期間の切り替えとカレンダーの日は、開いているタブ（#タブ:区分）を持ち越す
   document.addEventListener("click", (e) => {
-    const a = e.target.closest("a[data-period]");
+    const a = e.target.closest("a[data-period], [data-cal] a");
     if (a && location.hash) a.href = a.href.split("#")[0] + location.hash;
+  });
+
+  // カレンダー（details[data-cal]）: サーバが描いた月を 1 つずつ見せる。開閉のたびに選んだ日の月（data-current）に戻す。
+  // JS が無ければ描いた月がすべて並び、送りのボタンは隠れたまま
+  function setupCal(cal) {
+    const months = all(cal, "[data-month]");
+    const moves = all(cal, "[data-cal-move]");
+    const home = Math.max(0, months.findIndex((m) => m.hasAttribute("data-current")));
+    let shown = home;
+    const show = () => {
+      months.forEach((m, i) => { m.hidden = i !== shown; });
+      for (const b of moves) b.disabled = !months[shown + Number(b.dataset.calMove)];
+    };
+    for (const b of moves) {
+      b.hidden = false;
+      b.addEventListener("click", () => { shown += Number(b.dataset.calMove); show(); });
+    }
+    cal.addEventListener("toggle", () => {
+      shown = home;
+      show();
+    });
+    show();
+  }
+
+  // 開いたカレンダーは、外を押すか Esc で閉じる
+  document.addEventListener("click", (e) => {
+    for (const cal of all(document, "details[data-cal][open]")) if (!cal.contains(e.target)) cal.open = false;
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.key !== "Escape") return;
+    for (const cal of all(document, "details[data-cal][open]")) {
+      cal.open = false;
+      cal.querySelector("summary").focus();
+    }
   });
 
   document.addEventListener("DOMContentLoaded", () => {
     all(document, "[data-fold]").forEach(setupFold);
+    all(document, "details[data-cal]").forEach(setupCal);
     all(document, "[data-tabs]").forEach(setup);
     for (const el of all(document, "[data-tip]")) {
       el.removeAttribute("title");

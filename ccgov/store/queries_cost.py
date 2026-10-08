@@ -12,6 +12,18 @@ def day_range(conn) -> tuple:
     return tuple(cur.fetchone())
 
 
+def days(conn, start: int, end: int) -> list:
+    """`start`〜`end` に利用明細の行がある日（昇順）。"""
+    cur = conn.cursor()
+    cur.execute(
+        db.q(
+            "SELECT DISTINCT day FROM cost_daily WHERE day BETWEEN ? AND ? ORDER BY day"
+        ),
+        (start, end),
+    )
+    return [row[0] for row in cur.fetchall()]
+
+
 def cost_window_end(conn, end: int) -> Optional[int]:
     """`cost_daily` を数える集計期間の終了日。`end` と CSV の最終日の早いほう（空なら None）。"""
     _, last_day = day_range(conn)
